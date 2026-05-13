@@ -1,0 +1,7 @@
+@import './fonts.css';
+/* Ionic core CSS — loaded before Tailwind so Tailwind utilities take precedence */
+@import '@ionic/core/css/core.css';
+@import '@ionic/core/css/structure.css';
+
+@import './tailwind.css';
+@import './theme.css';

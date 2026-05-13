@@ -1,0 +1,78 @@
+import { useState } from "react";
+import {
+  setupIonicReact,
+  IonApp,
+  IonPage,
+  IonContent,
+  IonFooter,
+  IonTabBar,
+  IonTabButton,
+  IonLabel,
+} from "@ionic/react";
+import { LayoutGrid, LogIn, UserPlus } from "lucide-react";
+import { LoginScreen } from "./components/LoginScreen";
+import { RegisterScreen } from "./components/RegisterScreen";
+import { ComponentsShowcase } from "./components/ComponentsShowcase";
+
+setupIonicReact({ mode: "md" });
+
+type Screen = "login" | "register" | "components";
+
+const TAB_ITEMS: { id: Screen; label: string; Icon: React.FC<{ size: number }> }[] = [
+  { id: "components", label: "Componentes", Icon: ({ size }) => <LayoutGrid size={size} /> },
+  { id: "login", label: "Login", Icon: ({ size }) => <LogIn size={size} /> },
+  { id: "register", label: "Cadastro", Icon: ({ size }) => <UserPlus size={size} /> },
+];
+
+export default function App() {
+  const [screen, setScreen] = useState<Screen>("components");
+
+  return (
+    <IonApp>
+      <IonPage>
+        <IonContent fullscreen scrollY>
+          {screen === "components" && <ComponentsShowcase />}
+          {screen === "login" && (
+            <LoginScreen onNavigateToRegister={() => setScreen("register")} />
+          )}
+          {screen === "register" && (
+            <RegisterScreen onNavigateToLogin={() => setScreen("login")} />
+          )}
+        </IonContent>
+
+        <IonFooter className="ion-no-border">
+          <IonTabBar
+            style={
+              {
+                "--background": "#0A0A0A",
+                "--border": "1px solid #2D2D2D",
+                "--color": "#737373",
+                "--color-selected": "#FFD700",
+                height: "60px",
+              } as React.CSSProperties
+            }
+          >
+            {TAB_ITEMS.map(({ id, label, Icon }) => (
+              <IonTabButton
+                key={id}
+                tab={id}
+                selected={screen === id}
+                onClick={() => setScreen(id)}
+                style={
+                  {
+                    "--color": screen === id ? "#FFD700" : "#737373",
+                    "--color-selected": "#FFD700",
+                    "--background": "#0A0A0A",
+                  } as React.CSSProperties
+                }
+              >
+                <Icon size={22} />
+                <IonLabel>{label}</IonLabel>
+              </IonTabButton>
+            ))}
+          </IonTabBar>
+        </IonFooter>
+      </IonPage>
+    </IonApp>
+  );
+}
