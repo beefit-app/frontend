@@ -1,11 +1,6 @@
 import { useState, useRef } from "react";
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonButton,
   IonContent,
   IonTextarea,
   IonItem,
@@ -17,8 +12,6 @@ import {
   Flame,
   Dumbbell,
   Scale,
-  Save,
-  X,
   ShieldCheck,
   Clock,
   ChevronRight,
@@ -545,23 +538,34 @@ function ProfileView({ profile, onEdit }: { profile: ProfileData; onEdit: () => 
 
   return (
     <IonPage>
-      <IonHeader className="ion-no-border">
-        <IonToolbar style={TOOLBAR_STYLE}>
-          <IonTitle style={TITLE_STYLE}>Perfil</IonTitle>
-          <IonButtons slot="end">
-            <IonButton fill="clear" onClick={onEdit} style={{ "--color": "#FFD700" } as React.CSSProperties}>
-              <Edit2 size={20} />
-            </IonButton>
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
-
       <IonContent style={CONTENT_STYLE}>
         <div style={{ maxWidth: 430, margin: "0 auto", position: "relative", paddingBottom: 32 }}>
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
             <HexagonPattern />
           </div>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 200, background: "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%)", pointerEvents: "none" }} />
+
+          {/* Edit button — top right of content */}
+          <button
+            onClick={onEdit}
+            style={{
+              position: "absolute",
+              top: 16,
+              right: 16,
+              zIndex: 10,
+              background: "#1A1A1A",
+              border: "1px solid #404040",
+              borderRadius: "50%",
+              width: 38,
+              height: 38,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <Edit2 size={17} color="#FFD700" />
+          </button>
 
           <div style={{ position: "relative", zIndex: 1, padding: "28px 16px 0" }}>
             {/* Avatar + identity */}
@@ -685,22 +689,6 @@ function ProfileEdit({ profile, onSave, onCancel }: {
 
   return (
     <IonPage>
-      <IonHeader className="ion-no-border">
-        <IonToolbar style={TOOLBAR_STYLE}>
-          <IonButtons slot="start">
-            <IonButton fill="clear" onClick={onCancel} style={{ "--color": "#737373" } as React.CSSProperties}>
-              <X size={20} />
-            </IonButton>
-          </IonButtons>
-          <IonTitle style={TITLE_STYLE}>Editar Perfil</IonTitle>
-          <IonButtons slot="end">
-            <IonButton fill="clear" onClick={handleSave} style={{ "--color": "#FFD700" } as React.CSSProperties}>
-              <Save size={20} />
-            </IonButton>
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
-
       <IonContent style={CONTENT_STYLE}>
         <div style={{ maxWidth: 430, margin: "0 auto", padding: "28px 16px 40px", display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ display: "flex", justifyContent: "center" }}>
