@@ -117,7 +117,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
           <img
             src={logoImg}
             alt="BeeFit Logo"
-            className="w-20 h-20 object-contain mb-3"
+            className="w-20 h-20 object-contain mb-3 rounded-lg"
           />
           <h1
             className="text-white leading-none"
