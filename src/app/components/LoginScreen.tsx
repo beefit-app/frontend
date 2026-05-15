@@ -1,5 +1,5 @@
 import { useState } from "react";
-import logoImg from "../../imports/BeeFit_Logo_-_2000_x_2000.png";
+import logoImg from "figma:asset/BeeFit_Logo_-_2000_x_2000.png";
 import { HexagonPattern } from "./HexagonPattern";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
@@ -77,7 +77,7 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
           <img
             src={logoImg}
             alt="BeeFit Logo"
-            className="w-28 h-28 object-contain mb-4 rounded-2xl"
+            className="w-28 h-28 object-contain mb-4"
           />
           <h1
             className="text-white leading-none"

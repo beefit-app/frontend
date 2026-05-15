@@ -1,5 +1,5 @@
 import { useState } from "react";
-import logoImg from "../../imports/BeeFit_Logo_-_2000_x_2000.png";
+import logoImg from "figma:asset/BeeFit_Logo_-_2000_x_2000.png";
 import { HexagonPattern } from "./HexagonPattern";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
