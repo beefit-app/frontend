@@ -9,18 +9,20 @@ import {
   IonTabButton,
   IonLabel,
 } from "@ionic/react";
-import { LayoutGrid, LogIn, UserPlus, User } from "lucide-react";
+import { LayoutGrid, LogIn, Newspaper, UserPlus, User } from "lucide-react";
 import { LoginScreen } from "./components/LoginScreen";
 import { RegisterScreen } from "./components/RegisterScreen";
 import { ComponentsShowcase } from "./components/ComponentsShowcase";
 import { ProfileScreen } from "./components/ProfileScreen";
+import { SocialFeedScreen } from "./components/SocialFeedScreen";
 
 setupIonicReact({ mode: "md" });
 
-type Screen = "login" | "register" | "components" | "profile";
+type Screen = "login" | "register" | "components" | "feed" | "profile";
 
 const TAB_ITEMS: { id: Screen; label: string; Icon: React.FC<{ size: number }> }[] = [
   { id: "components", label: "Componentes", Icon: ({ size }) => <LayoutGrid size={size} /> },
+  { id: "feed", label: "Feed", Icon: ({ size }) => <Newspaper size={size} /> },
   { id: "login", label: "Login", Icon: ({ size }) => <LogIn size={size} /> },
   { id: "register", label: "Cadastro", Icon: ({ size }) => <UserPlus size={size} /> },
   { id: "profile", label: "Perfil", Icon: ({ size }) => <User size={size} /> },
@@ -32,8 +34,18 @@ export default function App() {
   return (
     <IonApp>
       <IonPage>
-        <IonContent fullscreen scrollY>
+        <IonContent
+          fullscreen
+          scrollY
+          style={
+            {
+              "--background": "#0A0A0A",
+              "--color": "#ffffff",
+            } as React.CSSProperties
+          }
+        >
           {screen === "components" && <ComponentsShowcase />}
+          {screen === "feed" && <SocialFeedScreen />}
           {screen === "login" && (
             <LoginScreen onNavigateToRegister={() => setScreen("register")} />
           )}

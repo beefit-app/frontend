@@ -1,5 +1,5 @@
 import { useState } from "react";
-import logoImg from "figma:asset/BeeFit_Logo_-_2000_x_2000.png";
+import logoImg from "../../imports/logo.png";
 import { HexagonPattern } from "./HexagonPattern";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
@@ -73,7 +73,7 @@ export function ComponentsShowcase() {
           <img
             src={logoImg}
             alt="BeeFit Logo"
-            className="w-28 h-28 object-contain mb-3 opacity-90"
+            className="w-28 h-28 object-contain rounded-2xl mb-3 opacity-90"
           />
           <h1 className="font-montserrat text-[32px] font-[800] text-white tracking-[-1px]">
             <span className="text-[#FFD700]">Bee</span>Fit

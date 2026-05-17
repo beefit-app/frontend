@@ -252,3 +252,37 @@ ion-content {
     line-height: 1.5;
   }
 }
+
+/* BeeFit visual overrides after Ionic/Tailwind base layers. */
+html,
+body,
+#root,
+ion-app {
+  background: #0A0A0A;
+  color: #ffffff;
+  font-family: var(--font-inter);
+}
+
+ion-app,
+ion-content {
+  --ion-font-family: var(--font-inter);
+  --background: #0A0A0A;
+  --color: #ffffff;
+}
+
+ion-button {
+  font-family: var(--font-montserrat);
+}
+
+ion-button::part(native) {
+  border-radius: var(--border-radius, 9999px) !important;
+  font-family: var(--font-montserrat) !important;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+ion-tab-bar,
+ion-tab-button {
+  font-family: var(--font-montserrat);
+}

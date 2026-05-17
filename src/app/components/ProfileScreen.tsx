@@ -1,12 +1,11 @@
 import { useState, useRef } from "react";
 import {
-  IonPage,
-  IonContent,
   IonTextarea,
   IonItem,
 } from "@ionic/react";
 import { motion as Motion } from "motion/react";
 import {
+  Bookmark,
   Camera,
   Edit2,
   Flame,
@@ -16,7 +15,9 @@ import {
   Clock,
   ChevronRight,
   ChevronLeft,
+  Heart,
   ImageIcon,
+  MessageCircle,
 } from "lucide-react";
 import { BeeCard } from "./BeeCard";
 import { BeeButton } from "./BeeButton";
@@ -48,6 +49,13 @@ interface ExerciseDetail {
   sets: ExerciseSet[];
 }
 
+interface Comment {
+  id: number;
+  author: string;
+  text: string;
+  timeAgo: string;
+}
+
 interface WorkoutPost {
   id: number;
   date: string;
@@ -58,6 +66,10 @@ interface WorkoutPost {
   emoji: string;
   photoUrl: string | null;
   exerciseDetails: ExerciseDetail[];
+  likes: number;
+  liked: boolean;
+  templateSaved: boolean;
+  comments: Comment[];
 }
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
@@ -85,6 +97,13 @@ const MOCK_POSTS: WorkoutPost[] = [
     muscles: ["Peitoral", "Tríceps", "Ombro"],
     emoji: "💪",
     photoUrl: null,
+    likes: 24,
+    liked: false,
+    templateSaved: false,
+    comments: [
+      { id: 1, author: "Rafa", text: "Supino reto muito sólido.", timeAgo: "12 min" },
+      { id: 2, author: "Bianca", text: "Esse treino de tríceps ficou bom demais.", timeAgo: "7 min" },
+    ],
     exerciseDetails: [
       { name: "Supino Reto", sets: [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }, { weight: 75, reps: 10 }] },
       { name: "Supino Inclinado", sets: [{ weight: 70, reps: 8 }, { weight: 70, reps: 8 }, { weight: 65, reps: 10 }] },
@@ -103,6 +122,14 @@ const MOCK_POSTS: WorkoutPost[] = [
     muscles: ["Quadríceps", "Posterior", "Glúteo"],
     emoji: "🦵",
     photoUrl: null,
+    likes: 41,
+    liked: true,
+    templateSaved: false,
+    comments: [
+      { id: 1, author: "Marina", text: "Leg press absurdo.", timeAgo: "1 d" },
+      { id: 2, author: "João", text: "Vou copiar esse treino de pernas.", timeAgo: "1 d" },
+      { id: 3, author: "Rafa", text: "Panturrilha no fim é sofrimento.", timeAgo: "1 d" },
+    ],
     exerciseDetails: [
       { name: "Agachamento Livre", sets: [{ weight: 100, reps: 5 }, { weight: 100, reps: 5 }, { weight: 100, reps: 5 }] },
       { name: "Leg Press 45°", sets: [{ weight: 180, reps: 10 }, { weight: 180, reps: 10 }, { weight: 160, reps: 12 }] },
@@ -123,6 +150,13 @@ const MOCK_POSTS: WorkoutPost[] = [
     muscles: ["Dorsais", "Bíceps", "Trapézio"],
     emoji: "🏋️",
     photoUrl: null,
+    likes: 19,
+    liked: false,
+    templateSaved: true,
+    comments: [
+      { id: 1, author: "Bianca", text: "Remada cavalinho pesada.", timeAgo: "2 d" },
+      { id: 2, author: "Marina", text: "Costas e bíceps redondo.", timeAgo: "2 d" },
+    ],
     exerciseDetails: [
       { name: "Puxada Aberta", sets: [{ weight: 70, reps: 10 }, { weight: 70, reps: 10 }, { weight: 65, reps: 12 }] },
       { name: "Remada Curvada", sets: [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }, { weight: 75, reps: 10 }] },
@@ -140,6 +174,12 @@ const MOCK_POSTS: WorkoutPost[] = [
     muscles: ["Full Body", "Core"],
     emoji: "🔥",
     photoUrl: null,
+    likes: 9,
+    liked: false,
+    templateSaved: false,
+    comments: [
+      { id: 1, author: "Rafa", text: "HIIT de respeito.", timeAgo: "4 d" },
+    ],
     exerciseDetails: [
       { name: "Burpees", sets: [{ weight: 0, reps: 15 }, { weight: 0, reps: 15 }, { weight: 0, reps: 12 }] },
       { name: "Mountain Climber", sets: [{ weight: 0, reps: 30 }, { weight: 0, reps: 30 }, { weight: 0, reps: 30 }] },
@@ -172,11 +212,6 @@ const TITLE_STYLE = {
   fontSize: "17px",
   fontWeight: 700,
   color: "#ffffff",
-} as React.CSSProperties;
-
-const CONTENT_STYLE = {
-  "--background": "#0A0A0A",
-  "--color": "#ffffff",
 } as React.CSSProperties;
 
 const MONTH_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -312,9 +347,20 @@ function TrainingCalendar({ trainedDays }: { trainedDays: number[] }) {
 
 function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile: ProfileData }) {
   const [showExercises, setShowExercises] = useState(false);
+  const [liked, setLiked] = useState(post.liked);
+  const [likes, setLikes] = useState(post.likes);
+  const [templateSaved, setTemplateSaved] = useState(post.templateSaved);
+  const [showComments, setShowComments] = useState(false);
   const touchStartX = useRef(0);
   const r = RARITY_STYLE[post.rarity];
   const initials = profile.displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+
+  function toggleLike() {
+    setLiked((current) => {
+      setLikes((count) => (current ? count - 1 : count + 1));
+      return !current;
+    });
+  }
 
   const swipeHandlers = {
     onTouchStart: (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; },
@@ -515,7 +561,7 @@ function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile: Profil
       <div
         style={{
           position: "absolute",
-          bottom: 14,
+          top: 321,
           right: 14,
           display: "flex",
           alignItems: "center",
@@ -527,6 +573,96 @@ function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile: Profil
         <div style={{ width: showExercises ? 6 : 14, height: 5, borderRadius: 3, background: showExercises ? "rgba(255,255,255,0.2)" : "#FFD700", transition: "width 0.3s, background 0.3s" }} />
         <div style={{ width: showExercises ? 14 : 6, height: 5, borderRadius: 3, background: showExercises ? r.border : "rgba(255,255,255,0.2)", transition: "width 0.3s, background 0.3s" }} />
       </div>
+
+      <div className="flex items-center justify-between gap-2 border-t border-[#2D2D2D] bg-[#151515] px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <Motion.button
+            type="button"
+            onClick={toggleLike}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            aria-label={liked ? "Descurtir treino" : "Curtir treino"}
+            className="flex h-10 w-10 items-center justify-center rounded-full border"
+            style={{
+              borderColor: liked ? "#FFD700" : "#404040",
+              background: liked ? "rgba(255,215,0,0.12)" : "#1A1A1A",
+              color: liked ? "#FFD700" : "#A3A3A3",
+            }}
+          >
+            <Heart size={18} fill={liked ? "#FFD700" : "none"} />
+          </Motion.button>
+          <Motion.button
+            type="button"
+            onClick={() => setShowComments((current) => !current)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            aria-label={showComments ? "Ocultar comentários" : "Ver comentários"}
+            className="flex h-10 w-10 items-center justify-center rounded-full border"
+            style={{
+              borderColor: showComments ? "#FFD700" : "#404040",
+              background: showComments ? "rgba(255,215,0,0.12)" : "#1A1A1A",
+              color: showComments ? "#FFD700" : "#A3A3A3",
+            }}
+          >
+            <MessageCircle size={18} fill={showComments ? "rgba(255,215,0,0.18)" : "none"} />
+          </Motion.button>
+          <Motion.button
+            type="button"
+            onClick={() => setTemplateSaved((current) => !current)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            aria-label={templateSaved ? "Remover template salvo" : "Salvar template"}
+            className="flex h-10 w-10 items-center justify-center rounded-full border"
+            style={{
+              borderColor: templateSaved ? "#A3A3A3" : "#404040",
+              background: templateSaved ? "rgba(163,163,163,0.14)" : "#1A1A1A",
+              color: templateSaved ? "#D4D4D4" : "#A3A3A3",
+            }}
+          >
+            <Bookmark size={18} fill={templateSaved ? "#D4D4D4" : "none"} />
+          </Motion.button>
+        </div>
+
+        <div className="flex items-center gap-3 font-inter text-[11px] font-semibold text-[#737373]">
+          <span>{likes} curtidas</span>
+          <button
+            type="button"
+            onClick={() => setShowComments((current) => !current)}
+            className="font-inter text-[11px] font-semibold text-[#A3A3A3]"
+          >
+            {post.comments.length} comentários
+          </button>
+        </div>
+      </div>
+
+      {showComments && (
+        <Motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          transition={{ duration: 0.18 }}
+          className="border-t border-[#2D2D2D] bg-[#101010] px-4 py-3"
+        >
+          <div className="flex flex-col gap-3">
+            {post.comments.map((comment) => (
+              <div key={comment.id} className="flex items-start gap-2">
+                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#404040] bg-[#1A1A1A] font-montserrat text-[10px] font-bold text-[#FFD700]">
+                  {comment.author.slice(0, 1)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-inter text-[12px] leading-snug text-[#D4D4D4]">
+                    <span className="font-semibold text-white">{comment.author}</span>{" "}
+                    {comment.text}
+                  </p>
+                  <p className="mt-1 font-inter text-[10px] font-medium text-[#737373]">{comment.timeAgo}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Motion.div>
+      )}
     </Motion.div>
   );
 }
@@ -537,9 +673,7 @@ function ProfileView({ profile, onEdit }: { profile: ProfileData; onEdit: () => 
   const initials = profile.displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <IonPage>
-      <IonContent style={CONTENT_STYLE}>
-        <div style={{ maxWidth: 430, margin: "0 auto", position: "relative", paddingBottom: 32 }}>
+    <div style={{ maxWidth: 430, margin: "0 auto", position: "relative", paddingBottom: 32 }}>
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
             <HexagonPattern />
           </div>
@@ -626,9 +760,7 @@ function ProfileView({ profile, onEdit }: { profile: ProfileData; onEdit: () => 
               </div>
             </div>
           </div>
-        </div>
-      </IonContent>
-    </IonPage>
+    </div>
   );
 }
 
@@ -688,9 +820,7 @@ function ProfileEdit({ profile, onSave, onCancel }: {
   const bioLeft = 200 - bio.length;
 
   return (
-    <IonPage>
-      <IonContent style={CONTENT_STYLE}>
-        <div style={{ maxWidth: 430, margin: "0 auto", padding: "28px 16px 40px", display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ maxWidth: 430, margin: "0 auto", padding: "28px 16px 40px", display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ display: "flex", justifyContent: "center" }}>
             <div style={{ position: "relative" }}>
               <HexAvatar src={avatarUrl} initials={initials} size={96} />
@@ -716,9 +846,7 @@ function ProfileEdit({ profile, onSave, onCancel }: {
             <BeeButton variant="primary" fullWidth onClick={handleSave}>Salvar Alterações</BeeButton>
             <BeeButton variant="dark" fullWidth onClick={onCancel}>Cancelar</BeeButton>
           </div>
-        </div>
-      </IonContent>
-    </IonPage>
+    </div>
   );
 }
 
