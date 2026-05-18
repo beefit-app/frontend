@@ -72,7 +72,8 @@ export default function App() {
           scrollY
           style={
             {
-              "--background": "#0A0A0A",
+              "--background":
+                "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%) center var(--beefit-page-gradient-top) / 100% var(--beefit-page-gradient-height) no-repeat, #0A0A0A",
               "--color": "#ffffff",
             } as React.CSSProperties
           }

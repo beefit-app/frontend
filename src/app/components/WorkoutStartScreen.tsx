@@ -177,10 +177,10 @@ export function WorkoutStartScreen() {
       <div
         style={{
           position: "absolute",
-          top: 0,
+          top: -180,
           left: 0,
           right: 0,
-          height: 200,
+          height: 540,
           background: "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%)",
           pointerEvents: "none",
         }}
