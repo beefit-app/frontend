@@ -729,100 +729,112 @@ function ProfileView({ profile, onEdit }: { profile: ProfileData; onEdit: () => 
   const initials = profile.displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <IonGrid fixed style={{ maxWidth: 393, position: "relative", padding: "0 0 32px" }}>
-      <IonRow className="ion-justify-content-center">
-        <IonCol size="12">
-    <div style={{ position: "relative" }}>
-          <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
-            <HexagonPattern />
-          </div>
-          <div style={{ position: "absolute", top: -180, left: 0, right: 0, height: 540, background: "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%)", pointerEvents: "none" }} />
+    <div style={{ position: "relative", minHeight: "100%", overflow: "hidden", background: "#0A0A0A" }}>
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+        <HexagonPattern />
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          top: -180,
+          left: 0,
+          right: 0,
+          height: 540,
+          background: "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%)",
+          pointerEvents: "none",
+        }}
+      />
+      <IonGrid fixed style={{ maxWidth: 393, position: "relative", padding: "0 0 32px", zIndex: 1 }}>
+        <IonRow className="ion-justify-content-center">
+          <IonCol size="12">
+            <div style={{ position: "relative" }}>
 
-          {/* Edit button — top right of content */}
-          <button
-            onClick={onEdit}
-            style={{
-              position: "absolute",
-              top: 16,
-              right: 16,
-              zIndex: 10,
-              background: "#1A1A1A",
-              border: "1px solid #404040",
-              borderRadius: "50%",
-              width: 38,
-              height: 38,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-          >
-            <Edit2 size={17} color="#FFD700" />
-          </button>
+              {/* Edit button — top right of content */}
+              <button
+                onClick={onEdit}
+                style={{
+                  position: "absolute",
+                  top: 16,
+                  right: 16,
+                  zIndex: 10,
+                  background: "#1A1A1A",
+                  border: "1px solid #404040",
+                  borderRadius: "50%",
+                  width: 38,
+                  height: 38,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <Edit2 size={17} color="#FFD700" />
+              </button>
 
-          <div style={{ position: "relative", zIndex: 1, padding: "32px 12px 0" }}>
-            {/* Avatar + identity */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 24 }}>
-              <HexAvatar src={profile.avatarUrl} initials={initials} size={96} />
-              <div style={{ textAlign: "center" }}>
-                <h1 style={{ fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700, color: "#ffffff", margin: "0 0 4px" }}>
-                  {profile.displayName}
-                </h1>
-                <span style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "#737373", fontWeight: 500 }}>
-                  {profile.username}
-                </span>
+              <div style={{ position: "relative", zIndex: 1, padding: "32px 12px 0" }}>
+                {/* Avatar + identity */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 24 }}>
+                  <HexAvatar src={profile.avatarUrl} initials={initials} size={96} />
+                  <div style={{ textAlign: "center" }}>
+                    <h1 style={{ fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700, color: "#ffffff", margin: "0 0 4px" }}>
+                      {profile.displayName}
+                    </h1>
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "#737373", fontWeight: 500 }}>
+                      {profile.username}
+                    </span>
+                  </div>
+                  {profile.bio && (
+                    <p style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "#D4D4D4", textAlign: "center", lineHeight: 1.65, margin: 0, maxWidth: 300 }}>
+                      {profile.bio}
+                    </p>
+                  )}
+                </div>
+
+                <GoldDivider />
+
+                {/* Stats */}
+                <div style={{ marginTop: 20, marginBottom: 20 }}>
+                  <SectionLabel icon={<ShieldCheck size={13} color="#FFD700" />} label="Estatísticas" />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <StatCard icon={<Scale size={20} />} value={`${profile.weight}kg`} label="Peso" color="#FFD700" />
+                    <StatCard icon={<span style={{ fontSize: 20, lineHeight: 1 }}>🃏</span>} value={profile.cards} label="Cartas" color="#A855F7" />
+                    <StatCard icon={<Flame size={20} />} value={`${profile.streak}d`} label="Ofensiva" color="#F97316" />
+                    <StatCard icon={<Dumbbell size={20} />} value={profile.totalWorkouts} label="Treinos" color="#22C55E" />
+                  </div>
+                </div>
+
+                <GoldDivider />
+
+                {/* Calendar */}
+                <div style={{ marginTop: 20, marginBottom: 20 }}>
+                  <BeeCard hover={false}>
+                    <TrainingCalendar trainedDays={TRAINED_DAYS} />
+                  </BeeCard>
+                </div>
+
+                <GoldDivider />
+
+                {/* Workout posts */}
+                <div style={{ marginTop: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <SectionLabel icon={<Dumbbell size={13} color="#FFD700" />} label="Treinos Recentes" />
+                    <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 2, padding: 0 }}>
+                      <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: "#737373" }}>Ver todos</span>
+                      <ChevronRight size={12} color="#737373" />
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {MOCK_POSTS.map((post) => (
+                      <WorkoutPostCard key={post.id} post={post} profile={profile} />
+                    ))}
+                  </div>
+                </div>
               </div>
-              {profile.bio && (
-                <p style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "#D4D4D4", textAlign: "center", lineHeight: 1.65, margin: 0, maxWidth: 300 }}>
-                  {profile.bio}
-                </p>
-              )}
             </div>
-
-            <GoldDivider />
-
-            {/* Stats */}
-            <div style={{ marginTop: 20, marginBottom: 20 }}>
-              <SectionLabel icon={<ShieldCheck size={13} color="#FFD700" />} label="Estatísticas" />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <StatCard icon={<Scale size={20} />} value={`${profile.weight}kg`} label="Peso" color="#FFD700" />
-                <StatCard icon={<span style={{ fontSize: 20, lineHeight: 1 }}>🃏</span>} value={profile.cards} label="Cartas" color="#A855F7" />
-                <StatCard icon={<Flame size={20} />} value={`${profile.streak}d`} label="Ofensiva" color="#F97316" />
-                <StatCard icon={<Dumbbell size={20} />} value={profile.totalWorkouts} label="Treinos" color="#22C55E" />
-              </div>
-            </div>
-
-            <GoldDivider />
-
-            {/* Calendar */}
-            <div style={{ marginTop: 20, marginBottom: 20 }}>
-              <BeeCard hover={false}>
-                <TrainingCalendar trainedDays={TRAINED_DAYS} />
-              </BeeCard>
-            </div>
-
-            <GoldDivider />
-
-            {/* Workout posts */}
-            <div style={{ marginTop: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <SectionLabel icon={<Dumbbell size={13} color="#FFD700" />} label="Treinos Recentes" />
-                <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 2, padding: 0 }}>
-                  <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: "#737373" }}>Ver todos</span>
-                  <ChevronRight size={12} color="#737373" />
-                </button>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {MOCK_POSTS.map((post) => (
-                  <WorkoutPostCard key={post.id} post={post} profile={profile} />
-                ))}
-              </div>
-            </div>
-          </div>
+          </IonCol>
+        </IonRow>
+      </IonGrid>
     </div>
-        </IonCol>
-      </IonRow>
-    </IonGrid>
   );
 }
 
