@@ -368,7 +368,7 @@ export function WorkoutStartScreen() {
                   fontWeight: 700,
                 }}
               >
-                Iniciar por template
+                Selecionar template
               </h2>
               <p
                 style={{
