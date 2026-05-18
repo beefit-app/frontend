@@ -25,7 +25,7 @@ import {
 import { BeeCard } from "./BeeCard";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
-import { HexagonPattern } from "./HexagonPattern";
+import { PageBackground } from "./PageBackground";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -729,21 +729,7 @@ function ProfileView({ profile, onEdit }: { profile: ProfileData; onEdit: () => 
   const initials = profile.displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <div style={{ position: "relative", minHeight: "100%", overflow: "hidden", background: "#0A0A0A" }}>
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
-        <HexagonPattern />
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          top: -180,
-          left: 0,
-          right: 0,
-          height: 540,
-          background: "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%)",
-          pointerEvents: "none",
-        }}
-      />
+    <PageBackground>
       <IonGrid fixed style={{ maxWidth: 393, position: "relative", padding: "0 0 32px", zIndex: 1 }}>
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
@@ -834,7 +820,7 @@ function ProfileView({ profile, onEdit }: { profile: ProfileData; onEdit: () => 
           </IonCol>
         </IonRow>
       </IonGrid>
-    </div>
+    </PageBackground>
   );
 }
 
@@ -894,21 +880,7 @@ function ProfileEdit({ profile, onSave, onCancel }: {
   const bioLeft = 200 - bio.length;
 
   return (
-    <div style={{ position: "relative", minHeight: "100%", overflow: "hidden", background: "#0A0A0A" }}>
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
-        <HexagonPattern />
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          top: -180,
-          left: 0,
-          right: 0,
-          height: 540,
-          background: "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%)",
-          pointerEvents: "none",
-        }}
-      />
+    <PageBackground>
     <IonGrid fixed style={{ maxWidth: 393, padding: "20px 0 40px", position: "relative", zIndex: 1 }}>
       <IonRow className="ion-justify-content-center">
         <IonCol size="12">
@@ -942,7 +914,7 @@ function ProfileEdit({ profile, onSave, onCancel }: {
         </IonCol>
       </IonRow>
     </IonGrid>
-    </div>
+    </PageBackground>
   );
 }
 

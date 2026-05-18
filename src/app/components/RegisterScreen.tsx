@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { IonCard, IonCardContent, IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 import logoImg from "../../imports/logo.png";
-import { HexagonPattern } from "./HexagonPattern";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
+import { PageBackground } from "./PageBackground";
 
 interface RegisterScreenProps {
   onNavigateToLogin: () => void;
@@ -107,20 +107,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
   );
 
   return (
-    <div className="relative w-full overflow-hidden bg-[#0A0A0A]" style={{ minHeight: "100%" }}>
-      <HexagonPattern />
-      <div
-        style={{
-          position: "absolute",
-          top: -180,
-          left: 0,
-          right: 0,
-          height: 540,
-          background: "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%)",
-          pointerEvents: "none",
-        }}
-      />
-
+    <PageBackground>
       <IonGrid fixed className="relative z-10 min-h-full px-3 py-5">
         <IonRow className="ion-justify-content-center ion-align-items-center">
           <IonCol size="12" style={{ maxWidth: 393 }}>
@@ -311,6 +298,6 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
           </IonCol>
         </IonRow>
       </IonGrid>
-    </div>
+    </PageBackground>
   );
 }

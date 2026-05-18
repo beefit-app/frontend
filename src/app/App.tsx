@@ -70,6 +70,7 @@ export default function App() {
         <IonContent
           fullscreen
           scrollY
+          forceOverscroll
           style={
             {
               "--background":
