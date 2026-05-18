@@ -185,7 +185,7 @@ export function WorkoutStartScreen() {
           pointerEvents: "none",
         }}
       />
-      <IonGrid fixed style={{ maxWidth: 393, padding: "20px 12px 88px" }}>
+      <IonGrid fixed style={{ maxWidth: 393, padding: "32px 12px 88px" }}>
         <IonRow>
           <IonCol size="12">
             <div style={{ display: "grid", gap: 10 }}>
