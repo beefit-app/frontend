@@ -24,6 +24,7 @@ interface ExerciseSet {
 interface ExerciseDetail {
   name: string;
   sets: ExerciseSet[];
+  isPersonalRecord?: boolean;
 }
 
 interface Comment {
@@ -38,6 +39,7 @@ interface WorkoutPost {
   author: string;
   username: string;
   initials: string;
+  bodyWeight: number;
   date: string;
   title: string;
   duration: string;
@@ -102,6 +104,7 @@ const INITIAL_POSTS: WorkoutPost[] = [
     author: "Rafa Mendes",
     username: "@rafamendes",
     initials: "RM",
+    bodyWeight: 82,
     date: "Hoje · 12 min",
     title: "Costas & Bíceps",
     duration: "1h 08min",
@@ -130,6 +133,7 @@ const INITIAL_POSTS: WorkoutPost[] = [
     author: "Bianca Reis",
     username: "@biareis",
     initials: "BR",
+    bodyWeight: 78,
     date: "Hoje · 38 min",
     title: "Pernas Completo",
     duration: "1h 14min",
@@ -147,7 +151,7 @@ const INITIAL_POSTS: WorkoutPost[] = [
     ],
     exerciseDetails: [
       { name: "Agachamento Livre", sets: [{ weight: 92, reps: 6 }, { weight: 92, reps: 6 }, { weight: 86, reps: 8 }] },
-      { name: "Leg Press 45", sets: [{ weight: 180, reps: 10 }, { weight: 180, reps: 10 }, { weight: 160, reps: 12 }] },
+      { name: "Leg Press 45", sets: [{ weight: 180, reps: 10 }, { weight: 180, reps: 10 }, { weight: 160, reps: 12 }], isPersonalRecord: true },
       { name: "Cadeira Extensora", sets: [{ weight: 58, reps: 12 }, { weight: 58, reps: 12 }, { weight: 52, reps: 14 }] },
       { name: "Mesa Flexora", sets: [{ weight: 48, reps: 12 }, { weight: 48, reps: 10 }, { weight: 44, reps: 12 }] },
       { name: "Stiff", sets: [{ weight: 66, reps: 10 }, { weight: 66, reps: 10 }, { weight: 60, reps: 12 }] },
@@ -159,6 +163,7 @@ const INITIAL_POSTS: WorkoutPost[] = [
     author: "Marina Costa",
     username: "@maricosta",
     initials: "MC",
+    bodyWeight: 60,
     date: "Ontem · 19:42",
     title: "Peito & Tríceps",
     duration: "56 min",
@@ -186,6 +191,33 @@ const INITIAL_POSTS: WorkoutPost[] = [
 
 function muscleStyle(group: string) {
   return MUSCLE_STYLE[group] ?? DEFAULT_MUSCLE_STYLE;
+}
+
+function calculateAttackPower(weight: number, reps: number) {
+  return weight * (1 + Math.min(reps, 10) / 30);
+}
+
+function exerciseRarity(exercise: ExerciseDetail, bodyWeight: number): Rarity | null {
+  const bestPower = Math.max(
+    ...exercise.sets.map((set) => calculateAttackPower(set.weight, set.reps)),
+  );
+
+  if (exercise.isPersonalRecord === true || bestPower >= bodyWeight * 2) return "lendaria";
+  if (bestPower >= bodyWeight * 1.5) return "epica";
+  if (bestPower >= bodyWeight) return "rara";
+  return null;
+}
+
+function workoutRarity(exercises: ExerciseDetail[], bodyWeight: number): Rarity {
+  const priority: Rarity[] = ["lendaria", "epica", "rara"];
+
+  for (const rarity of priority) {
+    if (exercises.some((exercise) => exerciseRarity(exercise, bodyWeight) === rarity)) {
+      return rarity;
+    }
+  }
+
+  return "comum";
 }
 
 function HexAvatar({ src, initials, size = 42 }: { src?: string | null; initials: string; size?: number }) {
@@ -308,7 +340,8 @@ function WorkoutPostCard({
   const [showComments, setShowComments] = useState(false);
   const commentsScrollable = post.comments.length > 5;
   const touchStartX = useRef(0);
-  const r = RARITY_STYLE[post.rarity];
+  const computedPostRarity = workoutRarity(post.exerciseDetails, post.bodyWeight);
+  const r = RARITY_STYLE[computedPostRarity];
 
   const swipeHandlers = {
     onTouchStart: (e: TouchEvent) => {
@@ -364,7 +397,7 @@ function WorkoutPostCard({
 
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "70%", background: "linear-gradient(to top, rgba(10,10,10,0.97) 0%, rgba(10,10,10,0.75) 50%, transparent 100%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", top: 12, right: 12 }}>
-              <RarityTag rarity={post.rarity} />
+              <RarityTag rarity={computedPostRarity} />
             </div>
 
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 14px 28px", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -439,34 +472,73 @@ function WorkoutPostCard({
                   {post.exerciseDetails.length} exercícios · {post.duration}
                 </span>
               </div>
-              <RarityTag rarity={post.rarity} />
+              <RarityTag rarity={computedPostRarity} />
             </div>
 
             <div style={{ padding: "10px 14px 14px", display: "flex", flexDirection: "column", gap: 0, overflowY: "auto", flex: 1 }}>
               {post.exerciseDetails.map((exercise, idx) => (
-                <div key={exercise.name} style={{ padding: "11px 0", borderBottom: idx < post.exerciseDetails.length - 1 ? "1px solid #222" : "none" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
-                    <div style={{ width: 6, height: 7, clipPath: HEX_CLIP, background: r.border, flexShrink: 0 }} />
-                    <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 12, fontWeight: 700, color: "#ffffff" }}>
-                      {exercise.name}
-                    </span>
-                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373", marginLeft: "auto", flexShrink: 0 }}>
-                      {exercise.sets.length} séries
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, paddingLeft: 13 }}>
-                    {exercise.sets.map((set, si) => (
-                      <div key={si} style={{ background: "#252525", border: "1px solid #333", borderRadius: 7, padding: "4px 9px", display: "flex", flexDirection: "column", alignItems: "center", gap: 1, minWidth: 48 }}>
-                        <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 12, fontWeight: 800, color: r.text, lineHeight: 1 }}>
-                          {set.weight > 0 ? `${set.weight}kg` : "PC"}
+                (() => {
+                  const rarity = exerciseRarity(exercise, post.bodyWeight);
+                  const rarityStyle = rarity ? RARITY_STYLE[rarity] : null;
+
+                  return (
+                    <div key={exercise.name} style={{ padding: "11px 0", borderBottom: idx < post.exerciseDetails.length - 1 ? "1px solid #222" : "none" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
+                        <div style={{ width: 6, height: 7, clipPath: HEX_CLIP, background: rarityStyle ? rarityStyle.border : r.border, flexShrink: 0 }} />
+                        <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 12, fontWeight: 700, color: "#ffffff" }}>
+                          {exercise.name}
                         </span>
-                        <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373", lineHeight: 1 }}>
-                          x {set.reps}
+                        {rarity && (
+                          <span
+                            style={{
+                              background: rarityStyle.bg,
+                              border: `1px solid ${rarityStyle.border}`,
+                              borderRadius: 999,
+                              color: rarityStyle.text,
+                              fontFamily: "var(--font-inter)",
+                              fontSize: 9,
+                              fontWeight: 700,
+                              letterSpacing: "0.04em",
+                              padding: "2px 7px",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {RARITY_STYLE[rarity].label}
+                          </span>
+                        )}
+                        <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373", marginLeft: "auto", flexShrink: 0 }}>
+                          {exercise.sets.length} séries
                         </span>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, paddingLeft: 13 }}>
+                        {exercise.sets.map((set, si) => (
+                          <div
+                            key={si}
+                            style={{
+                              background: rarityStyle ? rarityStyle.bg : "#252525",
+                              border: rarityStyle ? `1px solid ${rarityStyle.border}` : "1px solid #333",
+                              borderRadius: 7,
+                              padding: "4px 9px",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: 1,
+                              minWidth: 48,
+                              boxShadow: rarityStyle ? `0 0 0 1px ${rarityStyle.glow}` : "none",
+                            }}
+                          >
+                            <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 12, fontWeight: 800, color: rarityStyle ? rarityStyle.text : r.text, lineHeight: 1 }}>
+                              {set.weight > 0 ? `${set.weight}kg` : "PC"}
+                            </span>
+                            <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373", lineHeight: 1 }}>
+                              x {set.reps}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()
               ))}
             </div>
           </div>
