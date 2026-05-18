@@ -474,54 +474,54 @@ function WorkoutPostCard({
 
       <div className="flex items-center justify-between gap-2 border-t border-[#2D2D2D] bg-[#151515] px-3 py-2.5">
         <div className="flex items-center gap-2">
-        <Motion.button
-          type="button"
-          onClick={() => onToggleLike(post.id)}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.96 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-          aria-label={post.liked ? "Descurtir treino" : "Curtir treino"}
-          className="flex h-10 w-10 items-center justify-center rounded-full border"
-          style={{
-            borderColor: post.liked ? "#FFD700" : "#404040",
-            background: post.liked ? "rgba(255,215,0,0.12)" : "#1A1A1A",
-            color: post.liked ? "#FFD700" : "#A3A3A3",
-          }}
-        >
-          <Heart size={18} fill={post.liked ? "#FFD700" : "none"} />
-        </Motion.button>
-        <Motion.button
-          type="button"
-          onClick={() => setShowComments((current) => !current)}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.96 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-          aria-label={showComments ? "Ocultar comentários" : "Ver comentários"}
-          className="flex h-10 w-10 items-center justify-center rounded-full border"
-          style={{
-            borderColor: showComments ? "#FFD700" : "#404040",
-            background: showComments ? "rgba(255,215,0,0.12)" : "#1A1A1A",
-            color: showComments ? "#FFD700" : "#A3A3A3",
-          }}
-        >
-          <MessageCircle size={18} fill={showComments ? "rgba(255,215,0,0.18)" : "none"} />
-        </Motion.button>
-        <Motion.button
-          type="button"
-          onClick={() => onSaveTemplate(post.id)}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.96 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-          aria-label={post.templateSaved ? "Remover template salvo" : "Salvar template"}
-          className="flex h-10 w-10 items-center justify-center rounded-full border"
-          style={{
-            borderColor: post.templateSaved ? "#A3A3A3" : "#404040",
-            background: post.templateSaved ? "rgba(163,163,163,0.14)" : "#1A1A1A",
-            color: post.templateSaved ? "#D4D4D4" : "#A3A3A3",
-          }}
-        >
-          <Bookmark size={18} fill={post.templateSaved ? "#D4D4D4" : "none"} />
-        </Motion.button>
+          <Motion.button
+            type="button"
+            onClick={() => onToggleLike(post.id)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            aria-label={post.liked ? "Descurtir treino" : "Curtir treino"}
+            className="flex h-10 w-10 items-center justify-center rounded-full border"
+            style={{
+              borderColor: post.liked ? "#FFD700" : "#404040",
+              background: post.liked ? "rgba(255,215,0,0.12)" : "#1A1A1A",
+              color: post.liked ? "#FFD700" : "#A3A3A3",
+            }}
+          >
+            <Heart size={18} fill={post.liked ? "#FFD700" : "none"} />
+          </Motion.button>
+          <Motion.button
+            type="button"
+            onClick={() => setShowComments((current) => !current)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            aria-label={showComments ? "Ocultar comentários" : "Ver comentários"}
+            className="flex h-10 w-10 items-center justify-center rounded-full border"
+            style={{
+              borderColor: showComments ? "#FFD700" : "#404040",
+              background: showComments ? "rgba(255,215,0,0.12)" : "#1A1A1A",
+              color: showComments ? "#FFD700" : "#A3A3A3",
+            }}
+          >
+            <MessageCircle size={18} fill={showComments ? "rgba(255,215,0,0.18)" : "none"} />
+          </Motion.button>
+          <Motion.button
+            type="button"
+            onClick={() => onSaveTemplate(post.id)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            aria-label={post.templateSaved ? "Remover template salvo" : "Salvar template"}
+            className="flex h-10 w-10 items-center justify-center rounded-full border"
+            style={{
+              borderColor: post.templateSaved ? "#A3A3A3" : "#404040",
+              background: post.templateSaved ? "rgba(163,163,163,0.14)" : "#1A1A1A",
+              color: post.templateSaved ? "#D4D4D4" : "#A3A3A3",
+            }}
+          >
+            <Bookmark size={18} fill={post.templateSaved ? "#D4D4D4" : "none"} />
+          </Motion.button>
         </div>
 
         <div className="flex items-center gap-3 font-inter text-[11px] font-semibold text-[#737373]">
@@ -604,7 +604,7 @@ export function SocialFeedScreen() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
-                <span className="text-[#FFD700]">Feed</span> social
+                <span className="text-[#FFD700]">Feed</span>
               </h1>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] text-[#FFD700]">

@@ -6,9 +6,10 @@ import { BeeInput } from "./BeeInput";
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
+  onLoginSuccess: () => void;
 }
 
-export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
+export function LoginScreen({ onNavigateToRegister, onLoginSuccess }: LoginScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +31,7 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
       return;
     }
     setErrors({});
-    alert("Login efetuado! (demo)");
+    onLoginSuccess();
   }
 
   const EyeIcon = () => (

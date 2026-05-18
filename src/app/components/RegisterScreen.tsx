@@ -6,9 +6,10 @@ import { BeeInput } from "./BeeInput";
 
 interface RegisterScreenProps {
   onNavigateToLogin: () => void;
+  onRegisterSuccess: () => void;
 }
 
-export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
+export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: RegisterScreenProps) {
   const [form, setForm] = useState({
     name: "",
     username: "",
@@ -49,7 +50,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
       return;
     }
     setErrors({});
-    alert("Conta criada! (demo)");
+    onRegisterSuccess();
   }
 
   const PersonIcon = () => (

@@ -9,27 +9,59 @@ import {
   IonTabButton,
   IonLabel,
 } from "@ionic/react";
-import { LayoutGrid, LogIn, Newspaper, UserPlus, User } from "lucide-react";
+import { Dumbbell, Newspaper, Search, Users, User } from "lucide-react";
 import { LoginScreen } from "./components/LoginScreen";
 import { RegisterScreen } from "./components/RegisterScreen";
-import { ComponentsShowcase } from "./components/ComponentsShowcase";
 import { ProfileScreen } from "./components/ProfileScreen";
 import { SocialFeedScreen } from "./components/SocialFeedScreen";
 
 setupIonicReact({ mode: "md" });
 
-type Screen = "login" | "register" | "components" | "feed" | "profile";
+type AuthScreen = "login" | "register";
+type AppScreen = "feed" | "profile";
+type TabId = "feed" | "social" | "workout" | "search" | "profile";
 
-const TAB_ITEMS: { id: Screen; label: string; Icon: React.FC<{ size: number }> }[] = [
-  { id: "components", label: "Componentes", Icon: ({ size }) => <LayoutGrid size={size} /> },
-  { id: "feed", label: "Feed", Icon: ({ size }) => <Newspaper size={size} /> },
-  { id: "login", label: "Login", Icon: ({ size }) => <LogIn size={size} /> },
-  { id: "register", label: "Cadastro", Icon: ({ size }) => <UserPlus size={size} /> },
-  { id: "profile", label: "Perfil", Icon: ({ size }) => <User size={size} /> },
+const TAB_ITEMS: {
+  id: TabId;
+  label: string;
+  implemented: boolean;
+  Icon: React.FC<{ size: number; active: boolean }>;
+}[] = [
+  { id: "feed", label: "Feed", implemented: true, Icon: ({ size }) => <Newspaper size={size} /> },
+  { id: "social", label: "Social", implemented: false, Icon: ({ size }) => <Users size={size} /> },
+  {
+    id: "workout",
+    label: "Treino",
+    implemented: false,
+    Icon: ({ size }) => (
+      <span
+        className="flex items-center justify-center"
+        style={{
+          width: 34,
+          height: 38,
+          clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+          background: "#FFD700",
+          color: "#0A0A0A",
+          boxShadow: "0 4px 20px rgba(255,215,0,0.3)",
+        }}
+      >
+        <Dumbbell size={size} />
+      </span>
+    ),
+  },
+  { id: "search", label: "Buscar", implemented: false, Icon: ({ size }) => <Search size={size} /> },
+  { id: "profile", label: "Perfil", implemented: true, Icon: ({ size }) => <User size={size} /> },
 ];
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("components");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authScreen, setAuthScreen] = useState<AuthScreen>("login");
+  const [screen, setScreen] = useState<AppScreen>("feed");
+
+  function enterApp() {
+    setIsAuthenticated(true);
+    setScreen("feed");
+  }
 
   return (
     <IonApp>
@@ -44,17 +76,23 @@ export default function App() {
             } as React.CSSProperties
           }
         >
-          {screen === "components" && <ComponentsShowcase />}
-          {screen === "feed" && <SocialFeedScreen />}
-          {screen === "login" && (
-            <LoginScreen onNavigateToRegister={() => setScreen("register")} />
+          {!isAuthenticated && authScreen === "login" && (
+            <LoginScreen
+              onNavigateToRegister={() => setAuthScreen("register")}
+              onLoginSuccess={enterApp}
+            />
           )}
-          {screen === "register" && (
-            <RegisterScreen onNavigateToLogin={() => setScreen("login")} />
+          {!isAuthenticated && authScreen === "register" && (
+            <RegisterScreen
+              onNavigateToLogin={() => setAuthScreen("login")}
+              onRegisterSuccess={enterApp}
+            />
           )}
-          {screen === "profile" && <ProfileScreen />}
+          {isAuthenticated && screen === "feed" && <SocialFeedScreen />}
+          {isAuthenticated && screen === "profile" && <ProfileScreen />}
         </IonContent>
 
+        {isAuthenticated && (
         <IonFooter className="ion-no-border">
           <IonTabBar
             style={
@@ -67,26 +105,33 @@ export default function App() {
               } as React.CSSProperties
             }
           >
-            {TAB_ITEMS.map(({ id, label, Icon }) => (
+            {TAB_ITEMS.map(({ id, label, implemented, Icon }) => {
+              const active = screen === id;
+              return (
               <IonTabButton
                 key={id}
                 tab={id}
-                selected={screen === id}
-                onClick={() => setScreen(id)}
+                selected={active}
+                onClick={() => {
+                  if (implemented) setScreen(id as AppScreen);
+                }}
                 style={
                   {
-                    "--color": screen === id ? "#FFD700" : "#737373",
+                    "--color": active ? "#FFD700" : "#737373",
                     "--color-selected": "#FFD700",
                     "--background": "#0A0A0A",
+                    opacity: implemented || id === "workout" ? 1 : 0.72,
                   } as React.CSSProperties
                 }
               >
-                <Icon size={22} />
+                <Icon size={id === "workout" ? 18 : 22} active={active} />
                 <IonLabel>{label}</IonLabel>
               </IonTabButton>
-            ))}
+              );
+            })}
           </IonTabBar>
         </IonFooter>
+        )}
       </IonPage>
     </IonApp>
   );
