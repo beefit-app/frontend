@@ -1,4 +1,5 @@
 import { type MouseEvent, type TouchEvent, useEffect, useRef, useState } from "react";
+import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import { motion as Motion } from "motion/react";
 import {
   Bookmark,
@@ -10,7 +11,6 @@ import {
   ImageIcon,
   MessageCircle,
   Radio,
-  Users,
 } from "lucide-react";
 import { HexagonPattern } from "./HexagonPattern";
 
@@ -306,6 +306,7 @@ function WorkoutPostCard({
 }) {
   const [showExercises, setShowExercises] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const commentsScrollable = post.comments.length > 5;
   const touchStartX = useRef(0);
   const r = RARITY_STYLE[post.rarity];
 
@@ -544,7 +545,14 @@ function WorkoutPostCard({
           transition={{ duration: 0.18 }}
           className="border-t border-[#2D2D2D] bg-[#101010] px-4 py-3"
         >
-          <div className="flex flex-col gap-3">
+          <div
+            className="flex flex-col gap-3"
+            style={{
+              maxHeight: commentsScrollable ? 260 : undefined,
+              overflowY: commentsScrollable ? "auto" : undefined,
+              paddingRight: commentsScrollable ? 4 : undefined,
+            }}
+          >
             {post.comments.map((comment) => (
               <div key={comment.id} className="flex items-start gap-2">
                 <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#404040] bg-[#1A1A1A] font-montserrat text-[10px] font-bold text-[#FFD700]">
@@ -599,38 +607,56 @@ export function SocialFeedScreen() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0A0A0A] pb-8">
       <HexagonPattern />
-      <div className="relative z-10 mx-auto flex w-full max-w-[430px] flex-col gap-6 px-5 py-6">
-        <header className="pt-3">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
-                <span className="text-[#FFD700]">Feed</span>
-              </h1>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] text-[#FFD700]">
-              <Users size={22} />
-            </div>
-          </div>
-        </header>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 200,
+          background: "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%)",
+          pointerEvents: "none",
+        }}
+      />
+      <IonGrid fixed className="relative z-10 px-3 py-5">
+        <IonRow className="ion-justify-content-center">
+          <IonCol size="12" style={{ maxWidth: 393 }}>
+            <div className="flex flex-col gap-6">
+              <header className="pt-3">
+                <div>
+                  <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
+                    <span className="text-[#FFD700]">Bee</span>Fit
+                  </h1>
+                </div>
+              </header>
 
-        <section>
-          <div className="mb-3 flex items-center gap-2">
-            <Radio size={16} color="#FFD700" />
-            <h2 className="font-montserrat text-[14px] font-bold uppercase tracking-wide text-[#A3A3A3]">Treinando agora</h2>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {liveFriends.map((friend) => (
-              <LiveFriendCard key={friend.id} friend={friend} />
-            ))}
-          </div>
-        </section>
+              <section>
+                <div className="mb-3 flex items-center gap-2">
+                  <Radio size={16} color="#FFD700" />
+                  <h2 className="font-montserrat text-[14px] font-bold uppercase tracking-wide text-[#A3A3A3]">Treinando agora</h2>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-1">
+                  {liveFriends.map((friend) => (
+                    <LiveFriendCard key={friend.id} friend={friend} />
+                  ))}
+                </div>
+              </section>
 
-        <section className="flex flex-col gap-5">
-          {posts.map((post) => (
-            <WorkoutPostCard key={post.id} post={post} onToggleLike={toggleLike} onSaveTemplate={saveTemplate} />
-          ))}
-        </section>
-      </div>
+              <section className="flex flex-col gap-5">
+                <div className="mb-1 flex items-center gap-2">
+                  <Dumbbell size={16} color="#FFD700" />
+                  <h2 className="font-montserrat text-[14px] font-bold uppercase tracking-wide text-[#A3A3A3]">
+                    Posts recentes
+                  </h2>
+                </div>
+                {posts.map((post) => (
+                  <WorkoutPostCard key={post.id} post={post} onToggleLike={toggleLike} onSaveTemplate={saveTemplate} />
+                ))}
+              </section>
+            </div>
+          </IonCol>
+        </IonRow>
+      </IonGrid>
     </div>
   );
 }

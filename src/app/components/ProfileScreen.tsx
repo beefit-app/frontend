@@ -1,7 +1,10 @@
 import { useState, useRef } from "react";
 import {
+  IonCol,
+  IonGrid,
   IonTextarea,
   IonItem,
+  IonRow,
 } from "@ionic/react";
 import { motion as Motion } from "motion/react";
 import {
@@ -673,7 +676,10 @@ function ProfileView({ profile, onEdit }: { profile: ProfileData; onEdit: () => 
   const initials = profile.displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <div style={{ maxWidth: 430, margin: "0 auto", position: "relative", paddingBottom: 32 }}>
+    <IonGrid fixed style={{ maxWidth: 393, position: "relative", padding: "0 0 32px" }}>
+      <IonRow className="ion-justify-content-center">
+        <IonCol size="12">
+    <div style={{ position: "relative" }}>
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
             <HexagonPattern />
           </div>
@@ -701,7 +707,7 @@ function ProfileView({ profile, onEdit }: { profile: ProfileData; onEdit: () => 
             <Edit2 size={17} color="#FFD700" />
           </button>
 
-          <div style={{ position: "relative", zIndex: 1, padding: "28px 16px 0" }}>
+          <div style={{ position: "relative", zIndex: 1, padding: "32px 12px 0" }}>
             {/* Avatar + identity */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 24 }}>
               <HexAvatar src={profile.avatarUrl} initials={initials} size={96} />
@@ -761,6 +767,9 @@ function ProfileView({ profile, onEdit }: { profile: ProfileData; onEdit: () => 
             </div>
           </div>
     </div>
+        </IonCol>
+      </IonRow>
+    </IonGrid>
   );
 }
 
@@ -820,7 +829,25 @@ function ProfileEdit({ profile, onSave, onCancel }: {
   const bioLeft = 200 - bio.length;
 
   return (
-    <div style={{ maxWidth: 430, margin: "0 auto", padding: "28px 16px 40px", display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ position: "relative", minHeight: "100%", overflow: "hidden", background: "#0A0A0A" }}>
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+        <HexagonPattern />
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 200,
+          background: "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%)",
+          pointerEvents: "none",
+        }}
+      />
+    <IonGrid fixed style={{ maxWidth: 393, padding: "20px 0 40px", position: "relative", zIndex: 1 }}>
+      <IonRow className="ion-justify-content-center">
+        <IonCol size="12">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>
           <div style={{ display: "flex", justifyContent: "center" }}>
             <div style={{ position: "relative" }}>
               <HexAvatar src={avatarUrl} initials={initials} size={96} />
@@ -846,6 +873,10 @@ function ProfileEdit({ profile, onSave, onCancel }: {
             <BeeButton variant="primary" fullWidth onClick={handleSave}>Salvar Alterações</BeeButton>
             <BeeButton variant="dark" fullWidth onClick={onCancel}>Cancelar</BeeButton>
           </div>
+    </div>
+        </IonCol>
+      </IonRow>
+    </IonGrid>
     </div>
   );
 }

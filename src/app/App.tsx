@@ -9,16 +9,17 @@ import {
   IonTabButton,
   IonLabel,
 } from "@ionic/react";
-import { Dumbbell, Newspaper, Search, Users, User } from "lucide-react";
+import { Dumbbell, Newspaper, Package2, Users, User } from "lucide-react";
 import { LoginScreen } from "./components/LoginScreen";
 import { RegisterScreen } from "./components/RegisterScreen";
 import { ProfileScreen } from "./components/ProfileScreen";
 import { SocialFeedScreen } from "./components/SocialFeedScreen";
+import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
 
 setupIonicReact({ mode: "md" });
 
 type AuthScreen = "login" | "register";
-type AppScreen = "feed" | "profile";
+type AppScreen = "feed" | "workout" | "profile";
 type TabId = "feed" | "social" | "workout" | "search" | "profile";
 
 const TAB_ITEMS: {
@@ -32,7 +33,7 @@ const TAB_ITEMS: {
   {
     id: "workout",
     label: "Treino",
-    implemented: false,
+    implemented: true,
     Icon: ({ size }) => (
       <span
         className="flex items-center justify-center"
@@ -49,7 +50,7 @@ const TAB_ITEMS: {
       </span>
     ),
   },
-  { id: "search", label: "Buscar", implemented: false, Icon: ({ size }) => <Search size={size} /> },
+  { id: "search", label: "Inventário", implemented: false, Icon: ({ size }) => <Package2 size={size} /> },
   { id: "profile", label: "Perfil", implemented: true, Icon: ({ size }) => <User size={size} /> },
 ];
 
@@ -89,6 +90,7 @@ export default function App() {
             />
           )}
           {isAuthenticated && screen === "feed" && <SocialFeedScreen />}
+          {isAuthenticated && screen === "workout" && <WorkoutStartScreen />}
           {isAuthenticated && screen === "profile" && <ProfileScreen />}
         </IonContent>
 
@@ -101,7 +103,14 @@ export default function App() {
                 "--border": "1px solid #2D2D2D",
                 "--color": "#737373",
                 "--color-selected": "#FFD700",
-                height: "60px",
+                height: "68px",
+                maxWidth: "393px",
+                margin: "0 auto",
+                borderTopLeftRadius: "22px",
+                borderTopRightRadius: "22px",
+                borderLeft: "1px solid #2D2D2D",
+                borderRight: "1px solid #2D2D2D",
+                paddingBottom: "env(safe-area-inset-bottom)",
               } as React.CSSProperties
             }
           >
