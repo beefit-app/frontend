@@ -432,7 +432,19 @@ export function ActiveWorkoutScreen({ selectedGroups, onBack }: ActiveWorkoutScr
 
           <IonRow className="mt-5">
             <IonCol size="12">
-              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, marginBottom: 16 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  overflowX: "auto",
+                  padding: 6,
+                  marginBottom: 18,
+                  borderRadius: 18,
+                  border: "1px solid #242424",
+                  background: "rgba(12,12,12,0.78)",
+                  backdropFilter: "blur(10px)",
+                }}
+              >
                 {groupedExercises.map(({ group, items }) => {
                   const groupId = items[0]?.groupId;
                   const active = groupId === activeCatalogGroupId;
@@ -444,18 +456,36 @@ export function ActiveWorkoutScreen({ selectedGroups, onBack }: ActiveWorkoutScr
                       type="button"
                       onClick={() => groupId && setActiveCatalogGroupId(groupId)}
                       style={{
-                        border: `1px solid ${active ? style.border : "#2D2D2D"}`,
-                        background: active ? style.bg : "rgba(20,20,20,0.92)",
-                        color: active ? style.text : "#D4D4D4",
-                        borderRadius: 999,
-                        padding: "10px 14px",
+                        border: "none",
+                        background: active ? "rgba(255,255,255,0.05)" : "transparent",
+                        color: active ? "#FFFFFF" : "#8F8F8F",
+                        borderRadius: 14,
+                        padding: "11px 14px 10px",
                         whiteSpace: "nowrap",
-                        fontFamily: "var(--font-inter)",
-                        fontSize: 13,
+                        fontFamily: "var(--font-montserrat)",
+                        fontSize: 12,
                         fontWeight: 700,
+                        letterSpacing: "0.02em",
+                        position: "relative",
+                        boxShadow: active ? "inset 0 0 0 1px rgba(255,255,255,0.04)" : "none",
+                        transition: "background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease",
+                        cursor: "pointer",
                       }}
                     >
-                      {group}
+                      <span>{group}</span>
+                      {active && (
+                        <span
+                          style={{
+                            position: "absolute",
+                            left: 12,
+                            right: 12,
+                            bottom: 5,
+                            height: 2,
+                            borderRadius: 999,
+                            background: style.border,
+                          }}
+                        />
+                      )}
                     </button>
                   );
                 })}
