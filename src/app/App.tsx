@@ -66,6 +66,7 @@ export default function App() {
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkoutBannerState | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
+  const [workoutScreenInstance, setWorkoutScreenInstance] = useState(0);
 
   useEffect(() => {
     if (!activeWorkout) {
@@ -85,6 +86,12 @@ export default function App() {
 
   function enterApp() {
     setIsAuthenticated(true);
+    setScreen("feed");
+  }
+
+  function handleWorkoutCompleted() {
+    setActiveWorkout(null);
+    setWorkoutScreenInstance((current) => current + 1);
     setScreen("feed");
   }
 
@@ -171,9 +178,10 @@ export default function App() {
               </div>
               <div style={{ display: screen === "workout" ? "block" : "none" }}>
                 <WorkoutStartScreen
+                  key={workoutScreenInstance}
                   ghostModeEnabled={accountSettings.ghostModeEnabled}
                   onActiveWorkoutChange={setActiveWorkout}
-                  onWorkoutCompleted={() => setScreen("feed")}
+                  onWorkoutCompleted={handleWorkoutCompleted}
                 />
               </div>
               <div style={{ display: screen === "profile" ? "block" : "none" }}>

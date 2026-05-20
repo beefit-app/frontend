@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { IonCard, IonCardContent, IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 import { Check, Dumbbell, FolderKanban } from "lucide-react";
 import { ActiveWorkoutScreen } from "./ActiveWorkoutScreen";
@@ -60,6 +60,7 @@ export function WorkoutStartScreen({
     startedAt: number;
     initialExerciseIds: string[];
   } | null>(null);
+  const isClosingWorkoutRef = useRef(false);
 
   // Esta tela depende só da interface do service; quando a API entrar,
   // a troca deve acontecer na implementação do service, não aqui.
@@ -80,6 +81,7 @@ export function WorkoutStartScreen({
   }
 
   function closeActiveWorkout() {
+    isClosingWorkoutRef.current = true;
     resetWorkoutState();
     onActiveWorkoutChange?.(null);
   }
@@ -102,6 +104,7 @@ export function WorkoutStartScreen({
     if (selectedTemplate) {
       const startedAt = Date.now();
       const templateExercises = workoutService.getTemplateExercises(selectedTemplate.id);
+      isClosingWorkoutRef.current = false;
       setActiveWorkoutConfig({
         title: selectedTemplate.name,
         subtitle: "Sessão iniciada por template. Adicione exercícios e registre séries durante o treino.",
@@ -115,6 +118,7 @@ export function WorkoutStartScreen({
 
     const labels = workoutService.getSelectedGroupLabels(selectedGroups);
     const startedAt = Date.now();
+    isClosingWorkoutRef.current = false;
     setActiveWorkoutConfig({
       title: "Treino livre",
       subtitle: `Foco selecionado: ${labels.join(", ")}. O catálogo continua livre para adicionar qualquer exercício.`,
@@ -140,6 +144,7 @@ export function WorkoutStartScreen({
           onWorkoutCompleted?.(draft);
         }}
         onSessionGroupsChange={(groups) => {
+          if (isClosingWorkoutRef.current) return;
           onActiveWorkoutChange?.({ selectedGroups: groups, startedAt: activeWorkoutConfig.startedAt });
         }}
         onBack={closeActiveWorkout}
