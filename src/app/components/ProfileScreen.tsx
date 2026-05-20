@@ -10,7 +10,6 @@ import { motion as Motion } from "motion/react";
 import {
   Bookmark,
   Camera,
-  Edit2,
   Flame,
   Dumbbell,
   Scale,
@@ -21,11 +20,17 @@ import {
   Heart,
   ImageIcon,
   MessageCircle,
+  MoreVertical,
+  Eye,
+  EyeOff,
+  Ghost,
+  LockKeyhole,
 } from "lucide-react";
 import { BeeCard } from "./BeeCard";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
 import { PageBackground } from "./PageBackground";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "./ui/sheet";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +43,10 @@ interface ProfileData {
   totalWorkouts: number;
   weight: number;
   avatarUrl: string | null;
+}
+
+interface AccountSettingsData {
+  ghostModeEnabled: boolean;
 }
 
 type Rarity = "lendaria" | "epica" | "rara" | "comum";
@@ -87,6 +96,10 @@ const DEFAULT_PROFILE: ProfileData = {
   totalWorkouts: 312,
   weight: 82.5,
   avatarUrl: null,
+};
+
+const DEFAULT_ACCOUNT_SETTINGS: AccountSettingsData = {
+  ghostModeEnabled: false,
 };
 
 const TRAINED_DAYS: number[] = [1, 3, 5, 6, 8, 10, 12, 13, 15];
@@ -195,9 +208,9 @@ const MOCK_POSTS: WorkoutPost[] = [
 
 const RARITY_STYLE: Record<Rarity, { bg: string; border: string; text: string; label: string; glow: string }> = {
   lendaria: { bg: "rgba(255,215,0,0.12)", border: "#FFD700", text: "#FFE44D", label: "🟡 Lendária", glow: "rgba(255,215,0,0.25)" },
-  epica:    { bg: "rgba(168,85,247,0.12)", border: "#A855F7", text: "#C084FC", label: "🟣 Épica",    glow: "rgba(168,85,247,0.25)" },
-  rara:     { bg: "rgba(59,130,246,0.12)",  border: "#3B82F6", text: "#60A5FA", label: "🔵 Rara",     glow: "rgba(59,130,246,0.25)"  },
-  comum:    { bg: "rgba(115,115,115,0.12)", border: "#737373", text: "#A3A3A3", label: "⚪ Comum",    glow: "rgba(115,115,115,0.2)"  },
+  epica: { bg: "rgba(168,85,247,0.12)", border: "#A855F7", text: "#C084FC", label: "🟣 Épica", glow: "rgba(168,85,247,0.25)" },
+  rara: { bg: "rgba(59,130,246,0.12)", border: "#3B82F6", text: "#60A5FA", label: "🔵 Rara", glow: "rgba(59,130,246,0.25)" },
+  comum: { bg: "rgba(115,115,115,0.12)", border: "#737373", text: "#A3A3A3", label: "⚪ Comum", glow: "rgba(115,115,115,0.2)" },
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -218,8 +231,8 @@ const TITLE_STYLE = {
   color: "#ffffff",
 } as React.CSSProperties;
 
-const MONTH_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-const DAY_LABELS = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
+const MONTH_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 // ─── Small shared components ──────────────────────────────────────────────────
 
@@ -725,8 +738,17 @@ function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile: Profil
 
 // ─── Profile View ─────────────────────────────────────────────────────────────
 
-function ProfileView({ profile, onEdit }: { profile: ProfileData; onEdit: () => void }) {
+function ProfileView({
+  profile,
+  onEdit,
+  onManageAccount,
+}: {
+  profile: ProfileData;
+  onEdit: () => void;
+  onManageAccount: () => void;
+}) {
   const initials = profile.displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   return (
     <PageBackground>
@@ -735,27 +757,88 @@ function ProfileView({ profile, onEdit }: { profile: ProfileData; onEdit: () => 
           <IonCol size="12">
             <div style={{ position: "relative" }}>
 
-              {/* Edit button — top right of content */}
+              {/* Profile menu button — top right of content */}
               <button
-                onClick={onEdit}
+                type="button"
+                onClick={() => setIsProfileMenuOpen(true)}
                 style={{
                   position: "absolute",
                   top: 16,
                   right: 16,
                   zIndex: 10,
-                  background: "#1A1A1A",
-                  border: "1px solid #404040",
-                  borderRadius: "50%",
-                  width: 38,
-                  height: 38,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 14,
+                  border: "1px solid #2D2D2D",
+                  background: "#141414",
+                  color: "#D4D4D4",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
                 }}
+                aria-label="Abrir opções do perfil"
               >
-                <Edit2 size={17} color="#FFD700" />
+                <MoreVertical size={18} />
               </button>
+
+              <Sheet open={isProfileMenuOpen} onOpenChange={setIsProfileMenuOpen}>
+                <SheetContent
+                  side="right"
+                  className="border-l border-[#2D2D2D] bg-[#141414] text-white sm:max-w-[360px]"
+                >
+                  <SheetHeader className="border-b border-[#2D2D2D] px-5 py-5 text-left">
+                    <SheetTitle className="font-montserrat text-[18px] font-bold text-white">
+                      Opções do perfil
+                    </SheetTitle>
+                    <SheetDescription className="font-inter text-[13px] text-[#737373]">
+                      Escolha uma das opções abaixo.
+                    </SheetDescription>
+                  </SheetHeader>
+
+                  <div className="px-4 py-4">
+                    <div className="flex flex-col gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onEdit();
+                        }}
+                        className="flex w-full items-center justify-between rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-4 py-4 text-left transition-colors hover:border-[#404040] hover:bg-[#202020]"
+                      >
+                        <div className="flex min-w-0 flex-col gap-1">
+                          <span className="font-montserrat text-[14px] font-bold text-white">
+                            Alterar informações do perfil
+                          </span>
+                          <span className="font-inter text-[12px] text-[#737373]">
+                            Editar nome, bio, peso e avatar.
+                          </span>
+                        </div>
+                        <ChevronRight size={16} color="#A3A3A3" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onManageAccount();
+                        }}
+                        className="flex w-full items-center justify-between rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-4 py-4 text-left transition-colors hover:border-[#404040] hover:bg-[#202020]"
+                      >
+                        <div className="flex min-w-0 flex-col gap-1">
+                          <span className="font-montserrat text-[14px] font-bold text-white">
+                            Gerenciar configurações de conta
+                          </span>
+                          <span className="font-inter text-[12px] text-[#737373]">
+                            Alterar senha e controlar o modo fantasma.
+                          </span>
+                        </div>
+                        <ChevronRight size={16} color="#A3A3A3" />
+                      </button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
 
               <div style={{ position: "relative", zIndex: 1, padding: "32px 12px 0" }}>
                 {/* Avatar + identity */}
@@ -881,39 +964,280 @@ function ProfileEdit({ profile, onSave, onCancel }: {
 
   return (
     <PageBackground>
-    <IonGrid fixed style={{ maxWidth: 393, padding: "20px 0 40px", position: "relative", zIndex: 1 }}>
-      <IonRow className="ion-justify-content-center">
-        <IonCol size="12">
-    <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <div style={{ position: "relative" }}>
-              <HexAvatar src={avatarUrl} initials={initials} size={96} />
-              <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) setAvatarUrl(URL.createObjectURL(f)); }} />
-              <button onClick={() => fileInputRef.current?.click()} style={{ position: "absolute", bottom: 2, right: -8, background: "#FFD700", border: "2px solid #0A0A0A", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                <Camera size={14} color="#0A0A0A" />
-              </button>
-            </div>
-          </div>
-
-          <BeeCard hover={false}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <BeeInput label="Nome de Exibição" value={displayName} placeholder="Seu nome público" onChange={(e) => { setDisplayName(e.target.value); setErrors((p) => ({ ...p, displayName: "" })); }} error={errors.displayName} />
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <BeeTextarea label="Biografia" value={bio} placeholder="Conte algo sobre você..." onChange={(val) => { if (val.length <= 200) { setBio(val); setErrors((p) => ({ ...p, bio: "" })); } }} error={errors.bio} />
-                <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: bioLeft < 20 ? "#F97316" : "#737373", textAlign: "right" }}>{bioLeft} restantes</span>
+      <IonGrid fixed style={{ maxWidth: 393, padding: "20px 0 40px", position: "relative", zIndex: 1 }}>
+        <IonRow className="ion-justify-content-center">
+          <IonCol size="12">
+            <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <div style={{ position: "relative" }}>
+                  <HexAvatar src={avatarUrl} initials={initials} size={96} />
+                  <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) setAvatarUrl(URL.createObjectURL(f)); }} />
+                  <button onClick={() => fileInputRef.current?.click()} style={{ position: "absolute", bottom: 2, right: -8, background: "#FFD700", border: "2px solid #0A0A0A", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                    <Camera size={14} color="#0A0A0A" />
+                  </button>
+                </div>
               </div>
-              <BeeInput label="Peso Atual (kg)" value={weight} type="number" placeholder="Ex: 82.5" min="30" max="300" step="0.1" onChange={(e) => { setWeight(e.target.value); setErrors((p) => ({ ...p, weight: "" })); }} error={errors.weight} icon={<Scale size={18} />} />
-            </div>
-          </BeeCard>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <BeeButton variant="primary" fullWidth onClick={handleSave}>Salvar Alterações</BeeButton>
-            <BeeButton variant="dark" fullWidth onClick={onCancel}>Cancelar</BeeButton>
-          </div>
-    </div>
-        </IonCol>
-      </IonRow>
-    </IonGrid>
+              <BeeCard hover={false}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <BeeInput label="Nome de Exibição" value={displayName} placeholder="Seu nome público" onChange={(e) => { setDisplayName(e.target.value); setErrors((p) => ({ ...p, displayName: "" })); }} error={errors.displayName} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <BeeTextarea label="Biografia" value={bio} placeholder="Conte algo sobre você..." onChange={(val) => { if (val.length <= 200) { setBio(val); setErrors((p) => ({ ...p, bio: "" })); } }} error={errors.bio} />
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: bioLeft < 20 ? "#F97316" : "#737373", textAlign: "right" }}>{bioLeft} restantes</span>
+                  </div>
+                  <BeeInput label="Peso Atual (kg)" value={weight} type="number" placeholder="Ex: 82.5" min="30" max="300" step="0.1" onChange={(e) => { setWeight(e.target.value); setErrors((p) => ({ ...p, weight: "" })); }} error={errors.weight} icon={<Scale size={18} />} />
+                </div>
+              </BeeCard>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <BeeButton variant="primary" fullWidth onClick={handleSave}>Salvar Alterações</BeeButton>
+                <BeeButton variant="dark" fullWidth onClick={onCancel}>Cancelar</BeeButton>
+              </div>
+            </div>
+          </IonCol>
+        </IonRow>
+      </IonGrid>
+    </PageBackground>
+  );
+}
+
+function AccountSettingsScreen({
+  settings,
+  onSave,
+  onCancel,
+}: {
+  settings: AccountSettingsData;
+  onSave: (data: AccountSettingsData) => void;
+  onCancel: () => void;
+}) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [ghostModeEnabled, setGhostModeEnabled] = useState(settings.ghostModeEnabled);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const EyeToggleIcon = ({ visible }: { visible: boolean }) => (visible ? <EyeOff size={18} /> : <Eye size={18} />);
+
+  function validate() {
+    const nextErrors: Record<string, string> = {};
+    const isChangingPassword = Boolean(currentPassword || newPassword || confirmPassword);
+
+    if (isChangingPassword) {
+      if (!currentPassword) nextErrors.currentPassword = "Digite sua senha atual";
+      if (!newPassword) nextErrors.newPassword = "Digite a nova senha";
+      else if (newPassword.length < 6) nextErrors.newPassword = "A nova senha deve ter ao menos 6 caracteres";
+      if (!confirmPassword) nextErrors.confirmPassword = "Confirme a nova senha";
+      else if (confirmPassword !== newPassword) nextErrors.confirmPassword = "As senhas não coincidem";
+      if (currentPassword && newPassword && currentPassword === newPassword) {
+        nextErrors.newPassword = "A nova senha deve ser diferente da atual";
+      }
+    }
+
+    return nextErrors;
+  }
+
+  function handleSave() {
+    const nextErrors = validate();
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      setSuccessMessage("");
+      return;
+    }
+
+    setErrors({});
+    onSave({ ghostModeEnabled });
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setSuccessMessage("Configurações atualizadas com sucesso.");
+  }
+
+  return (
+    <PageBackground>
+      <IonGrid fixed style={{ maxWidth: 393, padding: "20px 0 40px", position: "relative", zIndex: 1 }}>
+        <IonRow className="ion-justify-content-center">
+          <IonCol size="12">
+            <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>
+              <button
+                type="button"
+                onClick={onCancel}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#A3A3A3",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: 0,
+                  cursor: "pointer",
+                  fontFamily: "var(--font-inter)",
+                  fontSize: 14,
+                  alignSelf: "flex-start",
+                }}
+              >
+                <ChevronLeft size={16} />
+                Voltar ao perfil
+              </button>
+
+              <div style={{ display: "grid", gap: 6 }}>
+                <h1 style={{ margin: 0, fontFamily: "var(--font-montserrat)", fontSize: 24, fontWeight: 700, color: "#ffffff" }}>
+                  Configurações de conta
+                </h1>
+                <p style={{ margin: 0, fontFamily: "var(--font-inter)", fontSize: 14, lineHeight: 1.6, color: "#737373" }}>
+                  Gerencie sua senha e a forma como seu perfil aparece para outros usuários.
+                </p>
+              </div>
+
+              <BeeCard hover={false}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <SectionLabel icon={<LockKeyhole size={13} color="#FFD700" />} label="Alterar Senha" />
+
+                  <BeeInput
+                    label="Senha atual"
+                    type={showCurrentPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={currentPassword}
+                    onChange={(e) => {
+                      setCurrentPassword(e.target.value);
+                      setErrors((prev) => ({ ...prev, currentPassword: "" }));
+                    }}
+                    error={errors.currentPassword}
+                    icon={<LockKeyhole size={18} />}
+                    rightElement={
+                      <span onClick={() => setShowCurrentPassword((current) => !current)}>
+                        <EyeToggleIcon visible={showCurrentPassword} />
+                      </span>
+                    }
+                  />
+
+                  <BeeInput
+                    label="Nova senha"
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      setErrors((prev) => ({ ...prev, newPassword: "" }));
+                    }}
+                    error={errors.newPassword}
+                    icon={<LockKeyhole size={18} />}
+                    rightElement={
+                      <span onClick={() => setShowNewPassword((current) => !current)}>
+                        <EyeToggleIcon visible={showNewPassword} />
+                      </span>
+                    }
+                  />
+
+                  <BeeInput
+                    label="Confirmar nova senha"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      setErrors((prev) => ({ ...prev, confirmPassword: "" }));
+                    }}
+                    error={errors.confirmPassword}
+                    icon={<LockKeyhole size={18} />}
+                    rightElement={
+                      <span onClick={() => setShowConfirmPassword((current) => !current)}>
+                        <EyeToggleIcon visible={showConfirmPassword} />
+                      </span>
+                    }
+                  />
+                </div>
+              </BeeCard>
+
+              <BeeCard hover={false}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                  <SectionLabel icon={<Ghost size={13} color="#FFD700" />} label="Privacidade" />
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 16,
+                      padding: "16px 14px",
+                      borderRadius: 16,
+                      border: "1px solid #2D2D2D",
+                      background: "#1A1A1A",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <span style={{ display: "block", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700, color: "#ffffff", marginBottom: 4 }}>
+                        Modo fantasma
+                      </span>
+                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#737373" }}>
+                        Oculta sua presença e reduz a visibilidade das suas atividades públicas.
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setGhostModeEnabled((current) => !current)}
+                      aria-pressed={ghostModeEnabled}
+                      style={{
+                        width: 56,
+                        height: 32,
+                        borderRadius: 999,
+                        border: "1px solid",
+                        borderColor: ghostModeEnabled ? "#FFD700" : "#404040",
+                        background: ghostModeEnabled ? "rgba(255,215,0,0.18)" : "#101010",
+                        padding: 3,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: ghostModeEnabled ? "flex-end" : "flex-start",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          background: ghostModeEnabled ? "#FFD700" : "#737373",
+                          boxShadow: ghostModeEnabled ? "0 0 12px rgba(255,215,0,0.35)" : "none",
+                          transition: "all 0.2s ease",
+                        }}
+                      />
+                    </button>
+                  </div>
+                </div>
+              </BeeCard>
+
+              {successMessage && (
+                <div
+                  style={{
+                    borderRadius: 14,
+                    border: "1px solid rgba(34,197,94,0.35)",
+                    background: "rgba(34,197,94,0.12)",
+                    padding: "14px 16px",
+                    fontFamily: "var(--font-inter)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#86EFAC",
+                  }}
+                >
+                  {successMessage}
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <BeeButton variant="primary" fullWidth onClick={handleSave}>Salvar configurações</BeeButton>
+                <BeeButton variant="dark" fullWidth onClick={onCancel}>Cancelar</BeeButton>
+              </div>
+            </div>
+          </IonCol>
+        </IonRow>
+      </IonGrid>
     </PageBackground>
   );
 }
@@ -922,11 +1246,16 @@ function ProfileEdit({ profile, onSave, onCancel }: {
 
 export function ProfileScreen() {
   const [profile, setProfile] = useState<ProfileData>(DEFAULT_PROFILE);
-  const [isEditing, setIsEditing] = useState(false);
+  const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
+  const [screenMode, setScreenMode] = useState<"view" | "edit" | "account">("view");
 
-  if (isEditing) {
-    return <ProfileEdit profile={profile} onSave={(data) => { setProfile((p) => ({ ...p, ...data })); setIsEditing(false); }} onCancel={() => setIsEditing(false)} />;
+  if (screenMode === "edit") {
+    return <ProfileEdit profile={profile} onSave={(data) => { setProfile((p) => ({ ...p, ...data })); setScreenMode("view"); }} onCancel={() => setScreenMode("view")} />;
   }
 
-  return <ProfileView profile={profile} onEdit={() => setIsEditing(true)} />;
+  if (screenMode === "account") {
+    return <AccountSettingsScreen settings={accountSettings} onSave={(data) => setAccountSettings(data)} onCancel={() => setScreenMode("view")} />;
+  }
+
+  return <ProfileView profile={profile} onEdit={() => setScreenMode("edit")} onManageAccount={() => setScreenMode("account")} />;
 }
