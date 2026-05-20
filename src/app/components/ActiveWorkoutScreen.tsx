@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IonCol, IonGrid, IonInput, IonRow, IonText } from "@ionic/react";
-import { ChevronLeft, ChevronRight, Clock3, Flame, MoreVertical, Plus } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, Clock3, Flame, ImageIcon, MoreVertical, Plus } from "lucide-react";
 import { BeeButton } from "./BeeButton";
+import { BeeInput } from "./BeeInput";
 import { PageBackground } from "./PageBackground";
 import { workoutService } from "../services/workoutService";
-import type { ExerciseCatalogItem, WorkoutExercise, WorkoutSet } from "../types/workout";
+import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise, WorkoutSet } from "../types/workout";
 
 interface ActiveWorkoutScreenProps {
   title: string;
   subtitle: string;
   selectedGroups: string[];
   initialExercises?: ExerciseCatalogItem[];
+  ghostModeEnabled?: boolean;
   onBack: () => void;
+  onWorkoutComplete?: (draft: WorkoutCompletionDraft) => void;
   onSessionGroupsChange?: (groups: string[]) => void;
 }
 
@@ -132,22 +135,32 @@ function SurfaceCard({
 }
 
 export function ActiveWorkoutScreen({
+  title,
+  subtitle,
   selectedGroups,
   initialExercises = [],
+  ghostModeEnabled = false,
   onBack,
+  onWorkoutComplete,
   onSessionGroupsChange,
 }: ActiveWorkoutScreenProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const [isFinishingWorkout, setIsFinishingWorkout] = useState(false);
   const [activeCatalogGroupId, setActiveCatalogGroupId] = useState("peito");
   const [catalogDetailExerciseId, setCatalogDetailExerciseId] = useState<string | null>(null);
   const [detailViewSource, setDetailViewSource] = useState<"catalog" | "session">("catalog");
   const [isWorkoutMenuOpen, setIsWorkoutMenuOpen] = useState(false);
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() => initialExercises.map(createExerciseCard));
+  const [finishTitle, setFinishTitle] = useState(selectedGroups.join(" & "));
+  const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(null);
+  const [shouldPostWorkout, setShouldPostWorkout] = useState(!ghostModeEnabled);
+  const [finishTitleError, setFinishTitleError] = useState("");
   const [pendingExerciseFocusId, setPendingExerciseFocusId] = useState<string | null>(null);
   const [pendingSetFocusExerciseId, setPendingSetFocusExerciseId] = useState<string | null>(null);
   const exerciseSlideRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const seriesContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const finishPhotoInputRef = useRef<HTMLInputElement>(null);
   // Esta tela depende só da interface do service; quando a API entrar,
   // a troca deve acontecer na implementação do service, não aqui.
   const catalog = useMemo(() => workoutService.getCatalog(), []);
@@ -208,10 +221,16 @@ export function ActiveWorkoutScreen({
   const sessionGroups = useMemo(() => {
     return workoutService.getSessionGroups(selectedGroups, exercises);
   }, [exercises, selectedGroups]);
+  const defaultFinishTitle = sessionGroups.join(" & ");
 
   useEffect(() => {
     onSessionGroupsChange?.(sessionGroups);
   }, [onSessionGroupsChange, sessionGroups]);
+
+  useEffect(() => {
+    if (!isFinishingWorkout) return;
+    setShouldPostWorkout(!ghostModeEnabled);
+  }, [ghostModeEnabled, isFinishingWorkout]);
 
   function addExercise(exercise: ExerciseCatalogItem) {
     const newExercise = createExerciseCard(exercise);
@@ -248,6 +267,208 @@ export function ActiveWorkoutScreen({
   }
 
   const selectedCatalogIds = new Set(exercises.map((exercise) => exercise.catalogId));
+
+  function openFinishWorkout() {
+    setFinishTitle(defaultFinishTitle);
+    setFinishTitleError("");
+    setShouldPostWorkout(!ghostModeEnabled);
+    setIsFinishingWorkout(true);
+  }
+
+  function handleFinishWorkout() {
+    if (!finishTitle.trim()) {
+      setFinishTitleError("Digite um título para concluir o treino");
+      return;
+    }
+
+    onWorkoutComplete?.({
+      title: finishTitle.trim(),
+      photoUrl: finishPhotoUrl,
+      shouldPostWorkout,
+      selectedGroups: sessionGroups,
+      elapsedSeconds,
+      exercises,
+    });
+  }
+
+  if (isFinishingWorkout) {
+    return (
+      <PageBackground>
+        <IonGrid fixed style={{ maxWidth: 393, padding: "32px 12px 24px", position: "relative", zIndex: 1 }}>
+          <IonRow>
+            <IonCol size="12">
+              <button
+                type="button"
+                onClick={() => setIsFinishingWorkout(false)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#A3A3A3",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: 0,
+                  marginBottom: 18,
+                  cursor: "pointer",
+                  fontFamily: "var(--font-inter)",
+                  fontSize: 14,
+                }}
+              >
+                <ChevronLeft size={16} />
+                Voltar para o treino
+              </button>
+
+              <div style={{ display: "grid", gap: 8 }}>
+                <h1 style={{ margin: 0, color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 30, fontWeight: 800 }}>
+                  Concluir treino
+                </h1>
+                <IonText style={{ color: "#B5B5B5", fontFamily: "var(--font-inter)", fontSize: 15, lineHeight: 1.6 }}>
+                  Adicione uma foto, escolha um título e defina se este treino deve ser publicado no seu perfil.
+                </IonText>
+              </div>
+            </IonCol>
+          </IonRow>
+
+          <IonRow className="mt-5">
+            <IonCol size="12">
+              <div style={{ display: "grid", gap: 16 }}>
+                <input
+                  ref={finishPhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) setFinishPhotoUrl(URL.createObjectURL(file));
+                  }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => finishPhotoInputRef.current?.click()}
+                  style={{
+                    width: "100%",
+                    minHeight: 220,
+                    borderRadius: 24,
+                    border: "1px dashed #FFD700",
+                    background: finishPhotoUrl ? `linear-gradient(rgba(10,10,10,0.18), rgba(10,10,10,0.5)), url(${finishPhotoUrl}) center / cover` : "rgba(255,215,0,0.08)",
+                    padding: 22,
+                    display: "grid",
+                    placeItems: "center",
+                    cursor: "pointer",
+                    textAlign: "center",
+                  }}
+                >
+                  {finishPhotoUrl ? (
+                    <div style={{ borderRadius: 999, background: "rgba(10,10,10,0.72)", border: "1px solid rgba(255,215,0,0.22)", padding: "10px 14px", color: "#FFFFFF", fontFamily: "var(--font-inter)", fontSize: 13, fontWeight: 700 }}>
+                      Trocar foto
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
+                      <div style={{ width: 58, height: 58, borderRadius: 18, background: "rgba(255,215,0,0.14)", border: "1px solid rgba(255,228,77,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFE44D" }}>
+                        <Camera size={24} />
+                      </div>
+                      <div style={{ display: "grid", gap: 6 }}>
+                        <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}>
+                          Adicionar foto do treino
+                        </span>
+                        <span style={{ color: "#A3A3A3", fontFamily: "var(--font-inter)", fontSize: 14, lineHeight: 1.6 }}>
+                          Mostre o pump, a academia ou algum momento da sessão.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </button>
+
+                <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)">
+                  <div style={{ display: "grid", gap: 18 }}>
+                    <BeeInput
+                      label="Título do treino"
+                      value={finishTitle}
+                      placeholder="Ex: Push pesado de sexta"
+                      onChange={(event) => {
+                        setFinishTitle(event.target.value);
+                        setFinishTitleError("");
+                      }}
+                      error={finishTitleError}
+                      icon={<ImageIcon size={18} />}
+                    />
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 16,
+                        padding: "16px 14px",
+                        borderRadius: 18,
+                        border: "1px solid #2D2D2D",
+                        background: "#171717",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <span style={{ display: "block", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700, color: "#FFFFFF", marginBottom: 4 }}>
+                          Postar treino no perfil
+                        </span>
+                        <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#737373" }}>
+                          {ghostModeEnabled ? "Modo fantasma ativo: a publicação começa desmarcada." : "Seu treino pode aparecer no feed e no perfil."}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setShouldPostWorkout((current) => !current)}
+                        aria-pressed={shouldPostWorkout}
+                        style={{
+                          width: 56,
+                          height: 32,
+                          borderRadius: 999,
+                          border: "1px solid",
+                          borderColor: shouldPostWorkout ? "#FFD700" : "#404040",
+                          background: shouldPostWorkout ? "rgba(255,215,0,0.18)" : "#101010",
+                          padding: 3,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: shouldPostWorkout ? "flex-end" : "flex-start",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: "50%",
+                            background: shouldPostWorkout ? "#FFD700" : "#737373",
+                            boxShadow: shouldPostWorkout ? "0 0 12px rgba(255,215,0,0.35)" : "none",
+                            transition: "all 0.2s ease",
+                          }}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </SurfaceCard>
+              </div>
+            </IonCol>
+          </IonRow>
+
+          <IonRow className="mt-6">
+            <IonCol size="12">
+              <div style={{ display: "grid", gap: 12 }}>
+                <BeeButton variant="primary" size="lg" fullWidth onClick={handleFinishWorkout}>
+                  Finalizar treino
+                </BeeButton>
+                <BeeButton variant="dark" size="lg" fullWidth onClick={() => setIsFinishingWorkout(false)}>
+                  Continuar editando
+                </BeeButton>
+              </div>
+            </IonCol>
+          </IonRow>
+        </IonGrid>
+      </PageBackground>
+    );
+  }
 
   if (isCatalogOpen) {
     if (activeCatalogExercise) {
@@ -962,7 +1183,7 @@ export function ActiveWorkoutScreen({
 
         <IonRow className="mt-6">
           <IonCol size="12">
-            <BeeButton variant="primary" size="lg" fullWidth>
+            <BeeButton variant="primary" size="lg" fullWidth onClick={openFinishWorkout}>
               Concluir treino
             </BeeButton>
           </IonCol>

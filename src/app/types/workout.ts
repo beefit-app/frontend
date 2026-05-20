@@ -24,6 +24,15 @@ export interface WorkoutExercise {
   sets: WorkoutSet[];
 }
 
+export interface WorkoutCompletionDraft {
+  title: string;
+  photoUrl: string | null;
+  shouldPostWorkout: boolean;
+  selectedGroups: string[];
+  elapsedSeconds: number;
+  exercises: WorkoutExercise[];
+}
+
 export interface MuscleGroupOption {
   id: string;
   label: string;

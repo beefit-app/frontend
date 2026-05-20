@@ -45,7 +45,7 @@ interface ProfileData {
   avatarUrl: string | null;
 }
 
-interface AccountSettingsData {
+export interface AccountSettingsData {
   ghostModeEnabled: boolean;
 }
 
@@ -98,7 +98,7 @@ const DEFAULT_PROFILE: ProfileData = {
   avatarUrl: null,
 };
 
-const DEFAULT_ACCOUNT_SETTINGS: AccountSettingsData = {
+export const DEFAULT_ACCOUNT_SETTINGS: AccountSettingsData = {
   ghostModeEnabled: false,
 };
 
@@ -1244,9 +1244,16 @@ function AccountSettingsScreen({
 
 // ─── Root export ──────────────────────────────────────────────────────────────
 
-export function ProfileScreen() {
+interface ProfileScreenProps {
+  accountSettings?: AccountSettingsData;
+  onAccountSettingsChange?: (data: AccountSettingsData) => void;
+}
+
+export function ProfileScreen({
+  accountSettings: externalAccountSettings = DEFAULT_ACCOUNT_SETTINGS,
+  onAccountSettingsChange,
+}: ProfileScreenProps) {
   const [profile, setProfile] = useState<ProfileData>(DEFAULT_PROFILE);
-  const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
   const [screenMode, setScreenMode] = useState<"view" | "edit" | "account">("view");
 
   if (screenMode === "edit") {
@@ -1254,7 +1261,7 @@ export function ProfileScreen() {
   }
 
   if (screenMode === "account") {
-    return <AccountSettingsScreen settings={accountSettings} onSave={(data) => setAccountSettings(data)} onCancel={() => setScreenMode("view")} />;
+    return <AccountSettingsScreen settings={externalAccountSettings} onSave={(data) => { onAccountSettingsChange?.(data); setScreenMode("view"); }} onCancel={() => setScreenMode("view")} />;
   }
 
   return <ProfileView profile={profile} onEdit={() => setScreenMode("edit")} onManageAccount={() => setScreenMode("account")} />;

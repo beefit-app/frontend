@@ -12,7 +12,7 @@ import {
 import { ChevronRight, Dumbbell, Newspaper, Package2, Users, User } from "lucide-react";
 import { LoginScreen } from "./components/LoginScreen";
 import { RegisterScreen } from "./components/RegisterScreen";
-import { ProfileScreen } from "./components/ProfileScreen";
+import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } from "./components/ProfileScreen";
 import { SocialFeedScreen } from "./components/SocialFeedScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
 
@@ -65,6 +65,7 @@ export default function App() {
   const [screen, setScreen] = useState<AppScreen>("feed");
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkoutBannerState | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
 
   useEffect(() => {
     if (!activeWorkout) {
@@ -169,10 +170,17 @@ export default function App() {
                 <SocialFeedScreen />
               </div>
               <div style={{ display: screen === "workout" ? "block" : "none" }}>
-                <WorkoutStartScreen onActiveWorkoutChange={setActiveWorkout} />
+                <WorkoutStartScreen
+                  ghostModeEnabled={accountSettings.ghostModeEnabled}
+                  onActiveWorkoutChange={setActiveWorkout}
+                  onWorkoutCompleted={() => setScreen("feed")}
+                />
               </div>
               <div style={{ display: screen === "profile" ? "block" : "none" }}>
-                <ProfileScreen />
+                <ProfileScreen
+                  accountSettings={accountSettings}
+                  onAccountSettingsChange={setAccountSettings}
+                />
               </div>
             </>
           )}

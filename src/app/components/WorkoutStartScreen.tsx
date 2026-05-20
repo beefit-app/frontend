@@ -5,7 +5,7 @@ import { ActiveWorkoutScreen } from "./ActiveWorkoutScreen";
 import { BeeButton } from "./BeeButton";
 import { PageBackground } from "./PageBackground";
 import { workoutService } from "../services/workoutService";
-import type { ExerciseCatalogItem } from "../types/workout";
+import type { ExerciseCatalogItem, WorkoutCompletionDraft } from "../types/workout";
 
 const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
@@ -41,10 +41,16 @@ function HexIcon({
 }
 
 interface WorkoutStartScreenProps {
+  ghostModeEnabled?: boolean;
   onActiveWorkoutChange?: (workout: { selectedGroups: string[]; startedAt: number } | null) => void;
+  onWorkoutCompleted?: (draft: WorkoutCompletionDraft) => void;
 }
 
-export function WorkoutStartScreen({ onActiveWorkoutChange }: WorkoutStartScreenProps) {
+export function WorkoutStartScreen({
+  ghostModeEnabled = false,
+  onActiveWorkoutChange,
+  onWorkoutCompleted,
+}: WorkoutStartScreenProps) {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [startedWorkout, setStartedWorkout] = useState<string | null>(null);
@@ -122,6 +128,13 @@ export function WorkoutStartScreen({ onActiveWorkoutChange }: WorkoutStartScreen
         initialExercises={activeWorkoutConfig.initialExerciseIds
           .map((exerciseId) => workoutService.getCatalogItemById(exerciseId))
           .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null)}
+        ghostModeEnabled={ghostModeEnabled}
+        onWorkoutComplete={(draft) => {
+          setStartedWorkout("Treino concluído.");
+          setActiveWorkoutConfig(null);
+          onActiveWorkoutChange?.(null);
+          onWorkoutCompleted?.(draft);
+        }}
         onSessionGroupsChange={(groups) => {
           onActiveWorkoutChange?.({ selectedGroups: groups, startedAt: activeWorkoutConfig.startedAt });
         }}
