@@ -53,7 +53,6 @@ export function WorkoutStartScreen({
 }: WorkoutStartScreenProps) {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-  const [startedWorkout, setStartedWorkout] = useState<string | null>(null);
   const [activeWorkoutConfig, setActiveWorkoutConfig] = useState<{
     title: string;
     subtitle: string;
@@ -74,8 +73,18 @@ export function WorkoutStartScreen({
 
   const canStartWorkout = selectedGroups.length > 0 || selectedTemplate !== null;
 
+  function resetWorkoutState() {
+    setSelectedGroups([]);
+    setSelectedTemplateId(null);
+    setActiveWorkoutConfig(null);
+  }
+
+  function closeActiveWorkout() {
+    resetWorkoutState();
+    onActiveWorkoutChange?.(null);
+  }
+
   function toggleGroup(groupId: string) {
-    setStartedWorkout(null);
     setSelectedTemplateId(null);
     setSelectedGroups((current) =>
       current.includes(groupId) ? current.filter((item) => item !== groupId) : [...current, groupId],
@@ -83,7 +92,6 @@ export function WorkoutStartScreen({
   }
 
   function selectTemplate(templateId: string) {
-    setStartedWorkout(null);
     setSelectedGroups([]);
     setSelectedTemplateId((current) => (current === templateId ? null : templateId));
   }
@@ -94,7 +102,6 @@ export function WorkoutStartScreen({
     if (selectedTemplate) {
       const startedAt = Date.now();
       const templateExercises = workoutService.getTemplateExercises(selectedTemplate.id);
-      setStartedWorkout(`Treino iniciado com o template ${selectedTemplate.name}.`);
       setActiveWorkoutConfig({
         title: selectedTemplate.name,
         subtitle: "Sessão iniciada por template. Adicione exercícios e registre séries durante o treino.",
@@ -108,7 +115,6 @@ export function WorkoutStartScreen({
 
     const labels = workoutService.getSelectedGroupLabels(selectedGroups);
     const startedAt = Date.now();
-    setStartedWorkout(`Treino iniciado para ${labels.join(", ")}.`);
     setActiveWorkoutConfig({
       title: "Treino livre",
       subtitle: `Foco selecionado: ${labels.join(", ")}. O catálogo continua livre para adicionar qualquer exercício.`,
@@ -130,18 +136,13 @@ export function WorkoutStartScreen({
           .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null)}
         ghostModeEnabled={ghostModeEnabled}
         onWorkoutComplete={(draft) => {
-          setStartedWorkout("Treino concluído.");
-          setActiveWorkoutConfig(null);
-          onActiveWorkoutChange?.(null);
+          closeActiveWorkout();
           onWorkoutCompleted?.(draft);
         }}
         onSessionGroupsChange={(groups) => {
           onActiveWorkoutChange?.({ selectedGroups: groups, startedAt: activeWorkoutConfig.startedAt });
         }}
-        onBack={() => {
-          setActiveWorkoutConfig(null);
-          onActiveWorkoutChange?.(null);
-        }}
+        onBack={closeActiveWorkout}
       />
     );
   }
