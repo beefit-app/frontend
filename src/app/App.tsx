@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   setupIonicReact,
   IonApp,
@@ -9,7 +9,7 @@ import {
   IonTabButton,
   IonLabel,
 } from "@ionic/react";
-import { Dumbbell, Newspaper, Package2, Users, User } from "lucide-react";
+import { ChevronRight, Dumbbell, Newspaper, Package2, Users, User } from "lucide-react";
 import { LoginScreen } from "./components/LoginScreen";
 import { RegisterScreen } from "./components/RegisterScreen";
 import { ProfileScreen } from "./components/ProfileScreen";
@@ -21,6 +21,11 @@ setupIonicReact({ mode: "md" });
 type AuthScreen = "login" | "register";
 type AppScreen = "feed" | "workout" | "profile";
 type TabId = "feed" | "social" | "workout" | "search" | "profile";
+
+interface ActiveWorkoutBannerState {
+  selectedGroups: string[];
+  startedAt: number;
+}
 
 const TAB_ITEMS: {
   id: TabId;
@@ -58,11 +63,48 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authScreen, setAuthScreen] = useState<AuthScreen>("login");
   const [screen, setScreen] = useState<AppScreen>("feed");
+  const [activeWorkout, setActiveWorkout] = useState<ActiveWorkoutBannerState | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!activeWorkout) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const updateElapsed = () => {
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - activeWorkout.startedAt) / 1000)));
+    };
+
+    updateElapsed();
+    const timer = window.setInterval(updateElapsed, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [activeWorkout]);
 
   function enterApp() {
     setIsAuthenticated(true);
     setScreen("feed");
   }
+
+  function handleTabChange(tabId: TabId, implemented: boolean) {
+    if (tabId === "workout") {
+      setScreen("workout");
+      return;
+    }
+
+    if (implemented) {
+      setScreen(tabId as AppScreen);
+    }
+  }
+
+  function formatElapsedTime(totalSeconds: number) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  const activeWorkoutLabel = activeWorkout?.selectedGroups.join(" · ");
 
   return (
     <IonApp>
@@ -79,6 +121,36 @@ export default function App() {
             } as React.CSSProperties
           }
         >
+          {isAuthenticated && activeWorkout && screen !== "workout" && (
+            <div className="px-3 pt-3">
+              <button
+                type="button"
+                onClick={() => setScreen("workout")}
+                className="mx-auto flex w-full max-w-[393px] items-center justify-between gap-3 rounded-[20px] border border-[rgba(255,215,0,0.28)] bg-[linear-gradient(135deg,rgba(255,215,0,0.14)_0%,rgba(20,20,20,0.98)_34%,rgba(20,20,20,0.98)_100%)] px-4 py-3 text-left shadow-[0_12px_30px_rgba(0,0,0,0.24)]"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(255,215,0,0.24)] bg-[rgba(255,215,0,0.12)] text-[#FFD700]">
+                    <Dumbbell size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block font-montserrat text-[11px] font-bold uppercase tracking-[0.12em] text-[#B8A65A]">
+                      Treino ativo
+                    </span>
+                    <span className="block truncate font-montserrat text-[14px] font-bold text-white">
+                      {activeWorkoutLabel}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="font-montserrat text-[16px] font-bold text-[#FFD700]">
+                    {formatElapsedTime(elapsedSeconds)}
+                  </span>
+                  <ChevronRight size={16} color="#FFD700" />
+                </div>
+              </button>
+            </div>
+          )}
+
           {!isAuthenticated && authScreen === "login" && (
             <LoginScreen
               onNavigateToRegister={() => setAuthScreen("register")}
@@ -91,9 +163,19 @@ export default function App() {
               onRegisterSuccess={enterApp}
             />
           )}
-          {isAuthenticated && screen === "feed" && <SocialFeedScreen />}
-          {isAuthenticated && screen === "workout" && <WorkoutStartScreen />}
-          {isAuthenticated && screen === "profile" && <ProfileScreen />}
+          {isAuthenticated && (
+            <>
+              <div style={{ display: screen === "feed" ? "block" : "none" }}>
+                <SocialFeedScreen />
+              </div>
+              <div style={{ display: screen === "workout" ? "block" : "none" }}>
+                <WorkoutStartScreen onActiveWorkoutChange={setActiveWorkout} />
+              </div>
+              <div style={{ display: screen === "profile" ? "block" : "none" }}>
+                <ProfileScreen />
+              </div>
+            </>
+          )}
         </IonContent>
 
         {isAuthenticated && (
@@ -123,9 +205,7 @@ export default function App() {
                 key={id}
                 tab={id}
                 selected={active}
-                onClick={() => {
-                  if (implemented) setScreen(id as AppScreen);
-                }}
+                onClick={() => handleTabChange(id, implemented)}
                 style={
                   {
                     "--color": active ? "#FFD700" : "#737373",

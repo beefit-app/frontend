@@ -25,6 +25,16 @@ export const workoutService = {
     return WORKOUT_TEMPLATES.find((template) => template.id === templateId) ?? null;
   },
 
+  getTemplateExercises(templateId: string | null) {
+    const template = this.getTemplateById(templateId);
+
+    if (!template) return [];
+
+    return template.exerciseIds
+      .map((exerciseId) => EXERCISES.find((exercise) => exercise.id === exerciseId) ?? null)
+      .filter((exercise): exercise is (typeof EXERCISES)[number] => exercise !== null);
+  },
+
   getSelectedGroupLabels(groupIds: string[]) {
     return MUSCLE_GROUPS
       .filter((group) => groupIds.includes(group.id))

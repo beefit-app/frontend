@@ -38,4 +38,5 @@ export interface WorkoutTemplate {
   groups: string[];
   duration: string;
   exercises: number;
+  exerciseIds: string[];
 }

@@ -5,6 +5,7 @@ import { ActiveWorkoutScreen } from "./ActiveWorkoutScreen";
 import { BeeButton } from "./BeeButton";
 import { PageBackground } from "./PageBackground";
 import { workoutService } from "../services/workoutService";
+import type { ExerciseCatalogItem } from "../types/workout";
 
 const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
@@ -39,7 +40,11 @@ function HexIcon({
   );
 }
 
-export function WorkoutStartScreen() {
+interface WorkoutStartScreenProps {
+  onActiveWorkoutChange?: (workout: { selectedGroups: string[]; startedAt: number } | null) => void;
+}
+
+export function WorkoutStartScreen({ onActiveWorkoutChange }: WorkoutStartScreenProps) {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [startedWorkout, setStartedWorkout] = useState<string | null>(null);
@@ -47,6 +52,8 @@ export function WorkoutStartScreen() {
     title: string;
     subtitle: string;
     selectedGroups: string[];
+    startedAt: number;
+    initialExerciseIds: string[];
   } | null>(null);
 
   // Esta tela depende só da interface do service; quando a API entrar,
@@ -79,22 +86,31 @@ export function WorkoutStartScreen() {
     if (!canStartWorkout) return;
 
     if (selectedTemplate) {
+      const startedAt = Date.now();
+      const templateExercises = workoutService.getTemplateExercises(selectedTemplate.id);
       setStartedWorkout(`Treino iniciado com o template ${selectedTemplate.name}.`);
       setActiveWorkoutConfig({
         title: selectedTemplate.name,
         subtitle: "Sessão iniciada por template. Adicione exercícios e registre séries durante o treino.",
         selectedGroups: selectedTemplate.groups,
+        startedAt,
+        initialExerciseIds: templateExercises.map((exercise) => exercise.id),
       });
+      onActiveWorkoutChange?.({ selectedGroups: selectedTemplate.groups, startedAt });
       return;
     }
 
     const labels = workoutService.getSelectedGroupLabels(selectedGroups);
+    const startedAt = Date.now();
     setStartedWorkout(`Treino iniciado para ${labels.join(", ")}.`);
     setActiveWorkoutConfig({
       title: "Treino livre",
       subtitle: `Foco selecionado: ${labels.join(", ")}. O catálogo continua livre para adicionar qualquer exercício.`,
       selectedGroups: labels,
+      startedAt,
+      initialExerciseIds: [],
     });
+    onActiveWorkoutChange?.({ selectedGroups: labels, startedAt });
   }
 
   if (activeWorkoutConfig) {
@@ -103,7 +119,16 @@ export function WorkoutStartScreen() {
         title={activeWorkoutConfig.title}
         subtitle={activeWorkoutConfig.subtitle}
         selectedGroups={activeWorkoutConfig.selectedGroups}
-        onBack={() => setActiveWorkoutConfig(null)}
+        initialExercises={activeWorkoutConfig.initialExerciseIds
+          .map((exerciseId) => workoutService.getCatalogItemById(exerciseId))
+          .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null)}
+        onSessionGroupsChange={(groups) => {
+          onActiveWorkoutChange?.({ selectedGroups: groups, startedAt: activeWorkoutConfig.startedAt });
+        }}
+        onBack={() => {
+          setActiveWorkoutConfig(null);
+          onActiveWorkoutChange?.(null);
+        }}
       />
     );
   }

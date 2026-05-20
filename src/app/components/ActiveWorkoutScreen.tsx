@@ -10,7 +10,9 @@ interface ActiveWorkoutScreenProps {
   title: string;
   subtitle: string;
   selectedGroups: string[];
+  initialExercises?: ExerciseCatalogItem[];
   onBack: () => void;
+  onSessionGroupsChange?: (groups: string[]) => void;
 }
 
 const MUSCLE_STYLE: Record<string, { border: string; text: string; bg: string }> = {
@@ -129,13 +131,19 @@ function SurfaceCard({
   );
 }
 
-export function ActiveWorkoutScreen({ selectedGroups, onBack }: ActiveWorkoutScreenProps) {
+export function ActiveWorkoutScreen({
+  selectedGroups,
+  initialExercises = [],
+  onBack,
+  onSessionGroupsChange,
+}: ActiveWorkoutScreenProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [activeCatalogGroupId, setActiveCatalogGroupId] = useState("peito");
   const [catalogDetailExerciseId, setCatalogDetailExerciseId] = useState<string | null>(null);
+  const [detailViewSource, setDetailViewSource] = useState<"catalog" | "session">("catalog");
   const [isWorkoutMenuOpen, setIsWorkoutMenuOpen] = useState(false);
-  const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => initialExercises.map(createExerciseCard));
   const [pendingExerciseFocusId, setPendingExerciseFocusId] = useState<string | null>(null);
   const [pendingSetFocusExerciseId, setPendingSetFocusExerciseId] = useState<string | null>(null);
   const exerciseSlideRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -201,12 +209,17 @@ export function ActiveWorkoutScreen({ selectedGroups, onBack }: ActiveWorkoutScr
     return workoutService.getSessionGroups(selectedGroups, exercises);
   }, [exercises, selectedGroups]);
 
+  useEffect(() => {
+    onSessionGroupsChange?.(sessionGroups);
+  }, [onSessionGroupsChange, sessionGroups]);
+
   function addExercise(exercise: ExerciseCatalogItem) {
     const newExercise = createExerciseCard(exercise);
 
     setExercises((current) => [...current, newExercise]);
     setPendingExerciseFocusId(newExercise.id);
     setCatalogDetailExerciseId(null);
+    setDetailViewSource("catalog");
     setIsCatalogOpen(false);
   }
 
@@ -248,7 +261,13 @@ export function ActiveWorkoutScreen({ selectedGroups, onBack }: ActiveWorkoutScr
               <IonCol size="12">
                 <button
                   type="button"
-                  onClick={() => setCatalogDetailExerciseId(null)}
+                  onClick={() => {
+                    setCatalogDetailExerciseId(null);
+
+                    if (detailViewSource === "session") {
+                      setIsCatalogOpen(false);
+                    }
+                  }}
                   style={{
                     border: "none",
                     background: "transparent",
@@ -264,7 +283,7 @@ export function ActiveWorkoutScreen({ selectedGroups, onBack }: ActiveWorkoutScr
                   }}
                 >
                   <ChevronLeft size={16} />
-                  Voltar para o catálogo
+                  {detailViewSource === "session" ? "Voltar para o treino" : "Voltar para o catálogo"}
                 </button>
 
                 <div style={{ display: "grid", gap: 12 }}>
@@ -500,7 +519,10 @@ export function ActiveWorkoutScreen({ selectedGroups, onBack }: ActiveWorkoutScr
                     <button
                       key={exercise.id}
                       type="button"
-                      onClick={() => setCatalogDetailExerciseId(exercise.id)}
+                      onClick={() => {
+                        setDetailViewSource("catalog");
+                        setCatalogDetailExerciseId(exercise.id);
+                      }}
                       style={{
                         border: `1px solid ${alreadyAdded ? style.border : "#2D2D2D"}`,
                         background: alreadyAdded ? style.bg : "#141414",
@@ -540,27 +562,7 @@ export function ActiveWorkoutScreen({ selectedGroups, onBack }: ActiveWorkoutScr
       <IonGrid fixed style={{ maxWidth: 393, padding: "24px 12px 0", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 12, position: "relative" }}>
-              <button
-                type="button"
-                onClick={onBack}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: "#A3A3A3",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: 0,
-                  cursor: "pointer",
-                  fontFamily: "var(--font-inter)",
-                  fontSize: 14,
-                }}
-              >
-                <ChevronLeft size={16} />
-                Voltar
-              </button>
-
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "flex-end", gap: 10, marginBottom: 12, position: "relative" }}>
               <div style={{ position: "relative" }}>
                 <button
                   type="button"
@@ -724,11 +726,37 @@ export function ActiveWorkoutScreen({ selectedGroups, onBack }: ActiveWorkoutScr
                     <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)" style={ACTIVE_WORKOUT_CARD_STYLE}>
                       <div style={{ display: "grid", gap: 14, height: "100%", gridTemplateRows: "auto minmax(0, 1fr) auto", alignContent: "start" }}>
                         <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
-                          <div style={{ display: "grid", gap: 8 }}>
-                            <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}>
-                              {exercise.name}
-                            </span>
-                            <MuscleTag group={exercise.group} />
+                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                            <div style={{ display: "grid", gap: 8, minWidth: 0 }}>
+                              <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}>
+                                {exercise.name}
+                              </span>
+                              <MuscleTag group={exercise.group} />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDetailViewSource("session");
+                                setCatalogDetailExerciseId(exercise.catalogId);
+                                setIsCatalogOpen(true);
+                              }}
+                              aria-label={`Ver informações de ${exercise.name}`}
+                              style={{
+                                border: "1px solid #2D2D2D",
+                                background: "#171717",
+                                color: "#D4D4D4",
+                                borderRadius: 12,
+                                width: 40,
+                                height: 40,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <ChevronRight size={16} color="#A3A3A3" />
+                            </button>
                           </div>
                         </div>
 
