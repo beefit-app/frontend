@@ -1,61 +1,138 @@
-**Add your own guidelines here**
-<!--
+# BeeFit Guidelines
 
-System Guidelines
+Diretrizes para manter consistência de produto, UI e implementação nas próximas mudanças.
 
-Use this file to provide the AI with rules and guidelines you want it to follow.
-This template outlines a few examples of things you can add. You can add your own sections and format it to suit your needs
+## Objetivo do produto
 
-TIP: More context isn't always better. It can confuse the LLM. Try and add the most important rules you need
+- O BeeFit deve parecer um app real de treino com identidade própria, não um protótipo genérico.
+- Toda nova tela precisa conversar com o restante do app em visual, navegação e comportamento.
+- O foco é fluxo mobile-first, com cards bem definidos, ações claras e navegação simples.
+- O app mistura treino, perfil e feed social. As funcionalidades devem refletir esse contexto.
 
-# General guidelines
+## Como implementar mudanças
 
-Any general rules you want the AI to follow.
-For example:
+- Não criar soluções paralelas quando já existe um padrão visual ou de fluxo no projeto.
+- Reaproveitar componentes, estados e comportamentos já existentes antes de inventar novos.
+- Preferir mudanças completas de fluxo, não apenas ajustes cosméticos isolados.
+- Sempre considerar estados reais do produto: origem da navegação, persistência, retorno correto, defaults e continuidade da sessão.
+- Quando o pedido for simples, resolver de forma pragmática, sem overengineering.
+- Sempre que possível, modelar dados e callbacks pensando em futura integração com API.
+- UI e fluxo devem ser preparados para backend futuro com payloads explícitos, props claras e responsabilidades separadas.
 
-* Only use absolute positioning when necessary. Opt for responsive and well structured layouts that use flexbox and grid by default
-* Refactor code as you go to keep code clean
-* Keep file sizes small and put helper functions and components in their own files.
+## Expectativa de navegação
 
---------------
+- Navegações devem respeitar o contexto de origem. O botão de voltar precisa levar para a tela certa.
+- Fluxos importantes não devem ser perdidos ao trocar de aba.
+- Se houver sessão ativa, o usuário deve conseguir retornar a ela facilmente.
+- A navegação entre treino, perfil e feed deve manter coerência de estado global.
+- Se uma tela nasce de outra, a volta deve respeitar esse encadeamento.
 
-# Design system guidelines
-Rules for how the AI should make generations look like your company's design system
+## Diretrizes de UX
 
-Additionally, if you select a design system to use in the prompt box, you can reference
-your design system's components, tokens, variables and components.
-For example:
+- Priorizar clareza sobre quantidade de elementos.
+- Evitar interfaces poluídas ou com muitas hierarquias concorrendo.
+- A ação principal da tela deve ser óbvia.
+- Textos de ação devem ser diretos e específicos.
+- Ajustes pequenos de posicionamento e comportamento importam tanto quanto a feature em si.
+- Quando houver toggle, menu ou drawer, o comportamento deve ser previsível e consistente com o app.
 
-* Use a base font-size of 14px
-* Date formats should always be in the format “Jun 10”
-* The bottom toolbar should only ever have a maximum of 4 items
-* Never use the floating action button with the bottom toolbar
-* Chips should always come in sets of 3 or more
-* Don't use a dropdown if there are 2 or fewer options
+## Estilo visual
 
-You can also create sub sections and add more specific details
-For example:
+- Fundo base do app: `#0A0A0A`.
+- Superfícies principais: tons próximos de `#141414`, `#171717`, `#1A1A1A`.
+- Bordas padrão: `#2D2D2D` ou variações discretas no mesmo eixo.
+- Destaque da marca: amarelo/dourado `#FFD700`.
+- Texto principal: `#FFFFFF`.
+- Texto secundário: `#A3A3A3`, `#8F8F8F` ou `#737373`.
+- Bordas e glow coloridos devem ser usados como acento funcional, não como ruído decorativo.
+- Cards devem ter raio grande, normalmente entre `18px` e `24px`.
+- Sombras devem ser suaves e profundas, sem exagero.
+- O visual deve ser premium, limpo e levemente esportivo.
 
+## Tipografia
 
-## Button
-The Button component is a fundamental interactive element in our design system, designed to trigger actions or navigate
-users through the application. It provides visual feedback and clear affordances to enhance user experience.
+- Títulos e números importantes: `Montserrat`.
+- Texto de apoio, campos e descrições: `Inter`.
+- Títulos costumam ser pesados, com alto contraste e tamanho generoso.
+- Labels auxiliares podem usar uppercase com tracking leve.
+- O contraste entre título, apoio e metadata deve ser sempre evidente.
 
-### Usage
-Buttons should be used for important actions that users need to take, such as form submissions, confirming choices,
-or initiating processes. They communicate interactivity and should have clear, action-oriented labels.
+## Layout
 
-### Variants
-* Primary Button
-  * Purpose : Used for the main action in a section or page
-  * Visual Style : Bold, filled with the primary brand color
-  * Usage : One primary button per section to guide users toward the most important action
-* Secondary Button
-  * Purpose : Used for alternative or supporting actions
-  * Visual Style : Outlined with the primary color, transparent background
-  * Usage : Can appear alongside a primary button for less important actions
-* Tertiary Button
-  * Purpose : Used for the least important actions
-  * Visual Style : Text-only with no border, using primary color
-  * Usage : For actions that should be available but not emphasized
--->
+- Priorizar `flex` e `grid`.
+- Evitar posicionamento absoluto, exceto em overlays, badges, ícones flutuantes e detalhes de composição.
+- As telas devem respeitar largura móvel próxima de `393px`.
+- Espaçamentos devem ser consistentes e respirar; evitar blocos muito comprimidos.
+- A composição deve parecer pensada para mobile, não desktop comprimido.
+
+## Componentes principais
+
+### `PageBackground`
+
+- Deve ser a base das telas principais.
+- Manter o mesmo clima visual do app.
+
+### `BeeButton`
+
+- Botão principal do sistema.
+- `primary`: ação principal da tela.
+- `secondary`: ação secundária com destaque de marca.
+- `dark`: ação neutra ou de cancelamento.
+- Evitar criar novos botões inline se `BeeButton` resolver o caso.
+
+### `BeeInput`
+
+- Campo padrão para inputs do app.
+- Deve ser usado sempre que o caso não exigir algo muito específico.
+- Bordas, foco e erro devem seguir o padrão visual existente.
+
+### `BeeCard`
+
+- Wrapper visual para blocos de conteúdo.
+- Usar quando a tela pede agrupamento visual consistente com o restante do app.
+
+### `Sheet`
+
+- Usar para menus laterais e ações contextualizadas quando o fluxo pede uma sidebar.
+- Deve seguir o padrão já aplicado no perfil.
+
+### `MuscleTag`
+
+- Representa grupos musculares e deve ser reaproveitado sempre que possível.
+- As cores dos grupos servem como semântica visual consistente ao longo do app.
+
+## Componentes e padrões do treino
+
+- O treino ativo é um fluxo central do produto e precisa ter tratamento consistente.
+- Cronômetro é elemento prioritário da sessão.
+- Exercícios adicionados devem aparecer em cards próprios.
+- Adicionar exercício deve ser uma ação destacada.
+- Detalhes do exercício devem ser reutilizáveis entre catálogo e sessão.
+- Templates devem preencher a sessão com dados reais, não apenas texto visual.
+- A conclusão do treino deve ser tratada como uma etapa de fluxo, não só um botão solto.
+- Informações de conclusão devem ser organizadas em formato fácil de enviar para API depois.
+
+## Estado global e integração futura
+
+- Sempre que um dado impactar mais de uma tela, considerar mover o estado para um nível superior.
+- Exemplos de estado global: treino ativo, tempo decorrido, modo fantasma, retorno ao treino.
+- Para eventos importantes, preferir callbacks com payload tipado.
+- Evitar acoplar decisões de persistência diretamente à UI.
+- Quando uma tela emitir dados que depois irão para backend, usar estruturas explícitas e semânticas.
+
+## O que evitar
+
+- Criar soluções visuais que destoem do restante do app.
+- Adicionar complexidade estrutural sem necessidade clara.
+- Duplicar fluxo ou UI já existente em vez de reutilizar.
+- Usar textos vagos, botões genéricos ou navegação que perca contexto.
+- Implementar algo só “parecendo pronto” se o comportamento ainda estiver inconsistente.
+
+## Regra prática para futuras tarefas
+
+- Toda mudança deve responder bem a estas perguntas:
+- Isso parece BeeFit?
+- Isso segue um padrão já usado no app?
+- O fluxo faz sentido de ponta a ponta?
+- O estado está preparado para crescer e integrar com API?
+- O usuário consegue entender e usar sem fricção?
