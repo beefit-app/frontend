@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   setupIonicReact,
   IonApp,
@@ -16,6 +16,7 @@ import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } fro
 import { SocialFeedScreen } from "./components/SocialFeedScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
 import { useAuth } from "./auth/AuthContext";
+import type { WorkoutCompletionDraft } from "./types/workout";
 
 setupIonicReact({ mode: "md" });
 
@@ -68,6 +69,8 @@ const TAB_ITEMS: {
 
 export default function App() {
   const { isAuthenticated, isBootstrapping } = useAuth();
+  const contentRef = useRef<HTMLIonContentElement | null>(null);
+  const pendingStreakTimeoutRef = useRef<number | null>(null);
   const [authScreen, setAuthScreen] = useState<AuthScreen>("login");
   const [screen, setScreen] = useState<AppScreen>("feed");
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkoutBannerState | null>(null);
@@ -110,7 +113,15 @@ export default function App() {
     }
   }, [isAuthenticated]);
 
-  function handleWorkoutCompleted() {
+  useEffect(() => {
+    return () => {
+      if (pendingStreakTimeoutRef.current !== null) {
+        window.clearTimeout(pendingStreakTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  function feedStreak() {
     const todayKey = getTodayKey();
 
     setStreak((current) => ({
@@ -118,9 +129,31 @@ export default function App() {
       lastFedDate: todayKey,
       burstToken: current.burstToken + 1,
     }));
+  }
+
+  function handleWorkoutCompleted(draft: WorkoutCompletionDraft) {
+    if (pendingStreakTimeoutRef.current !== null) {
+      window.clearTimeout(pendingStreakTimeoutRef.current);
+      pendingStreakTimeoutRef.current = null;
+    }
+
     setActiveWorkout(null);
     setWorkoutScreenInstance((current) => current + 1);
     setScreen("feed");
+
+    if (!draft.shouldPostWorkout) {
+      feedStreak();
+      return;
+    }
+
+    window.setTimeout(() => {
+      void contentRef.current?.scrollToTop(320);
+
+      pendingStreakTimeoutRef.current = window.setTimeout(() => {
+        feedStreak();
+        pendingStreakTimeoutRef.current = null;
+      }, 420);
+    }, 40);
   }
 
   function handleTabChange(tabId: TabId, implemented: boolean) {
@@ -147,6 +180,7 @@ export default function App() {
     <IonApp>
       <IonPage>
         <IonContent
+          ref={contentRef}
           fullscreen
           scrollY
           forceOverscroll
