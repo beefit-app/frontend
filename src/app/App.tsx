@@ -15,6 +15,7 @@ import { RegisterScreen } from "./components/RegisterScreen";
 import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } from "./components/ProfileScreen";
 import { SocialFeedScreen } from "./components/SocialFeedScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
+import { useAuth } from "./auth/AuthContext";
 
 setupIonicReact({ mode: "md" });
 
@@ -60,7 +61,7 @@ const TAB_ITEMS: {
 ];
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, isBootstrapping } = useAuth();
   const [authScreen, setAuthScreen] = useState<AuthScreen>("login");
   const [screen, setScreen] = useState<AppScreen>("feed");
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkoutBannerState | null>(null);
@@ -84,10 +85,11 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, [activeWorkout]);
 
-  function enterApp() {
-    setIsAuthenticated(true);
-    setScreen("feed");
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      setScreen("feed");
+    }
+  }, [isAuthenticated]);
 
   function handleWorkoutCompleted() {
     setActiveWorkout(null);
@@ -129,7 +131,20 @@ export default function App() {
             } as React.CSSProperties
           }
         >
-          {isAuthenticated && activeWorkout && screen !== "workout" && (
+          {isBootstrapping && (
+            <div className="flex min-h-full items-center justify-center px-6 text-center">
+              <div className="max-w-[280px]">
+                <span className="block font-montserrat text-[14px] font-bold uppercase tracking-[0.12em] text-[#B8A65A]">
+                  BeeFit
+                </span>
+                <span className="mt-3 block font-inter text-[15px] text-[#D4D4D4]">
+                  Restaurando sua sessão...
+                </span>
+              </div>
+            </div>
+          )}
+
+          {!isBootstrapping && isAuthenticated && activeWorkout && screen !== "workout" && (
             <div className="px-3 pt-3">
               <button
                 type="button"
@@ -159,19 +174,17 @@ export default function App() {
             </div>
           )}
 
-          {!isAuthenticated && authScreen === "login" && (
+          {!isBootstrapping && !isAuthenticated && authScreen === "login" && (
             <LoginScreen
               onNavigateToRegister={() => setAuthScreen("register")}
-              onLoginSuccess={enterApp}
             />
           )}
-          {!isAuthenticated && authScreen === "register" && (
+          {!isBootstrapping && !isAuthenticated && authScreen === "register" && (
             <RegisterScreen
               onNavigateToLogin={() => setAuthScreen("login")}
-              onRegisterSuccess={enterApp}
             />
           )}
-          {isAuthenticated && (
+          {!isBootstrapping && isAuthenticated && (
             <>
               <div style={{ display: screen === "feed" ? "block" : "none" }}>
                 <SocialFeedScreen />

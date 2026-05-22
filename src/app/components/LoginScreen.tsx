@@ -4,17 +4,18 @@ import logoImg from "../../imports/logo.png";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
 import { PageBackground } from "./PageBackground";
+import { useAuth } from "../auth/AuthContext";
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
-  onLoginSuccess: () => void;
 }
 
-export function LoginScreen({ onNavigateToRegister, onLoginSuccess }: LoginScreenProps) {
+export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const { authError, clearAuthError, isSubmitting, login } = useAuth();
 
   function validate() {
     const e: typeof errors = {};
@@ -24,15 +25,21 @@ export function LoginScreen({ onNavigateToRegister, onLoginSuccess }: LoginScree
     return e;
   }
 
-  function handleSubmit(ev: React.FormEvent) {
+  async function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault();
     const e = validate();
     if (Object.keys(e).length) {
       setErrors(e);
       return;
     }
+
     setErrors({});
-    onLoginSuccess();
+
+    try {
+      await login({ email, password });
+    } catch {
+      // O estado de erro já é tratado pelo AuthProvider.
+    }
   }
 
   const EyeIcon = () => (
@@ -140,9 +147,13 @@ export function LoginScreen({ onNavigateToRegister, onLoginSuccess }: LoginScree
                     type="email"
                     placeholder="seu@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      if (authError) clearAuthError();
+                      setEmail(e.target.value);
+                    }}
                     error={errors.email}
                     icon={<EmailIcon />}
+                    disabled={isSubmitting}
                   />
 
                   <BeeInput
@@ -150,9 +161,13 @@ export function LoginScreen({ onNavigateToRegister, onLoginSuccess }: LoginScree
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      if (authError) clearAuthError();
+                      setPassword(e.target.value);
+                    }}
                     error={errors.password}
                     icon={<LockIcon />}
+                    disabled={isSubmitting}
                     rightElement={
                       <span onClick={() => setShowPassword(!showPassword)}>
                         <EyeIcon />
@@ -160,9 +175,22 @@ export function LoginScreen({ onNavigateToRegister, onLoginSuccess }: LoginScree
                     }
                   />
 
+                  {authError && (
+                    <IonText
+                      style={{
+                        fontFamily: "var(--font-inter)",
+                        fontSize: 13,
+                        color: "#F87171",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {authError}
+                    </IonText>
+                  )}
+
                   <div className="mt-2">
-                    <BeeButton type="submit" variant="primary" fullWidth>
-                      Entrar
+                    <BeeButton type="submit" variant="primary" fullWidth disabled={isSubmitting}>
+                      {isSubmitting ? "Entrando..." : "Entrar"}
                     </BeeButton>
                   </div>
                 </form>
@@ -185,7 +213,13 @@ export function LoginScreen({ onNavigateToRegister, onLoginSuccess }: LoginScree
                 </div>
 
                 <div className="mt-6">
-                  <BeeButton type="button" variant="dark" fullWidth onClick={onNavigateToRegister}>
+                  <BeeButton
+                    type="button"
+                    variant="dark"
+                    fullWidth
+                    onClick={onNavigateToRegister}
+                    disabled={isSubmitting}
+                  >
                     Criar Conta
                   </BeeButton>
                 </div>

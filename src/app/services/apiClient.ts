@@ -1,0 +1,97 @@
+import { sessionStorage } from "../storage/sessionStorage";
+
+type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+export class ApiError extends Error {
+  status: number;
+  data: unknown;
+
+  constructor(message: string, status: number, data: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
+interface RequestOptions {
+  method?: HttpMethod;
+  body?: unknown;
+  auth?: boolean;
+  headers?: Record<string, string>;
+}
+
+const API_BASE_URL = import.meta.env?.VITE_API_URL?.replace(/\/$/, "") ?? "";
+export const AUTH_UNAUTHORIZED_EVENT = "beefit:auth-unauthorized";
+
+function buildUrl(path: string) {
+  if (/^https?:\/\//.test(path)) return path;
+  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function getErrorMessage(data: unknown, fallbackMessage: string) {
+  if (!data || typeof data !== "object") return fallbackMessage;
+
+  const maybeMessage = "message" in data ? data.message : null;
+  if (typeof maybeMessage === "string" && maybeMessage.trim()) return maybeMessage;
+
+  const maybeError = "error" in data ? data.error : null;
+  if (typeof maybeError === "string" && maybeError.trim()) return maybeError;
+
+  return fallbackMessage;
+}
+
+async function request<T>(path: string, options: RequestOptions = {}) {
+  const { method = "GET", body, auth = false, headers = {} } = options;
+  const finalHeaders: Record<string, string> = {
+    Accept: "application/json",
+    ...headers,
+  };
+
+  if (body !== undefined) {
+    finalHeaders["Content-Type"] = "application/json";
+  }
+
+  if (auth) {
+    const token = await sessionStorage.getToken();
+
+    if (token) {
+      finalHeaders.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  const response = await fetch(buildUrl(path), {
+    method,
+    headers: finalHeaders,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  const contentType = response.headers.get("content-type") ?? "";
+  const responseData = contentType.includes("application/json")
+    ? await response.json()
+    : await response.text();
+
+  if (!response.ok) {
+    if (response.status === 401 && auth) {
+      window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
+    }
+
+    throw new ApiError(
+      getErrorMessage(responseData, "Não foi possível concluir a requisição."),
+      response.status,
+      responseData,
+    );
+  }
+
+  return responseData as T;
+}
+
+export const apiClient = {
+  get<T>(path: string, options?: Omit<RequestOptions, "method" | "body">) {
+    return request<T>(path, { ...options, method: "GET" });
+  },
+
+  post<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) {
+    return request<T>(path, { ...options, method: "POST", body });
+  },
+};

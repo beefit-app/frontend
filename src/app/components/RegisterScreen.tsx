@@ -4,13 +4,13 @@ import logoImg from "../../imports/logo.png";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
 import { PageBackground } from "./PageBackground";
+import { useAuth } from "../auth/AuthContext";
 
 interface RegisterScreenProps {
   onNavigateToLogin: () => void;
-  onRegisterSuccess: () => void;
 }
 
-export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: RegisterScreenProps) {
+export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
   const [form, setForm] = useState({
     name: "",
     username: "",
@@ -21,10 +21,12 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { authError, clearAuthError, isSubmitting, register } = useAuth();
 
   function setField(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+    if (authError) clearAuthError();
   }
 
   function validate() {
@@ -43,15 +45,28 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
     return e;
   }
 
-  function handleSubmit(ev: React.FormEvent) {
+  async function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault();
     const e = validate();
     if (Object.keys(e).length) {
       setErrors(e);
       return;
     }
+
     setErrors({});
-    onRegisterSuccess();
+
+    try {
+      await register({
+        name: form.name.trim(),
+        username: form.username.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        weeklyGoal: Number(form.weeklyGoal),
+        weight: Number(form.weight),
+      });
+    } catch {
+      // O estado de erro já é tratado pelo AuthProvider.
+    }
   }
 
   const PersonIcon = () => (
@@ -177,6 +192,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                     onChange={(e) => setField("name", e.target.value)}
                     error={errors.name}
                     icon={<PersonIcon />}
+                    disabled={isSubmitting}
                   />
 
                   <BeeInput
@@ -186,6 +202,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                     value={form.username}
                     onChange={(e) => setField("username", e.target.value)}
                     icon={<PersonIcon />}
+                    disabled={isSubmitting}
                   />
 
                   <BeeInput
@@ -196,6 +213,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                     onChange={(e) => setField("email", e.target.value)}
                     error={errors.email}
                     icon={<EmailIcon />}
+                    disabled={isSubmitting}
                   />
 
                   <BeeInput
@@ -206,6 +224,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                     onChange={(e) => setField("password", e.target.value)}
                     error={errors.password}
                     icon={<LockIcon />}
+                    disabled={isSubmitting}
                     rightElement={
                       <span onClick={() => setShowPassword(!showPassword)}>
                         <EyeIcon />
@@ -223,6 +242,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                     icon={<TargetIcon />}
                     min="1"
                     max="7"
+                    disabled={isSubmitting}
                   />
 
                   <div>
@@ -236,6 +256,7 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                       icon={<WeightIcon />}
                       step="0.1"
                       min="1"
+                      disabled={isSubmitting}
                     />
                     <div className="mt-2 flex items-start gap-2 px-1">
                       <div
@@ -264,9 +285,22 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                     </div>
                   </div>
 
+                  {authError && (
+                    <IonText
+                      style={{
+                        fontFamily: "var(--font-inter)",
+                        fontSize: 13,
+                        color: "#F87171",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {authError}
+                    </IonText>
+                  )}
+
                   <div className="mt-2">
-                    <BeeButton type="submit" variant="primary" fullWidth>
-                      Criar Conta
+                    <BeeButton type="submit" variant="primary" fullWidth disabled={isSubmitting}>
+                      {isSubmitting ? "Criando conta..." : "Criar Conta"}
                     </BeeButton>
                   </div>
                 </form>
@@ -289,7 +323,13 @@ export function RegisterScreen({ onNavigateToLogin, onRegisterSuccess }: Registe
                 </div>
 
                 <div className="mt-6">
-                  <BeeButton type="button" variant="dark" fullWidth onClick={onNavigateToLogin}>
+                  <BeeButton
+                    type="button"
+                    variant="dark"
+                    fullWidth
+                    onClick={onNavigateToLogin}
+                    disabled={isSubmitting}
+                  >
                     Fazer Login
                   </BeeButton>
                 </div>
