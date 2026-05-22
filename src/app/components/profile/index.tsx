@@ -4,6 +4,7 @@ import type { ProfileScreenProps } from "./types";
 import { AccountSettingsScreen } from "./components/AccountSettingsScreen";
 import { ProfileEdit } from "./components/ProfileEdit";
 import { ProfileView } from "./components/ProfileView";
+import { useAuth } from "../../auth/AuthContext";
 
 export { DEFAULT_ACCOUNT_SETTINGS } from "./mock";
 export type { AccountSettingsData, ProfileScreenProps } from "./types";
@@ -12,6 +13,7 @@ export function ProfileScreen({
   accountSettings = DEFAULT_ACCOUNT_SETTINGS,
   onAccountSettingsChange,
 }: ProfileScreenProps) {
+  const { logout } = useAuth();
   const {
     profile,
     screenMode,
@@ -39,5 +41,14 @@ export function ProfileScreen({
     );
   }
 
-  return <ProfileView profile={profile} onEdit={goToEdit} onManageAccount={goToAccount} />;
+  return (
+    <ProfileView
+      profile={profile}
+      onEdit={goToEdit}
+      onManageAccount={goToAccount}
+      onLogout={() => {
+        void logout();
+      }}
+    />
+  );
 }

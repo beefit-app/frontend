@@ -14,10 +14,12 @@ export function ProfileView({
   profile,
   onEdit,
   onManageAccount,
+  onLogout,
 }: {
   profile: ProfileData;
   onEdit: () => void;
   onManageAccount: () => void;
+  onLogout: () => void;
 }) {
   const initials = getProfileInitials(profile);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -101,6 +103,25 @@ export function ProfileView({
                           </span>
                         </div>
                         <ChevronRight size={16} color="#A3A3A3" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onLogout();
+                        }}
+                        className="flex w-full items-center justify-between rounded-2xl border border-[rgba(239,68,68,0.28)] bg-[rgba(239,68,68,0.08)] px-4 py-4 text-left transition-colors hover:border-[rgba(239,68,68,0.4)] hover:bg-[rgba(239,68,68,0.12)]"
+                      >
+                        <div className="flex min-w-0 flex-col gap-1">
+                          <span className="font-montserrat text-[14px] font-bold text-[#FCA5A5]">
+                            Sair da conta
+                          </span>
+                          <span className="font-inter text-[12px] text-[#F87171]">
+                            Encerra a sessão atual neste dispositivo.
+                          </span>
+                        </div>
+                        <ChevronRight size={16} color="#FCA5A5" />
                       </button>
                     </div>
                   </div>
