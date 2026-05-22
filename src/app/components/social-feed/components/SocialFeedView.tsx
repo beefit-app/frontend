@@ -3,16 +3,23 @@ import { Dumbbell, Radio } from "lucide-react";
 import { HexagonPattern } from "../../HexagonPattern";
 import type { LiveFriend, SocialFeedPost } from "../types";
 import { LiveFriendCard } from "./LiveFriendCard";
+import { StreakCard } from "./StreakCard";
 import { WorkoutPostCard } from "./WorkoutPostCard";
 
 export function SocialFeedView({
   posts,
   liveFriends,
+  streakCount,
+  isStreakFedToday,
+  streakBurstToken,
   onToggleLike,
   onSaveTemplate,
 }: {
   posts: SocialFeedPost[];
   liveFriends: LiveFriend[];
+  streakCount: number;
+  isStreakFedToday: boolean;
+  streakBurstToken: number;
   onToggleLike: (id: number) => void;
   onSaveTemplate: (id: number) => void;
 }) {
@@ -34,10 +41,15 @@ export function SocialFeedView({
         <IonRow className="ion-justify-content-center">
           <IonCol size="12" style={{ maxWidth: 393 }}>
             <div className="flex flex-col gap-6">
-              <header className="pt-3">
+              <header className="relative z-20 flex items-center justify-between gap-4 pt-3">
                 <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
                   <span className="text-[#FFD700]">Bee</span>Fit
                 </h1>
+                <StreakCard
+                  count={streakCount}
+                  isFedToday={isStreakFedToday}
+                  burstToken={streakBurstToken}
+                />
               </header>
 
               <section>

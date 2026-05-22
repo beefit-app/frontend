@@ -28,6 +28,12 @@ interface ActiveWorkoutBannerState {
   startedAt: number;
 }
 
+interface StreakState {
+  count: number;
+  lastFedDate: string | null;
+  burstToken: number;
+}
+
 const TAB_ITEMS: {
   id: TabId;
   label: string;
@@ -68,6 +74,19 @@ export default function App() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
   const [workoutScreenInstance, setWorkoutScreenInstance] = useState(0);
+  const [streak, setStreak] = useState<StreakState>({
+    count: 15,
+    lastFedDate: null,
+    burstToken: 0,
+  });
+
+  function getTodayKey() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
 
   useEffect(() => {
     if (!activeWorkout) {
@@ -92,6 +111,13 @@ export default function App() {
   }, [isAuthenticated]);
 
   function handleWorkoutCompleted() {
+    const todayKey = getTodayKey();
+
+    setStreak((current) => ({
+      count: current.lastFedDate === todayKey ? current.count : current.count + 1,
+      lastFedDate: todayKey,
+      burstToken: current.burstToken + 1,
+    }));
     setActiveWorkout(null);
     setWorkoutScreenInstance((current) => current + 1);
     setScreen("feed");
@@ -115,6 +141,7 @@ export default function App() {
   }
 
   const activeWorkoutLabel = activeWorkout?.selectedGroups.join(" · ");
+  const isStreakFedToday = streak.lastFedDate === getTodayKey();
 
   return (
     <IonApp>
@@ -187,7 +214,11 @@ export default function App() {
           {!isBootstrapping && isAuthenticated && (
             <>
               <div style={{ display: screen === "feed" ? "block" : "none" }}>
-                <SocialFeedScreen />
+                <SocialFeedScreen
+                  streakCount={streak.count}
+                  isStreakFedToday={isStreakFedToday}
+                  streakBurstToken={streak.burstToken}
+                />
               </div>
               <div style={{ display: screen === "workout" ? "block" : "none" }}>
                 <WorkoutStartScreen
