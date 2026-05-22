@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { INITIAL_POSTS, LIVE_FRIENDS } from "../mock";
+import { socialFeedService } from "../../../services/socialFeedService";
 
 export function useSocialFeedState() {
-  const [posts, setPosts] = useState(INITIAL_POSTS);
-  const [liveFriends, setLiveFriends] = useState(LIVE_FRIENDS);
+  const [posts, setPosts] = useState(() => socialFeedService.getInitialPosts());
+  const [liveFriends, setLiveFriends] = useState(() => socialFeedService.getLiveFriends());
 
   useEffect(() => {
     const timer = window.setInterval(() => {

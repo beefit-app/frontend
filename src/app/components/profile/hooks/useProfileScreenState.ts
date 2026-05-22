@@ -1,19 +1,26 @@
-import { useState } from "react";
-import { DEFAULT_PROFILE } from "../mock";
+import { useEffect, useState } from "react";
+import type { AuthUser } from "../../../types/auth";
+import { profileService } from "../../../services/profileService";
 import type { AccountSettingsData, ProfileData, ProfileScreenMode } from "../types";
 
 export function useProfileScreenState({
+  authUser,
   accountSettings,
   onAccountSettingsChange,
 }: {
+  authUser: AuthUser | null;
   accountSettings: AccountSettingsData;
   onAccountSettingsChange?: (data: AccountSettingsData) => void;
 }) {
-  const [profile, setProfile] = useState<ProfileData>(DEFAULT_PROFILE);
+  const [profile, setProfile] = useState<ProfileData>(() => profileService.getProfile(authUser));
   const [screenMode, setScreenMode] = useState<ProfileScreenMode>("view");
 
+  useEffect(() => {
+    setProfile(profileService.getProfile(authUser));
+  }, [authUser]);
+
   function handleProfileSave(data: Partial<ProfileData>) {
-    setProfile((current) => ({ ...current, ...data }));
+    setProfile((current) => profileService.saveProfile(current, data));
     setScreenMode("view");
   }
 

@@ -5,6 +5,7 @@ import { AccountSettingsScreen } from "./components/AccountSettingsScreen";
 import { ProfileEdit } from "./components/ProfileEdit";
 import { ProfileView } from "./components/ProfileView";
 import { useAuth } from "../../auth/AuthContext";
+import { profileService } from "../../services/profileService";
 
 export { DEFAULT_ACCOUNT_SETTINGS } from "./mock";
 export type { AccountSettingsData, ProfileScreenProps } from "./types";
@@ -13,7 +14,7 @@ export function ProfileScreen({
   accountSettings = DEFAULT_ACCOUNT_SETTINGS,
   onAccountSettingsChange,
 }: ProfileScreenProps) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const {
     profile,
     screenMode,
@@ -23,6 +24,7 @@ export function ProfileScreen({
     handleProfileSave,
     handleAccountSettingsSave,
   } = useProfileScreenState({
+    authUser: user,
     accountSettings,
     onAccountSettingsChange,
   });
@@ -44,6 +46,8 @@ export function ProfileScreen({
   return (
     <ProfileView
       profile={profile}
+      trainedDays={profileService.getTrainedDays()}
+      recentPosts={profileService.getRecentPosts()}
       onEdit={goToEdit}
       onManageAccount={goToAccount}
       onLogout={() => {

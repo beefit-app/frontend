@@ -1,15 +1,4 @@
-import type { AccountSettingsData, ProfileData, WorkoutPost } from "./types";
-
-export const DEFAULT_PROFILE: ProfileData = {
-  displayName: "Alex Ferreira",
-  username: "@alexfit",
-  bio: "Entusiasta de musculação e calistenia 🏋️‍♂️ | Treinando há 3 anos | Rumo ao físico dos sonhos!",
-  cards: 47,
-  streak: 15,
-  totalWorkouts: 312,
-  weight: 82.5,
-  avatarUrl: null,
-};
+import type { AccountSettingsData, WorkoutPost } from "./types";
 
 export const DEFAULT_ACCOUNT_SETTINGS: AccountSettingsData = {
   ghostModeEnabled: false,

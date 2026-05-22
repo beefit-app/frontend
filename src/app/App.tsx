@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   setupIonicReact,
   IonApp,
@@ -16,24 +16,12 @@ import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } fro
 import { SocialFeedScreen } from "./components/SocialFeedScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
 import { useAuth } from "./auth/AuthContext";
+import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
+import { useStreakState } from "./hooks/useStreakState";
+import { useWorkoutSessionState } from "./hooks/useWorkoutSessionState";
 import type { WorkoutCompletionDraft } from "./types/workout";
 
 setupIonicReact({ mode: "md" });
-
-type AuthScreen = "login" | "register";
-type AppScreen = "feed" | "workout" | "profile";
-type TabId = "feed" | "social" | "workout" | "search" | "profile";
-
-interface ActiveWorkoutBannerState {
-  selectedGroups: string[];
-  startedAt: number;
-}
-
-interface StreakState {
-  count: number;
-  lastFedDate: string | null;
-  burstToken: number;
-}
 
 const TAB_ITEMS: {
   id: TabId;
@@ -70,75 +58,15 @@ const TAB_ITEMS: {
 export default function App() {
   const { isAuthenticated, isBootstrapping } = useAuth();
   const contentRef = useRef<HTMLIonContentElement | null>(null);
-  const pendingStreakTimeoutRef = useRef<number | null>(null);
-  const [authScreen, setAuthScreen] = useState<AuthScreen>("login");
-  const [screen, setScreen] = useState<AppScreen>("feed");
-  const [activeWorkout, setActiveWorkout] = useState<ActiveWorkoutBannerState | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const { authScreen, screen, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
+  const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
+    useWorkoutSessionState();
+  const { streak, isStreakFedToday, feedStreak, clearPendingFeed, scheduleFeed } = useStreakState();
   const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
-  const [workoutScreenInstance, setWorkoutScreenInstance] = useState(0);
-  const [streak, setStreak] = useState<StreakState>({
-    count: 15,
-    lastFedDate: null,
-    burstToken: 0,
-  });
-
-  function getTodayKey() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-
-  useEffect(() => {
-    if (!activeWorkout) {
-      setElapsedSeconds(0);
-      return;
-    }
-
-    const updateElapsed = () => {
-      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - activeWorkout.startedAt) / 1000)));
-    };
-
-    updateElapsed();
-    const timer = window.setInterval(updateElapsed, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [activeWorkout]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      setScreen("feed");
-    }
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    return () => {
-      if (pendingStreakTimeoutRef.current !== null) {
-        window.clearTimeout(pendingStreakTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  function feedStreak() {
-    const todayKey = getTodayKey();
-
-    setStreak((current) => ({
-      count: current.lastFedDate === todayKey ? current.count : current.count + 1,
-      lastFedDate: todayKey,
-      burstToken: current.burstToken + 1,
-    }));
-  }
 
   function handleWorkoutCompleted(draft: WorkoutCompletionDraft) {
-    if (pendingStreakTimeoutRef.current !== null) {
-      window.clearTimeout(pendingStreakTimeoutRef.current);
-      pendingStreakTimeoutRef.current = null;
-    }
-
-    setActiveWorkout(null);
-    setWorkoutScreenInstance((current) => current + 1);
+    clearPendingFeed();
+    completeWorkout();
     setScreen("feed");
 
     if (!draft.shouldPostWorkout) {
@@ -148,33 +76,11 @@ export default function App() {
 
     window.setTimeout(() => {
       void contentRef.current?.scrollToTop(320);
-
-      pendingStreakTimeoutRef.current = window.setTimeout(() => {
-        feedStreak();
-        pendingStreakTimeoutRef.current = null;
-      }, 420);
+      scheduleFeed(420);
     }, 40);
   }
 
-  function handleTabChange(tabId: TabId, implemented: boolean) {
-    if (tabId === "workout") {
-      setScreen("workout");
-      return;
-    }
-
-    if (implemented) {
-      setScreen(tabId as AppScreen);
-    }
-  }
-
-  function formatElapsedTime(totalSeconds: number) {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  }
-
   const activeWorkoutLabel = activeWorkout?.selectedGroups.join(" · ");
-  const isStreakFedToday = streak.lastFedDate === getTodayKey();
 
   return (
     <IonApp>

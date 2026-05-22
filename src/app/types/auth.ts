@@ -7,6 +7,15 @@ export interface AuthUser {
   weight?: number | null;
 }
 
+export interface AuthApiUser {
+  id: string;
+  fullName: string;
+  username: string;
+  email: string;
+  bodyWeight: number;
+  weeklyGoal: number;
+}
+
 export interface LoginInput {
   email: string;
   password: string;
@@ -21,6 +30,25 @@ export interface RegisterInput {
   weight: number;
 }
 
+export interface RegisterApiInput {
+  fullName: string;
+  username: string;
+  email: string;
+  password: string;
+  weeklyGoal: number;
+  bodyWeight: number;
+}
+
 export interface AuthTokenResponse {
   accessToken: string;
+}
+
+export interface AuthSession {
+  accessToken: string;
+  user: AuthUser;
+}
+
+export interface AuthSessionResponse {
+  accessToken: string;
+  user: AuthApiUser;
 }

@@ -7,8 +7,7 @@ import {
 } from "react";
 import { authService } from "../services/authService";
 import { AUTH_UNAUTHORIZED_EVENT, ApiError } from "../services/apiClient";
-import { sessionStorage } from "../storage/sessionStorage";
-import type { AuthUser, LoginInput, RegisterInput } from "../types/auth";
+import type { AuthSession, AuthUser, LoginInput, RegisterInput } from "../types/auth";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -40,19 +39,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     async function restoreSession() {
-      const token = await sessionStorage.getToken();
-
-      if (!token) {
-        setIsBootstrapping(false);
-        return;
-      }
-
       try {
-        setAccessToken(token);
-        const currentUser = await authService.getCurrentUser();
-        setUser(currentUser);
+        const session = await authService.restoreSession();
+
+        if (session) {
+          setAccessToken(session.accessToken);
+          setUser(session.user);
+        } else {
+          setAccessToken(null);
+          setUser(null);
+        }
       } catch {
-        await sessionStorage.clearToken();
         setAccessToken(null);
         setUser(null);
       } finally {
@@ -65,7 +62,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     async function handleUnauthorized() {
-      await sessionStorage.clearToken();
+      await authService.logout();
       setAccessToken(null);
       setUser(null);
       setAuthError(null);
@@ -78,11 +75,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  async function establishSession(token: string) {
-    await sessionStorage.setToken(token);
-    setAccessToken(token);
-    const currentUser = await authService.getCurrentUser();
-    setUser(currentUser);
+  function establishSession(session: AuthSession) {
+    setAccessToken(session.accessToken);
+    setUser(session.user);
   }
 
   async function login(input: LoginInput) {
@@ -90,10 +85,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setAuthError(null);
 
     try {
-      const { accessToken: token } = await authService.login(input);
-      await establishSession(token);
+      const session = await authService.login(input);
+      establishSession(session);
     } catch (error) {
-      await sessionStorage.clearToken();
+      await authService.logout();
       setAccessToken(null);
       setUser(null);
       setAuthError(getErrorMessage(error));
@@ -108,14 +103,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setAuthError(null);
 
     try {
-      await authService.register(input);
-      const { accessToken: token } = await authService.login({
-        email: input.email,
-        password: input.password,
-      });
-      await establishSession(token);
+      const session = await authService.register(input);
+      establishSession(session);
     } catch (error) {
-      await sessionStorage.clearToken();
+      await authService.logout();
       setAccessToken(null);
       setUser(null);
       setAuthError(getErrorMessage(error));
@@ -126,7 +117,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }
 
   async function logout() {
-    await sessionStorage.clearToken();
+    await authService.logout();
     setAccessToken(null);
     setUser(null);
     setAuthError(null);

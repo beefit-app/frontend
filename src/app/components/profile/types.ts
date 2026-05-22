@@ -1,15 +1,5 @@
 export type { WorkoutPost } from "../workout-post";
-
-export interface ProfileData {
-  displayName: string;
-  username: string;
-  bio: string;
-  cards: number;
-  streak: number;
-  totalWorkouts: number;
-  weight: number;
-  avatarUrl: string | null;
-}
+export type { UserProfile as ProfileData } from "../../types/user";
 
 export interface AccountSettingsData {
   ghostModeEnabled: boolean;

@@ -3,7 +3,6 @@ import { ChevronRight, Dumbbell, Flame, MoreVertical, Scale, ShieldCheck } from 
 import { useState } from "react";
 import { BeeCard } from "../../BeeCard";
 import { PageBackground } from "../../PageBackground";
-import { MOCK_POSTS, TRAINED_DAYS } from "../mock";
 import type { ProfileData } from "../types";
 import { getProfileInitials } from "../utils";
 import { GoldDivider, HexAvatar, SectionLabel, StatCard, TrainingCalendar } from "./shared";
@@ -12,11 +11,15 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 
 export function ProfileView({
   profile,
+  trainedDays,
+  recentPosts,
   onEdit,
   onManageAccount,
   onLogout,
 }: {
   profile: ProfileData;
+  trainedDays: number[];
+  recentPosts: import("../types").WorkoutPost[];
   onEdit: () => void;
   onManageAccount: () => void;
   onLogout: () => void;
@@ -162,7 +165,7 @@ export function ProfileView({
 
                 <div style={{ marginTop: 20, marginBottom: 20 }}>
                   <BeeCard hover={false}>
-                    <TrainingCalendar trainedDays={TRAINED_DAYS} />
+                    <TrainingCalendar trainedDays={trainedDays} />
                   </BeeCard>
                 </div>
 
@@ -177,7 +180,7 @@ export function ProfileView({
                     </button>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                    {MOCK_POSTS.map((post) => (
+                    {recentPosts.map((post) => (
                       <WorkoutPostCard key={post.id} post={post} profile={profile} />
                     ))}
                   </div>
