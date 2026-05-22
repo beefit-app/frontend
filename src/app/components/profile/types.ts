@@ -1,3 +1,5 @@
+export type { WorkoutPost } from "../workout-post";
+
 export interface ProfileData {
   displayName: string;
   username: string;
@@ -11,42 +13,6 @@ export interface ProfileData {
 
 export interface AccountSettingsData {
   ghostModeEnabled: boolean;
-}
-
-export type Rarity = "lendaria" | "epica" | "rara" | "comum";
-
-export interface ExerciseSet {
-  weight: number;
-  reps: number;
-}
-
-export interface ExerciseDetail {
-  name: string;
-  sets: ExerciseSet[];
-  isPersonalRecord?: boolean;
-}
-
-export interface Comment {
-  id: number;
-  author: string;
-  text: string;
-  timeAgo: string;
-}
-
-export interface WorkoutPost {
-  id: number;
-  date: string;
-  title: string;
-  duration: string;
-  rarity: Rarity;
-  muscles: string[];
-  emoji: string;
-  photoUrl: string | null;
-  exerciseDetails: ExerciseDetail[];
-  likes: number;
-  liked: boolean;
-  templateSaved: boolean;
-  comments: Comment[];
 }
 
 export type ProfileScreenMode = "view" | "edit" | "account";

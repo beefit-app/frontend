@@ -1,0 +1,41 @@
+export type Rarity = "lendaria" | "epica" | "rara" | "comum";
+
+export interface ExerciseSet {
+  weight: number;
+  reps: number;
+}
+
+export interface ExerciseDetail {
+  name: string;
+  sets: ExerciseSet[];
+  isPersonalRecord?: boolean;
+}
+
+export interface Comment {
+  id: number;
+  author: string;
+  text: string;
+  timeAgo: string;
+}
+
+export interface WorkoutPost {
+  id: number;
+  date: string;
+  title: string;
+  duration: string;
+  rarity: Rarity;
+  muscles: string[];
+  emoji: string;
+  photoUrl: string | null;
+  exerciseDetails: ExerciseDetail[];
+  likes: number;
+  liked: boolean;
+  templateSaved: boolean;
+  comments: Comment[];
+}
+
+export interface WorkoutPostAuthor {
+  name: string;
+  initials: string;
+  avatarUrl?: string | null;
+}
