@@ -5,6 +5,7 @@ export interface ActiveWorkoutScreenProps {
   subtitle: string;
   selectedGroups: string[];
   initialExercises?: ExerciseCatalogItem[];
+  bodyWeightKg?: number | null;
   ghostModeEnabled?: boolean;
   onBack: () => void;
   onWorkoutComplete?: (draft: WorkoutCompletionDraft) => void;
@@ -26,4 +27,7 @@ export interface ActiveWorkoutSessionState {
   finishPhotoUrl: string | null;
   shouldPostWorkout: boolean;
   finishTitleError: string;
+  finishValidationError: string;
+  totalVolumeKg: number;
+  estimatedCalories: number;
 }

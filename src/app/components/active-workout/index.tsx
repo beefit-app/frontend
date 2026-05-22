@@ -17,9 +17,14 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
         finishPhotoUrl={session.finishPhotoUrl}
         finishTitle={session.finishTitle}
         finishTitleError={session.finishTitleError}
+        totalVolumeKg={session.totalVolumeKg}
+        estimatedCalories={session.estimatedCalories}
         shouldPostWorkout={session.shouldPostWorkout}
         ghostModeEnabled={props.ghostModeEnabled ?? false}
-        onBack={() => session.setIsFinishingWorkout(false)}
+        onBack={() => {
+          session.setFinishValidationError("");
+          session.setIsFinishingWorkout(false);
+        }}
         onPhotoChange={(file) => {
           if (file) session.setFinishPhotoUrl(URL.createObjectURL(file));
         }}
@@ -72,6 +77,7 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
       sessionGroups={session.sessionGroups}
       elapsedSeconds={session.elapsedSeconds}
       exercises={session.exercises}
+      finishValidationError={session.finishValidationError}
       exerciseSlideRefs={session.exerciseSlideRefs}
       seriesContainerRefs={session.seriesContainerRefs}
       isWorkoutMenuOpen={session.isWorkoutMenuOpen}

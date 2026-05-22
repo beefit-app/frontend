@@ -4,6 +4,7 @@ import { Check, Dumbbell, FolderKanban } from "lucide-react";
 import { ActiveWorkoutScreen } from "./ActiveWorkoutScreen";
 import { BeeButton } from "./BeeButton";
 import { PageBackground } from "./PageBackground";
+import { useAuth } from "../auth/AuthContext";
 import { workoutService } from "../services/workoutService";
 import type { ExerciseCatalogItem, WorkoutCompletionDraft } from "../types/workout";
 
@@ -51,6 +52,7 @@ export function WorkoutStartScreen({
   onActiveWorkoutChange,
   onWorkoutCompleted,
 }: WorkoutStartScreenProps) {
+  const { user } = useAuth();
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [activeWorkoutConfig, setActiveWorkoutConfig] = useState<{
@@ -135,6 +137,7 @@ export function WorkoutStartScreen({
         title={activeWorkoutConfig.title}
         subtitle={activeWorkoutConfig.subtitle}
         selectedGroups={activeWorkoutConfig.selectedGroups}
+        bodyWeightKg={user?.weight ?? 75}
         initialExercises={activeWorkoutConfig.initialExerciseIds
           .map((exerciseId) => workoutService.getCatalogItemById(exerciseId))
           .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null)}

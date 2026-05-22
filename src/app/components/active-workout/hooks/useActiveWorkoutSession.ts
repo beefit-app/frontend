@@ -2,17 +2,28 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { workoutService } from "../../../services/workoutService";
 import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } from "../../../types/workout";
 import type { ActiveWorkoutScreenProps, DetailViewSource } from "../types";
-import { createExerciseCard, createSet } from "../utils";
+import {
+  calculateEstimatedCalories,
+  calculateWorkoutVolume,
+  createExerciseCard,
+  createSet,
+} from "../utils";
 
 export function useActiveWorkoutSession({
   selectedGroups,
   initialExercises = [],
+  bodyWeightKg,
   ghostModeEnabled = false,
   onWorkoutComplete,
   onSessionGroupsChange,
 }: Pick<
   ActiveWorkoutScreenProps,
-  "selectedGroups" | "initialExercises" | "ghostModeEnabled" | "onWorkoutComplete" | "onSessionGroupsChange"
+  | "selectedGroups"
+  | "initialExercises"
+  | "bodyWeightKg"
+  | "ghostModeEnabled"
+  | "onWorkoutComplete"
+  | "onSessionGroupsChange"
 >) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -21,11 +32,14 @@ export function useActiveWorkoutSession({
   const [catalogDetailExerciseId, setCatalogDetailExerciseId] = useState<string | null>(null);
   const [detailViewSource, setDetailViewSource] = useState<DetailViewSource>("catalog");
   const [isWorkoutMenuOpen, setIsWorkoutMenuOpen] = useState(false);
-  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => initialExercises.map(createExerciseCard));
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(() =>
+    initialExercises.map((exercise) => createExerciseCard(exercise, { withInitialSet: false })),
+  );
   const [finishTitle, setFinishTitle] = useState(selectedGroups.join(" & "));
   const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(null);
   const [shouldPostWorkout, setShouldPostWorkout] = useState(!ghostModeEnabled);
   const [finishTitleError, setFinishTitleError] = useState("");
+  const [finishValidationError, setFinishValidationError] = useState("");
   const [pendingExerciseFocusId, setPendingExerciseFocusId] = useState<string | null>(null);
   const [pendingSetFocusExerciseId, setPendingSetFocusExerciseId] = useState<string | null>(null);
   const exerciseSlideRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -51,6 +65,11 @@ export function useActiveWorkoutSession({
   const selectedCatalogIds = useMemo(
     () => new Set(exercises.map((exercise) => exercise.catalogId)),
     [exercises],
+  );
+  const totalVolumeKg = useMemo(() => calculateWorkoutVolume(exercises), [exercises]);
+  const estimatedCalories = useMemo(
+    () => calculateEstimatedCalories(elapsedSeconds, bodyWeightKg ?? 75),
+    [bodyWeightKg, elapsedSeconds],
   );
 
   useEffect(() => {
@@ -99,6 +118,16 @@ export function useActiveWorkoutSession({
     setShouldPostWorkout(!ghostModeEnabled);
   }, [ghostModeEnabled, isFinishingWorkout]);
 
+  useEffect(() => {
+    if (!finishValidationError) return;
+
+    const timer = window.setTimeout(() => {
+      setFinishValidationError("");
+    }, 5000);
+
+    return () => window.clearTimeout(timer);
+  }, [finishValidationError]);
+
   function addExercise(exercise: ExerciseCatalogItem) {
     const newExercise = createExerciseCard(exercise);
 
@@ -118,6 +147,7 @@ export function useActiveWorkoutSession({
       ),
     );
     setPendingSetFocusExerciseId(exerciseId);
+    setFinishValidationError("");
   }
 
   function updateSet(exerciseId: string, setId: string, field: "weight" | "reps", value: string) {
@@ -131,11 +161,34 @@ export function useActiveWorkoutSession({
           : exercise,
       ),
     );
+    setFinishValidationError("");
   }
 
   function openFinishWorkout() {
+    if (exercises.length === 0) {
+      setFinishValidationError(
+        "Adicione pelo menos um exercício antes de concluir o treino.",
+      );
+      return;
+    }
+
+    if (
+      exercises.some(
+        (exercise) =>
+          !exercise.sets.some(
+            (set) => set.weight.trim().length > 0 && set.reps.trim().length > 0,
+          ),
+      )
+    ) {
+      setFinishValidationError(
+        "Todos os exercícios precisam ter ao menos uma série com peso e repetições preenchidos antes de concluir o treino.",
+      );
+      return;
+    }
+
     setFinishTitle(defaultFinishTitle);
     setFinishTitleError("");
+    setFinishValidationError("");
     setShouldPostWorkout(!ghostModeEnabled);
     setIsFinishingWorkout(true);
   }
@@ -171,6 +224,9 @@ export function useActiveWorkoutSession({
     finishPhotoUrl,
     shouldPostWorkout,
     finishTitleError,
+    finishValidationError,
+    totalVolumeKg,
+    estimatedCalories,
     exerciseSlideRefs,
     seriesContainerRefs,
     finishPhotoInputRef,
@@ -192,6 +248,7 @@ export function useActiveWorkoutSession({
     setFinishPhotoUrl,
     setShouldPostWorkout,
     setFinishTitleError,
+    setFinishValidationError,
     addExercise,
     addSet,
     updateSet,

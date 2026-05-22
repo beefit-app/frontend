@@ -1,5 +1,5 @@
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
-import { Camera, ChevronLeft, ImageIcon } from "lucide-react";
+import { Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-react";
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
@@ -10,6 +10,8 @@ export function FinishWorkoutView({
   finishPhotoUrl,
   finishTitle,
   finishTitleError,
+  totalVolumeKg,
+  estimatedCalories,
   shouldPostWorkout,
   ghostModeEnabled,
   onBack,
@@ -22,6 +24,8 @@ export function FinishWorkoutView({
   finishPhotoUrl: string | null;
   finishTitle: string;
   finishTitleError: string;
+  totalVolumeKg: number;
+  estimatedCalories: number;
   shouldPostWorkout: boolean;
   ghostModeEnabled: boolean;
   onBack: () => void;
@@ -30,6 +34,13 @@ export function FinishWorkoutView({
   onTogglePost: () => void;
   onFinish: () => void;
 }) {
+  const formattedVolume = new Intl.NumberFormat("pt-BR", {
+    maximumFractionDigits: 0,
+  }).format(totalVolumeKg);
+  const formattedCalories = new Intl.NumberFormat("pt-BR", {
+    maximumFractionDigits: 0,
+  }).format(estimatedCalories);
+
   return (
     <PageBackground>
       <IonGrid fixed style={{ maxWidth: 393, padding: "32px 12px 24px", position: "relative", zIndex: 1 }}>
@@ -142,6 +153,84 @@ export function FinishWorkoutView({
 
               <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)">
                 <div style={{ display: "grid", gap: 18 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div
+                      style={{
+                        borderRadius: 18,
+                        border: "1px solid #2D2D2D",
+                        background: "#171717",
+                        padding: 14,
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Weight size={16} color="#FFE44D" />
+                        <span
+                          style={{
+                            fontFamily: "var(--font-inter)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            color: "#737373",
+                          }}
+                        >
+                          Volume total
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-montserrat)",
+                          fontSize: 24,
+                          fontWeight: 800,
+                          color: "#FFFFFF",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {formattedVolume} kg
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        borderRadius: 18,
+                        border: "1px solid #2D2D2D",
+                        background: "#171717",
+                        padding: 14,
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Flame size={16} color="#F97316" />
+                        <span
+                          style={{
+                            fontFamily: "var(--font-inter)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            color: "#737373",
+                          }}
+                        >
+                          Calorias
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-montserrat)",
+                          fontSize: 24,
+                          fontWeight: 800,
+                          color: "#FFFFFF",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {formattedCalories} kcal
+                      </span>
+                    </div>
+                  </div>
+
                   <BeeInput
                     label="Título do treino"
                     value={finishTitle}

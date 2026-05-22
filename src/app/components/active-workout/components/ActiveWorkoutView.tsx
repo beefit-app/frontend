@@ -11,6 +11,7 @@ export function ActiveWorkoutView({
   sessionGroups,
   elapsedSeconds,
   exercises,
+  finishValidationError,
   exerciseSlideRefs,
   seriesContainerRefs,
   isWorkoutMenuOpen,
@@ -25,6 +26,7 @@ export function ActiveWorkoutView({
   sessionGroups: string[];
   elapsedSeconds: number;
   exercises: WorkoutExercise[];
+  finishValidationError: string;
   exerciseSlideRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   seriesContainerRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   isWorkoutMenuOpen: boolean;
@@ -426,6 +428,19 @@ export function ActiveWorkoutView({
 
         <IonRow className="mt-6">
           <IonCol size="12">
+            {finishValidationError && (
+              <p
+                style={{
+                  margin: "0 2px 10px",
+                  fontFamily: "var(--font-inter)",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  color: "#F87171",
+                }}
+              >
+                {finishValidationError}
+              </p>
+            )}
             <BeeButton variant="primary" size="lg" fullWidth onClick={onOpenFinish}>
               Concluir treino
             </BeeButton>
