@@ -4,7 +4,7 @@
 
 O frontend trata autenticação em quatro camadas:
 
-- `sessionStorage`: persiste o token de acesso no navegador.
+- `sessionStorage`: persiste o token de acesso e um cache do usuário autenticado no navegador.
 - `apiClient`: envia requests HTTP, injeta `Authorization: Bearer <token>` e dispara o evento global de `401`.
 - `authService`: escolhe entre mock e API real, normaliza payloads e resolve `login`, `register`, `restoreSession` e `logout`.
 - `AuthContext`: mantém o estado React da sessão e expõe `useAuth()` para as telas.
@@ -42,8 +42,10 @@ Resposta preferida:
 
 Compatibilidade transitória:
 
+- o backend atual também é aceito no formato `{ "token": "jwt", "userResponseDTO": { ... } }`
 - o frontend ainda aceita resposta `token-only` no formato `{ "accessToken": "jwt" }`
-- nesse caso o `authService` chama `/auth/me` ou o fallback antigo para montar a sessão
+- o frontend também aceita `{ "token": "jwt" }`
+- nesses casos o `authService` busca o usuário atual e usa o cache local para completar campos ausentes
 
 ### `POST /auth/register`
 
@@ -93,13 +95,15 @@ Uso:
 
 - é chamado durante `restoreSession()` quando já existe token salvo no app
 - se responder `401`, a sessão local é descartada
+- se responder `404`, o frontend tenta `GET /api/profile/me` e depois `GET /users/me`
 
 ## Como cada parte se conecta
 
 ### `sessionStorage`
 
 - chave atual: `beefit.auth.accessToken`
-- nenhuma tela deve ler ou escrever token diretamente
+- chave de cache do usuário: `beefit.auth.user`
+- nenhuma tela deve ler ou escrever token ou usuário diretamente
 - a troca de storage seguro futuro deve continuar isolada aqui
 
 ### `apiClient`
@@ -117,8 +121,8 @@ Uso:
 - no modo API:
   - `login()` chama `/auth/login`
   - `register()` chama `/auth/register`
-  - `restoreSession()` tenta reconstruir a sessão a partir do token salvo
-  - `getCurrentUser()` usa `/auth/me`, com fallback transitório para `/users/me`
+  - `restoreSession()` tenta reconstruir a sessão a partir do token salvo e do cache local do usuário
+  - `getCurrentUser()` tenta `/auth/me`, depois `/api/profile/me`, com fallback transitório para `/users/me`
 
 ### `AuthContext`
 
@@ -139,7 +143,7 @@ Uso:
 2. Confirmar se o ambiente deve manter ou desativar `VITE_DEV_AUTH_BYPASS`.
 3. Validar `POST /auth/login` com usuário existente.
 4. Validar `POST /auth/register` com sucesso e com erros de email/username duplicados.
-5. Validar `GET /auth/me` com token válido.
+5. Validar `GET /auth/me` com token válido ou `404` seguido de `GET /api/profile/me`.
 6. Validar limpeza automática da sessão após `401`.
 7. Confirmar se o backend já responde `token + user` ou ainda exige fallback `register + login`.
 
@@ -149,6 +153,8 @@ O frontend ainda usa alguns nomes internos diferentes na UI:
 
 - `fullName -> name/displayName`
 - `bodyWeight -> weight`
+- `token -> accessToken`
+- `userResponseDTO -> user`
 
 Essas conversões devem continuar centralizadas no `authService` e no `profileService`.
 
@@ -157,5 +163,7 @@ Essas conversões devem continuar centralizadas no `authService` e no `profileSe
 Os seguintes pontos podem ser removidos quando todos os ambientes estiverem no contrato novo:
 
 - fallback de `GET /users/me`
+- fallback de `GET /api/profile/me` com merge sobre o cache local
 - fallback de `POST /auth/register` seguido de `POST /auth/login`
 - suporte a resposta `token-only` em `login`
+- suporte ao contrato legado `{ token, userResponseDTO }`
