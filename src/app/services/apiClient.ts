@@ -60,11 +60,21 @@ async function request<T>(path: string, options: RequestOptions = {}) {
     }
   }
 
-  const response = await fetch(buildUrl(path), {
-    method,
-    headers: finalHeaders,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(buildUrl(path), {
+      method,
+      headers: finalHeaders,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch (error) {
+    throw new ApiError(
+      "Não foi possível conectar ao servidor. Verifique a URL da API, o CORS e se o backend está em execução.",
+      0,
+      error,
+    );
+  }
 
   const contentType = response.headers.get("content-type") ?? "";
   const responseData = contentType.includes("application/json")

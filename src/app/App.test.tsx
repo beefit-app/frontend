@@ -76,6 +76,27 @@ describe("App", () => {
     expect(screen.getByText("login-screen")).toBeInTheDocument();
   });
 
+  it("volta sempre para login quando a sessao e encerrada", () => {
+    const { rerender } = render(<App />);
+
+    fireEvent.click(screen.getByText("go-register"));
+    expect(screen.getByText("register-screen")).toBeInTheDocument();
+
+    authState.current = {
+      isAuthenticated: true,
+      isBootstrapping: false,
+    };
+    rerender(<App />);
+
+    authState.current = {
+      isAuthenticated: false,
+      isBootstrapping: false,
+    };
+    rerender(<App />);
+
+    expect(screen.getByText("login-screen")).toBeInTheDocument();
+  });
+
   it("renderiza a area autenticada quando o usuario ja esta logado", () => {
     authState.current = {
       isAuthenticated: true,

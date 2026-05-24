@@ -3,7 +3,8 @@ import type { UserProfile, UserProfileUpdate } from "../types/user";
 import type { WorkoutPost } from "../components/profile/types";
 import { MOCK_POSTS, TRAINED_DAYS } from "../components/profile/mock";
 
-const PROFILE_STORAGE_KEY = "beefit.profile.current";
+const PROFILE_STORAGE_KEY_PREFIX = "beefit.profile.current";
+const LEGACY_PROFILE_STORAGE_KEY = "beefit.profile.current";
 
 interface StoredProfileDraft extends Partial<UserProfile> {}
 
@@ -11,10 +12,19 @@ function hasBrowserStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
-function readStoredProfileDraft(): StoredProfileDraft | null {
+function buildProfileStorageKey(profileId: string) {
+  return `${PROFILE_STORAGE_KEY_PREFIX}.${profileId}`;
+}
+
+function clearLegacyProfileDraft() {
+  if (!hasBrowserStorage()) return;
+  window.localStorage.removeItem(LEGACY_PROFILE_STORAGE_KEY);
+}
+
+function readStoredProfileDraft(profileId: string): StoredProfileDraft | null {
   if (!hasBrowserStorage()) return null;
 
-  const raw = window.localStorage.getItem(PROFILE_STORAGE_KEY);
+  const raw = window.localStorage.getItem(buildProfileStorageKey(profileId));
   if (!raw) return null;
 
   try {
@@ -28,7 +38,7 @@ function readStoredProfileDraft(): StoredProfileDraft | null {
 function writeStoredProfileDraft(profile: UserProfile) {
   if (!hasBrowserStorage()) return;
 
-  window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+  window.localStorage.setItem(buildProfileStorageKey(profile.id), JSON.stringify(profile));
 }
 
 function buildFallbackProfile(): UserProfile {
@@ -92,7 +102,10 @@ function sanitizeProfile(baseProfile: UserProfile, storedDraft: StoredProfileDra
 
 export const profileService = {
   getProfile(authUser: AuthUser | null): UserProfile {
-    return sanitizeProfile(buildBaseProfile(authUser), readStoredProfileDraft());
+    clearLegacyProfileDraft();
+
+    const baseProfile = buildBaseProfile(authUser);
+    return sanitizeProfile(baseProfile, readStoredProfileDraft(baseProfile.id));
   },
 
   saveProfile(currentProfile: UserProfile, update: UserProfileUpdate): UserProfile {

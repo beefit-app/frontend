@@ -11,7 +11,11 @@ export function useAppNavigation(isAuthenticated: boolean) {
   useEffect(() => {
     if (isAuthenticated) {
       setScreen("feed");
+      return;
     }
+
+    setAuthScreen("login");
+    setScreen("feed");
   }, [isAuthenticated]);
 
   function handleTabChange(tabId: TabId, implemented: boolean) {
