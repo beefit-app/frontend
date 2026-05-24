@@ -104,4 +104,8 @@ export const apiClient = {
   post<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) {
     return request<T>(path, { ...options, method: "POST", body });
   },
+
+  put<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) {
+    return request<T>(path, { ...options, method: "PUT", body });
+  },
 };

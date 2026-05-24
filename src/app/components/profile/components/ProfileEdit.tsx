@@ -1,5 +1,6 @@
-import { Camera, Scale } from "lucide-react";
-import { useRef, useState } from "react";
+import { Scale } from "lucide-react";
+import { useState } from "react";
+import { IonText } from "@ionic/react";
 import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import { BeeButton } from "../../BeeButton";
 import { BeeCard } from "../../BeeCard";
@@ -10,19 +11,23 @@ import { BeeTextarea, HexAvatar } from "./shared";
 
 export function ProfileEdit({
   profile,
+  isSubmitting = false,
+  saveError,
   onSave,
   onCancel,
+  onClearSaveError,
 }: {
   profile: ProfileData;
-  onSave: (data: Partial<ProfileData>) => void;
+  isSubmitting?: boolean;
+  saveError?: string | null;
+  onSave: (data: Partial<ProfileData>) => Promise<void>;
   onCancel: () => void;
+  onClearSaveError?: () => void;
 }) {
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [bio, setBio] = useState(profile.bio);
   const [weight, setWeight] = useState(String(profile.weight));
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.avatarUrl);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function validate() {
     const nextErrors: Record<string, string> = {};
@@ -39,18 +44,17 @@ export function ProfileEdit({
     return nextErrors;
   }
 
-  function handleSave() {
+  async function handleSave() {
     const nextErrors = validate();
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
     }
 
-    onSave({
+    await onSave({
       displayName: displayName.trim(),
       bio,
       weight: parseFloat(weight) || profile.weight,
-      avatarUrl,
     });
   }
 
@@ -65,38 +69,7 @@ export function ProfileEdit({
           <IonCol size="12">
             <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>
               <div style={{ display: "flex", justifyContent: "center" }}>
-                <div style={{ position: "relative" }}>
-                  <HexAvatar src={avatarUrl} initials={initials} size={96} />
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) setAvatarUrl(URL.createObjectURL(file));
-                    }}
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      position: "absolute",
-                      bottom: 2,
-                      right: -8,
-                      background: "#FFD700",
-                      border: "2px solid #0A0A0A",
-                      borderRadius: "50%",
-                      width: 32,
-                      height: 32,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <Camera size={14} color="#0A0A0A" />
-                  </button>
-                </div>
+                <HexAvatar src={profile.avatarUrl} initials={initials} size={96} />
               </div>
 
               <BeeCard hover={false}>
@@ -106,10 +79,12 @@ export function ProfileEdit({
                     value={displayName}
                     placeholder="Seu nome público"
                     onChange={(event) => {
+                      if (saveError) onClearSaveError?.();
                       setDisplayName(event.target.value);
                       setErrors((current) => ({ ...current, displayName: "" }));
                     }}
                     error={errors.displayName}
+                    disabled={isSubmitting}
                   />
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <BeeTextarea
@@ -118,6 +93,7 @@ export function ProfileEdit({
                       placeholder="Conte algo sobre você..."
                       onChange={(value) => {
                         if (value.length <= 200) {
+                          if (saveError) onClearSaveError?.();
                           setBio(value);
                           setErrors((current) => ({ ...current, bio: "" }));
                         }
@@ -137,20 +113,36 @@ export function ProfileEdit({
                     max="300"
                     step="0.1"
                     onChange={(event) => {
+                      if (saveError) onClearSaveError?.();
                       setWeight(event.target.value);
                       setErrors((current) => ({ ...current, weight: "" }));
                     }}
                     error={errors.weight}
                     icon={<Scale size={18} />}
+                    disabled={isSubmitting}
                   />
                 </div>
               </BeeCard>
 
+              {saveError && (
+                <IonText
+                  style={{
+                    fontFamily: "var(--font-inter)",
+                    fontSize: 13,
+                    color: "#F87171",
+                    lineHeight: 1.5,
+                    textAlign: "center",
+                  }}
+                >
+                  {saveError}
+                </IonText>
+              )}
+
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <BeeButton variant="primary" fullWidth onClick={handleSave}>
-                  Salvar Alterações
+                <BeeButton variant="primary" fullWidth onClick={() => void handleSave()} disabled={isSubmitting}>
+                  {isSubmitting ? "Salvando..." : "Salvar Alterações"}
                 </BeeButton>
-                <BeeButton variant="dark" fullWidth onClick={onCancel}>
+                <BeeButton variant="dark" fullWidth onClick={onCancel} disabled={isSubmitting}>
                   Cancelar
                 </BeeButton>
               </div>

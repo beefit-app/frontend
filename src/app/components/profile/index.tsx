@@ -18,11 +18,19 @@ export function ProfileScreen({
   const {
     profile,
     screenMode,
+    isLoading,
+    isSubmitting,
+    loadError,
+    saveError,
+    accountSettingsError,
     goToView,
     goToEdit,
     goToAccount,
     handleProfileSave,
     handleAccountSettingsSave,
+    clearLoadError,
+    clearSaveError,
+    clearAccountSettingsError,
   } = useProfileScreenState({
     authUser: user,
     accountSettings,
@@ -30,7 +38,16 @@ export function ProfileScreen({
   });
 
   if (screenMode === "edit") {
-    return <ProfileEdit profile={profile} onSave={handleProfileSave} onCancel={goToView} />;
+    return (
+      <ProfileEdit
+        profile={profile}
+        isSubmitting={isSubmitting}
+        saveError={saveError}
+        onSave={handleProfileSave}
+        onCancel={goToView}
+        onClearSaveError={clearSaveError}
+      />
+    );
   }
 
   if (screenMode === "account") {
@@ -46,10 +63,13 @@ export function ProfileScreen({
   return (
     <ProfileView
       profile={profile}
+      isLoading={isLoading}
+      loadError={loadError}
       trainedDays={profileService.getTrainedDays()}
       recentPosts={profileService.getRecentPosts()}
       onEdit={goToEdit}
       onManageAccount={goToAccount}
+      onDismissError={clearLoadError}
       onLogout={() => {
         void logout();
       }}

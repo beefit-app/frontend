@@ -11,17 +11,23 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 
 export function ProfileView({
   profile,
+  isLoading,
+  loadError,
   trainedDays,
   recentPosts,
   onEdit,
   onManageAccount,
+  onDismissError,
   onLogout,
 }: {
   profile: ProfileData;
+  isLoading?: boolean;
+  loadError?: string | null;
   trainedDays: number[];
   recentPosts: import("../types").WorkoutPost[];
   onEdit: () => void;
   onManageAccount: () => void;
+  onDismissError?: () => void;
   onLogout: () => void;
 }) {
   const initials = getProfileInitials(profile);
@@ -83,7 +89,7 @@ export function ProfileView({
                             Alterar informações do perfil
                           </span>
                           <span className="font-inter text-[12px] text-[#737373]">
-                            Editar nome, bio, peso e avatar.
+                            Editar nome, bio e peso.
                           </span>
                         </div>
                         <ChevronRight size={16} color="#A3A3A3" />
@@ -132,6 +138,48 @@ export function ProfileView({
               </Sheet>
 
               <div style={{ position: "relative", zIndex: 1, padding: "32px 12px 0" }}>
+                {loadError && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      marginBottom: 20,
+                      padding: "14px 16px",
+                      borderRadius: 16,
+                      border: "1px solid rgba(248,113,113,0.24)",
+                      background: "rgba(127,29,29,0.18)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "var(--font-inter)",
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        color: "#FCA5A5",
+                      }}
+                    >
+                      {loadError}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={onDismissError}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        color: "#FCA5A5",
+                        cursor: "pointer",
+                        fontFamily: "var(--font-inter)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                )}
+
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 24 }}>
                   <HexAvatar src={profile.avatarUrl} initials={initials} size={96} />
                   <div style={{ textAlign: "center" }}>
@@ -147,6 +195,17 @@ export function ProfileView({
                       {profile.bio}
                     </p>
                   )}
+                  {isLoading && (
+                    <span
+                      style={{
+                        fontFamily: "var(--font-inter)",
+                        fontSize: 12,
+                        color: "#B8A65A",
+                      }}
+                    >
+                      Atualizando perfil...
+                    </span>
+                  )}
                 </div>
 
                 <GoldDivider />
@@ -154,7 +213,12 @@ export function ProfileView({
                 <div style={{ marginTop: 20, marginBottom: 20 }}>
                   <SectionLabel icon={<ShieldCheck size={13} color="#FFD700" />} label="Estatísticas" />
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <StatCard icon={<Scale size={20} />} value={`${profile.weight}kg`} label="Peso" color="#FFD700" />
+                    <StatCard
+                      icon={<Scale size={20} />}
+                      value={profile.weight === null ? "--" : `${profile.weight}kg`}
+                      label="Peso"
+                      color="#FFD700"
+                    />
                     <StatCard icon={<span style={{ fontSize: 20, lineHeight: 1 }}>🃏</span>} value={profile.cards} label="Cartas" color="#A855F7" />
                     <StatCard icon={<Flame size={20} />} value={`${profile.streak}d`} label="Ofensiva" color="#F97316" />
                     <StatCard icon={<Dumbbell size={20} />} value={profile.totalWorkouts} label="Treinos" color="#22C55E" />
