@@ -5,6 +5,11 @@ export interface AccountSettingsData {
   ghostModeEnabled: boolean;
 }
 
+export interface AccountSettingsSaveInput extends AccountSettingsData {
+  currentPassword?: string;
+  newPassword?: string;
+}
+
 export type ProfileScreenMode = "view" | "edit" | "account";
 
 export interface ProfileScreenProps {

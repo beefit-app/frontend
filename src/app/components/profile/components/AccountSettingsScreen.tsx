@@ -5,17 +5,23 @@ import { BeeButton } from "../../BeeButton";
 import { BeeCard } from "../../BeeCard";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
-import type { AccountSettingsData } from "../types";
+import type { AccountSettingsSaveInput } from "../types";
 import { SectionLabel } from "./shared";
 
 export function AccountSettingsScreen({
   settings,
+  isSubmitting = false,
+  saveError,
   onSave,
   onCancel,
+  onClearSaveError,
 }: {
-  settings: AccountSettingsData;
-  onSave: (data: AccountSettingsData) => void;
+  settings: { ghostModeEnabled: boolean };
+  isSubmitting?: boolean;
+  saveError?: string | null;
+  onSave: (data: AccountSettingsSaveInput) => Promise<boolean>;
   onCancel: () => void;
+  onClearSaveError?: () => void;
 }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,7 +42,10 @@ export function AccountSettingsScreen({
     if (isChangingPassword) {
       if (!currentPassword) nextErrors.currentPassword = "Digite sua senha atual";
       if (!newPassword) nextErrors.newPassword = "Digite a nova senha";
-      else if (newPassword.length < 6) nextErrors.newPassword = "A nova senha deve ter ao menos 6 caracteres";
+      else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(newPassword)) {
+        nextErrors.newPassword =
+          "Use ao menos 8 caracteres com maiúscula, minúscula, número e símbolo";
+      }
       if (!confirmPassword) nextErrors.confirmPassword = "Confirme a nova senha";
       else if (confirmPassword !== newPassword) nextErrors.confirmPassword = "As senhas não coincidem";
       if (currentPassword && newPassword && currentPassword === newPassword) {
@@ -47,7 +56,7 @@ export function AccountSettingsScreen({
     return nextErrors;
   }
 
-  function handleSave() {
+  async function handleSave() {
     const nextErrors = validate();
 
     if (Object.keys(nextErrors).length > 0) {
@@ -57,7 +66,17 @@ export function AccountSettingsScreen({
     }
 
     setErrors({});
-    onSave({ ghostModeEnabled });
+    const saved = await onSave({
+      ghostModeEnabled,
+      currentPassword: currentPassword.trim() || undefined,
+      newPassword: newPassword.trim() || undefined,
+    });
+
+    if (!saved) {
+      setSuccessMessage("");
+      return;
+    }
+
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
@@ -110,11 +129,13 @@ export function AccountSettingsScreen({
                     placeholder="••••••••"
                     value={currentPassword}
                     onChange={(event) => {
+                      if (saveError) onClearSaveError?.();
                       setCurrentPassword(event.target.value);
                       setErrors((prev) => ({ ...prev, currentPassword: "" }));
                     }}
                     error={errors.currentPassword}
                     icon={<LockKeyhole size={18} />}
+                    disabled={isSubmitting}
                     rightElement={
                       <span onClick={() => setShowCurrentPassword((current) => !current)}>
                         <EyeToggleIcon visible={showCurrentPassword} />
@@ -128,11 +149,13 @@ export function AccountSettingsScreen({
                     placeholder="••••••••"
                     value={newPassword}
                     onChange={(event) => {
+                      if (saveError) onClearSaveError?.();
                       setNewPassword(event.target.value);
                       setErrors((prev) => ({ ...prev, newPassword: "" }));
                     }}
                     error={errors.newPassword}
                     icon={<LockKeyhole size={18} />}
+                    disabled={isSubmitting}
                     rightElement={
                       <span onClick={() => setShowNewPassword((current) => !current)}>
                         <EyeToggleIcon visible={showNewPassword} />
@@ -146,11 +169,13 @@ export function AccountSettingsScreen({
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(event) => {
+                      if (saveError) onClearSaveError?.();
                       setConfirmPassword(event.target.value);
                       setErrors((prev) => ({ ...prev, confirmPassword: "" }));
                     }}
                     error={errors.confirmPassword}
                     icon={<LockKeyhole size={18} />}
+                    disabled={isSubmitting}
                     rightElement={
                       <span onClick={() => setShowConfirmPassword((current) => !current)}>
                         <EyeToggleIcon visible={showConfirmPassword} />
@@ -189,6 +214,7 @@ export function AccountSettingsScreen({
                       type="button"
                       onClick={() => setGhostModeEnabled((current) => !current)}
                       aria-pressed={ghostModeEnabled}
+                      disabled={isSubmitting}
                       style={{
                         width: 56,
                         height: 32,
@@ -220,6 +246,23 @@ export function AccountSettingsScreen({
                 </div>
               </BeeCard>
 
+              {saveError && (
+                <div
+                  style={{
+                    borderRadius: 14,
+                    border: "1px solid rgba(248,113,113,0.24)",
+                    background: "rgba(127,29,29,0.18)",
+                    padding: "14px 16px",
+                    fontFamily: "var(--font-inter)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#FCA5A5",
+                  }}
+                >
+                  {saveError}
+                </div>
+              )}
+
               {successMessage && (
                 <div
                   style={{
@@ -238,10 +281,10 @@ export function AccountSettingsScreen({
               )}
 
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <BeeButton variant="primary" fullWidth onClick={handleSave}>
-                  Salvar configurações
+                <BeeButton variant="primary" fullWidth onClick={() => void handleSave()} disabled={isSubmitting}>
+                  {isSubmitting ? "Salvando..." : "Salvar configurações"}
                 </BeeButton>
-                <BeeButton variant="dark" fullWidth onClick={onCancel}>
+                <BeeButton variant="dark" fullWidth onClick={onCancel} disabled={isSubmitting}>
                   Cancelar
                 </BeeButton>
               </div>

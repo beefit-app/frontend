@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import type { AuthUser } from "../../../types/auth";
+import { accountSettingsService } from "../../../services/accountSettingsService";
 import { profileService } from "../../../services/profileService";
-import type { AccountSettingsData, ProfileData, ProfileScreenMode } from "../types";
+import type {
+  AccountSettingsData,
+  AccountSettingsSaveInput,
+  ProfileData,
+  ProfileScreenMode,
+} from "../types";
 
 export function useProfileScreenState({
   authUser,
@@ -83,9 +89,29 @@ export function useProfileScreenState({
     }
   }
 
-  function handleAccountSettingsSave(data: AccountSettingsData) {
-    onAccountSettingsChange?.(data);
-    setScreenMode("view");
+  async function handleAccountSettingsSave(data: AccountSettingsSaveInput) {
+    setIsSubmitting(true);
+    setAccountSettingsError(null);
+
+    try {
+      const nextSettings = await accountSettingsService.saveSettings(data);
+      onAccountSettingsChange?.(nextSettings);
+      setProfile((current) => ({
+        ...current,
+        ghostModeEnabled: nextSettings.ghostModeEnabled,
+      }));
+      setScreenMode("view");
+      return true;
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Não foi possível salvar as configurações da conta.";
+      setAccountSettingsError(message);
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return {

@@ -54,8 +54,11 @@ export function ProfileScreen({
     return (
       <AccountSettingsScreen
         settings={accountSettings}
+        isSubmitting={isSubmitting}
+        saveError={accountSettingsError}
         onSave={handleAccountSettingsSave}
         onCancel={goToView}
+        onClearSaveError={clearAccountSettingsError}
       />
     );
   }
