@@ -76,10 +76,21 @@ async function request<T>(path: string, options: RequestOptions = {}) {
     );
   }
 
+  if (response.status === 204 || response.status === 205) {
+    return null as T;
+  }
+
   const contentType = response.headers.get("content-type") ?? "";
-  const responseData = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
+  const rawResponse = await response.text();
+  let responseData: unknown = rawResponse;
+
+  if (contentType.includes("application/json") && rawResponse.trim()) {
+    try {
+      responseData = JSON.parse(rawResponse);
+    } catch {
+      responseData = rawResponse;
+    }
+  }
 
   if (!response.ok) {
     if (response.status === 401 && auth) {
