@@ -57,6 +57,62 @@ describe("authService API integration", () => {
     expect(window.localStorage.getItem("beefit.auth.user")).toContain("\"Bee Fit\"");
   });
 
+  it("registra usuario usando o contrato atual do backend", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createJsonResponse(
+        {
+          token: "jwt-register",
+          userResponseDTO: {
+            id: "user-2",
+            fullName: "Nova Pessoa",
+            username: "nova",
+            email: "nova@email.com",
+            bodyWeight: 68,
+            weeklyGoal: 5,
+          },
+        },
+        { status: 201 },
+      ),
+    );
+
+    const { authService } = await import("./authService");
+    const session = await authService.register({
+      name: "Nova Pessoa",
+      username: "nova",
+      email: "nova@email.com",
+      password: "123456",
+      weight: 68,
+      weeklyGoal: 5,
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${API_URL}/auth/register`,
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          fullName: "Nova Pessoa",
+          username: "nova",
+          email: "nova@email.com",
+          password: "123456",
+          weeklyGoal: 5,
+          bodyWeight: 68,
+        }),
+      }),
+    );
+    expect(session).toEqual({
+      accessToken: "jwt-register",
+      user: {
+        id: "user-2",
+        name: "Nova Pessoa",
+        username: "nova",
+        email: "nova@email.com",
+        weight: 68,
+        weeklyGoal: 5,
+      },
+    });
+    expect(window.localStorage.getItem("beefit.auth.accessToken")).toBe("jwt-register");
+  });
+
   it("restaura a sessao usando o perfil parcial e o cache local do usuario", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(createJsonResponse({ message: "not found" }, { status: 404 }))

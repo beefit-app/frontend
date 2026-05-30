@@ -32,6 +32,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
   function validate() {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = "Nome completo é obrigatório";
+    if (!form.username.trim()) e.username = "Nome de usuário é obrigatório";
     if (!form.email) e.email = "E-mail é obrigatório";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "E-mail inválido";
     if (!form.password) e.password = "Senha é obrigatória";
@@ -45,8 +46,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
     return e;
   }
 
-  async function handleSubmit(ev: React.FormEvent) {
-    ev.preventDefault();
+  async function submitRegistration() {
     const e = validate();
     if (Object.keys(e).length) {
       setErrors(e);
@@ -67,6 +67,11 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
     } catch {
       // O estado de erro já é tratado pelo AuthProvider.
     }
+  }
+
+  function handleSubmit(ev: React.FormEvent) {
+    ev.preventDefault();
+    void submitRegistration();
   }
 
   const PersonIcon = () => (
@@ -201,6 +206,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                     placeholder="Seu username"
                     value={form.username}
                     onChange={(e) => setField("username", e.target.value)}
+                    error={errors.username}
                     icon={<PersonIcon />}
                     disabled={isSubmitting}
                   />
@@ -299,7 +305,13 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   )}
 
                   <div className="mt-2">
-                    <BeeButton type="submit" variant="primary" fullWidth disabled={isSubmitting}>
+                    <BeeButton
+                      type="button"
+                      variant="primary"
+                      fullWidth
+                      disabled={isSubmitting}
+                      onClick={() => void submitRegistration()}
+                    >
                       {isSubmitting ? "Criando conta..." : "Criar Conta"}
                     </BeeButton>
                   </div>
