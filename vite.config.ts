@@ -30,6 +30,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      "/auth": "http://localhost:8080",
+      "/api": "http://localhost:8080",
+      "/users": "http://localhost:8080",
+    },
+  },
   test: {
     environment: "jsdom",
     globals: true,

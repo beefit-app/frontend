@@ -29,7 +29,27 @@ function buildUrl(path: string) {
   return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+function buildFallbackUrl(path: string) {
+  return path.startsWith("/") ? path : `/${path}`;
+}
+
 function getErrorMessage(data: unknown, fallbackMessage: string) {
+  if (typeof data === "string") {
+    const trimmed = data.trim();
+
+    if (!trimmed) return fallbackMessage;
+
+    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+      try {
+        return getErrorMessage(JSON.parse(trimmed), fallbackMessage);
+      } catch {
+        return trimmed;
+      }
+    }
+
+    return trimmed;
+  }
+
   if (!data || typeof data !== "object") return fallbackMessage;
 
   const maybeMessage = "message" in data ? data.message : null;
@@ -37,6 +57,15 @@ function getErrorMessage(data: unknown, fallbackMessage: string) {
 
   const maybeError = "error" in data ? data.error : null;
   if (typeof maybeError === "string" && maybeError.trim()) return maybeError;
+
+  const maybeFields = "fields" in data ? data.fields : null;
+  if (Array.isArray(maybeFields) && maybeFields.length > 0) {
+    const firstField = maybeFields[0];
+    if (firstField && typeof firstField === "object" && "message" in firstField) {
+      const fieldMessage = (firstField as Record<string, unknown>).message;
+      if (typeof fieldMessage === "string" && fieldMessage.trim()) return fieldMessage;
+    }
+  }
 
   return fallbackMessage;
 }
@@ -60,19 +89,34 @@ async function request<T>(path: string, options: RequestOptions = {}) {
     }
   }
 
-  let response: Response;
+  const requestUrls = [buildUrl(path)];
+  const fallbackUrl = buildFallbackUrl(path);
 
-  try {
-    response = await fetch(buildUrl(path), {
-      method,
-      headers: finalHeaders,
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-  } catch (error) {
+  if (requestUrls[0] !== fallbackUrl) {
+    requestUrls.push(fallbackUrl);
+  }
+
+  let response: Response | null = null;
+  let lastError: unknown = null;
+
+  for (const requestUrl of requestUrls) {
+    try {
+      response = await fetch(requestUrl, {
+        method,
+        headers: finalHeaders,
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      break;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!response) {
     throw new ApiError(
       "Não foi possível conectar ao servidor. Verifique a URL da API, o CORS e se o backend está em execução.",
       0,
-      error,
+      lastError,
     );
   }
 
