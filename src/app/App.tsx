@@ -14,6 +14,7 @@ import { LoginScreen } from "./components/LoginScreen";
 import { RegisterScreen } from "./components/RegisterScreen";
 import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } from "./components/ProfileScreen";
 import { SocialFeedScreen } from "./components/SocialFeedScreen";
+import { SocialScreen } from "./components/SocialScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
 import { useAuth } from "./auth/AuthContext";
 import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
@@ -30,7 +31,7 @@ const TAB_ITEMS: {
   Icon: React.FC<{ size: number; active: boolean }>;
 }[] = [
   { id: "feed", label: "Feed", implemented: true, Icon: ({ size }) => <Newspaper size={size} /> },
-  { id: "social", label: "Social", implemented: false, Icon: ({ size }) => <Users size={size} /> },
+  { id: "social", label: "Social", implemented: true, Icon: ({ size }) => <Users size={size} /> },
   {
     id: "workout",
     label: "Treino",
@@ -159,6 +160,9 @@ export default function App() {
                   isStreakFedToday={isStreakFedToday}
                   streakBurstToken={streak.burstToken}
                 />
+              </div>
+              <div style={{ display: screen === "social" ? "block" : "none" }}>
+                <SocialScreen />
               </div>
               <div style={{ display: screen === "workout" ? "block" : "none" }}>
                 <WorkoutStartScreen

@@ -1,10 +1,12 @@
 import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } from "../../types/workout";
 
 export interface ActiveWorkoutScreenProps {
+  workoutId?: string | null;
   title: string;
   subtitle: string;
   selectedGroups: string[];
   initialExercises?: ExerciseCatalogItem[];
+  initialSessionExercises?: WorkoutExercise[];
   bodyWeightKg?: number | null;
   ghostModeEnabled?: boolean;
   onBack: () => void;

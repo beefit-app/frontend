@@ -8,7 +8,7 @@ export function createId(prefix: string) {
 }
 
 export function createSet(): WorkoutSet {
-  return { id: createId("set"), weight: "", reps: "" };
+  return { id: createId("set"), backendId: null, weight: "", reps: "" };
 }
 
 export function formatElapsedTime(totalSeconds: number) {
@@ -49,6 +49,7 @@ export function createExerciseCard(
 
   return {
     id: createId("exercise"),
+    sessionExerciseId: null,
     catalogId: exercise.id,
     name: exercise.name,
     group: exercise.group,

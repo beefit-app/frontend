@@ -11,12 +11,14 @@ export interface ExerciseCatalogItem {
 
 export interface WorkoutSet {
   id: string;
+  backendId?: string | null;
   weight: string;
   reps: string;
 }
 
 export interface WorkoutExercise {
   id: string;
+  sessionExerciseId?: string | null;
   catalogId: string;
   name: string;
   group: string;
@@ -25,6 +27,7 @@ export interface WorkoutExercise {
 }
 
 export interface WorkoutCompletionDraft {
+  workoutId?: string | null;
   title: string;
   photoUrl: string | null;
   shouldPostWorkout: boolean;

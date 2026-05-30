@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 export type AuthScreen = "login" | "register";
-export type AppScreen = "feed" | "workout" | "profile";
+export type AppScreen = "feed" | "social" | "workout" | "profile";
 export type TabId = "feed" | "social" | "workout" | "search" | "profile";
 
 export function useAppNavigation(isAuthenticated: boolean) {

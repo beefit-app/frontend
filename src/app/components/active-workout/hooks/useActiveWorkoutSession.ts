@@ -10,8 +10,10 @@ import {
 } from "../utils";
 
 export function useActiveWorkoutSession({
+  workoutId = null,
   selectedGroups,
   initialExercises = [],
+  initialSessionExercises,
   bodyWeightKg,
   ghostModeEnabled = false,
   onWorkoutComplete,
@@ -19,7 +21,9 @@ export function useActiveWorkoutSession({
 }: Pick<
   ActiveWorkoutScreenProps,
   | "selectedGroups"
+  | "workoutId"
   | "initialExercises"
+  | "initialSessionExercises"
   | "bodyWeightKg"
   | "ghostModeEnabled"
   | "onWorkoutComplete"
@@ -33,7 +37,9 @@ export function useActiveWorkoutSession({
   const [detailViewSource, setDetailViewSource] = useState<DetailViewSource>("catalog");
   const [isWorkoutMenuOpen, setIsWorkoutMenuOpen] = useState(false);
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() =>
-    initialExercises.map((exercise) => createExerciseCard(exercise, { withInitialSet: false })),
+    initialSessionExercises && initialSessionExercises.length > 0
+      ? initialSessionExercises
+      : initialExercises.map((exercise) => createExerciseCard(exercise, { withInitialSet: false })),
   );
   const [finishTitle, setFinishTitle] = useState(selectedGroups.join(" & "));
   const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(null);
@@ -200,6 +206,7 @@ export function useActiveWorkoutSession({
     }
 
     const draft: WorkoutCompletionDraft = {
+      workoutId,
       title: finishTitle.trim(),
       photoUrl: finishPhotoUrl,
       shouldPostWorkout,

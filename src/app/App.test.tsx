@@ -38,6 +38,10 @@ vi.mock("./components/SocialFeedScreen", () => ({
   SocialFeedScreen: () => <div>social-feed-screen</div>,
 }));
 
+vi.mock("./components/SocialScreen", () => ({
+  SocialScreen: () => <div>social-screen</div>,
+}));
+
 vi.mock("./components/WorkoutStartScreen", () => ({
   WorkoutStartScreen: () => <div>workout-screen</div>,
 }));
@@ -106,6 +110,7 @@ describe("App", () => {
     render(<App />);
 
     expect(screen.getByText("social-feed-screen")).toBeInTheDocument();
+    expect(screen.getByText("social-screen")).toBeInTheDocument();
     expect(screen.getByText("workout-screen")).toBeInTheDocument();
     expect(screen.getByText("profile-screen")).toBeInTheDocument();
   });

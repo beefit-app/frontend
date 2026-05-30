@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { IonCard, IonCardContent, IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 import { Check, Dumbbell, FolderKanban } from "lucide-react";
 import { ActiveWorkoutScreen } from "./ActiveWorkoutScreen";
@@ -6,7 +6,7 @@ import { BeeButton } from "./BeeButton";
 import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { workoutService } from "../services/workoutService";
-import type { ExerciseCatalogItem, WorkoutCompletionDraft } from "../types/workout";
+import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } from "../types/workout";
 
 const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
@@ -55,23 +55,27 @@ export function WorkoutStartScreen({
   const { user } = useAuth();
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [workoutTemplates, setWorkoutTemplates] = useState(() => workoutService.getTemplates());
+  const [startError, setStartError] = useState("");
+  const [isStartingWorkout, setIsStartingWorkout] = useState(false);
   const [activeWorkoutConfig, setActiveWorkoutConfig] = useState<{
+    workoutId: string | null;
     title: string;
     subtitle: string;
     selectedGroups: string[];
     startedAt: number;
     initialExerciseIds: string[];
+    initialSessionExercises: WorkoutExercise[];
   } | null>(null);
   const isClosingWorkoutRef = useRef(false);
 
   // Esta tela depende só da interface do service; quando a API entrar,
   // a troca deve acontecer na implementação do service, não aqui.
   const muscleGroups = useMemo(() => workoutService.getMuscleGroups(), []);
-  const workoutTemplates = useMemo(() => workoutService.getTemplates(), []);
 
   const selectedTemplate = useMemo(
     () => workoutService.getTemplateById(selectedTemplateId),
-    [selectedTemplateId],
+    [selectedTemplateId, workoutTemplates],
   );
 
   const canStartWorkout = selectedGroups.length > 0 || selectedTemplate !== null;
@@ -100,40 +104,83 @@ export function WorkoutStartScreen({
     setSelectedTemplateId((current) => (current === templateId ? null : templateId));
   }
 
-  function handleStartWorkout() {
-    if (!canStartWorkout) return;
+  useEffect(() => {
+    let active = true;
 
-    if (selectedTemplate) {
-      const startedAt = Date.now();
-      const templateExercises = workoutService.getTemplateExercises(selectedTemplate.id);
-      isClosingWorkoutRef.current = false;
-      setActiveWorkoutConfig({
-        title: selectedTemplate.name,
-        subtitle: "Sessão iniciada por template. Adicione exercícios e registre séries durante o treino.",
-        selectedGroups: selectedTemplate.groups,
-        startedAt,
-        initialExerciseIds: templateExercises.map((exercise) => exercise.id),
-      });
-      onActiveWorkoutChange?.({ selectedGroups: selectedTemplate.groups, startedAt });
-      return;
+    async function loadWorkoutData() {
+      try {
+        await workoutService.loadCatalog();
+        const templates = await workoutService.loadTemplates();
+        if (active) setWorkoutTemplates(templates);
+      } catch {
+        // Keep mock data visible if the backend is unavailable during local UI work.
+      }
     }
 
-    const labels = workoutService.getSelectedGroupLabels(selectedGroups);
-    const startedAt = Date.now();
-    isClosingWorkoutRef.current = false;
-    setActiveWorkoutConfig({
-      title: "Treino livre",
-      subtitle: `Foco selecionado: ${labels.join(", ")}. O catálogo continua livre para adicionar qualquer exercício.`,
-      selectedGroups: labels,
-      startedAt,
-      initialExerciseIds: [],
-    });
-    onActiveWorkoutChange?.({ selectedGroups: labels, startedAt });
+    void loadWorkoutData();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleStartWorkout() {
+    if (!canStartWorkout) return;
+    setIsStartingWorkout(true);
+    setStartError("");
+
+    try {
+      if (selectedTemplate) {
+        const startedSession = await workoutService.startWorkout({
+          selectedGroups: selectedTemplate.groups,
+          isPrivate: ghostModeEnabled,
+          templateId: selectedTemplate.id,
+        });
+        const templateExercises = workoutService.getTemplateExercises(selectedTemplate.id);
+        isClosingWorkoutRef.current = false;
+        setActiveWorkoutConfig({
+          workoutId: startedSession.id,
+          title: selectedTemplate.name,
+          subtitle: "Sessão iniciada por template. Adicione exercícios e registre séries durante o treino.",
+          selectedGroups: startedSession.muscleGroups,
+          startedAt: startedSession.startedAt,
+          initialExerciseIds: templateExercises.map((exercise) => exercise.id),
+          initialSessionExercises: startedSession.exercises,
+        });
+        onActiveWorkoutChange?.({ selectedGroups: startedSession.muscleGroups, startedAt: startedSession.startedAt });
+        return;
+      }
+
+      const labels = workoutService.getSelectedGroupLabels(selectedGroups);
+      const startedSession = await workoutService.startWorkout({
+        selectedGroups,
+        isPrivate: ghostModeEnabled,
+      });
+      isClosingWorkoutRef.current = false;
+      setActiveWorkoutConfig({
+        workoutId: startedSession.id,
+        title: "Treino livre",
+        subtitle: `Foco selecionado: ${labels.join(", ")}. O catálogo continua livre para adicionar qualquer exercício.`,
+        selectedGroups: startedSession.muscleGroups.length > 0 ? startedSession.muscleGroups : labels,
+        startedAt: startedSession.startedAt,
+        initialExerciseIds: [],
+        initialSessionExercises: startedSession.exercises,
+      });
+      onActiveWorkoutChange?.({
+        selectedGroups: startedSession.muscleGroups.length > 0 ? startedSession.muscleGroups : labels,
+        startedAt: startedSession.startedAt,
+      });
+    } catch (error) {
+      setStartError(error instanceof Error ? error.message : "Não foi possível iniciar o treino.");
+    } finally {
+      setIsStartingWorkout(false);
+    }
   }
 
   if (activeWorkoutConfig) {
     return (
       <ActiveWorkoutScreen
+        workoutId={activeWorkoutConfig.workoutId}
         title={activeWorkoutConfig.title}
         subtitle={activeWorkoutConfig.subtitle}
         selectedGroups={activeWorkoutConfig.selectedGroups}
@@ -141,10 +188,18 @@ export function WorkoutStartScreen({
         initialExercises={activeWorkoutConfig.initialExerciseIds
           .map((exerciseId) => workoutService.getCatalogItemById(exerciseId))
           .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null)}
+        initialSessionExercises={activeWorkoutConfig.initialSessionExercises}
         ghostModeEnabled={ghostModeEnabled}
         onWorkoutComplete={(draft) => {
-          closeActiveWorkout();
-          onWorkoutCompleted?.(draft);
+          void (async () => {
+            try {
+              await workoutService.finishWorkout(draft);
+              closeActiveWorkout();
+              onWorkoutCompleted?.(draft);
+            } catch (error) {
+              window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o treino.");
+            }
+          })();
         }}
         onSessionGroupsChange={(groups) => {
           if (isClosingWorkoutRef.current) return;
@@ -242,16 +297,20 @@ export function WorkoutStartScreen({
                         onClick={() => toggleGroup(group.id)}
                         style={{
                           borderRadius: 20,
-                          padding: 14,
+                          padding: "14px 46px 14px 14px",
                           textAlign: "left",
                           border: `1px solid ${selected ? group.accent : "#2D2D2D"}`,
                           background: selected ? group.glow : "rgba(16,16,16,0.9)",
                           boxShadow: selected ? `0 0 0 1px ${group.accent} inset` : "none",
                           transition: "all 160ms ease",
+                          display: "flex",
+                          height: "100%",
+                          alignItems: "flex-start",
+                          position: "relative",
                         }}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
+                        <div className="w-full">
+                          <div style={{ flex: 1 }}>
                             <div
                               style={{
                                 color: "#FFFFFF",
@@ -278,6 +337,9 @@ export function WorkoutStartScreen({
                             style={{
                               width: 24,
                               height: 24,
+                              position: "absolute",
+                              top: 14,
+                              right: 14,
                               borderRadius: 999,
                               border: `1px solid ${selected ? group.accent : "#3D3D3D"}`,
                               background: selected ? group.accent : "transparent",
@@ -424,10 +486,15 @@ export function WorkoutStartScreen({
                 size="lg"
                 fullWidth
                 onClick={handleStartWorkout}
-                disabled={!canStartWorkout}
+                disabled={!canStartWorkout || isStartingWorkout}
               >
-                Iniciar treino
+                {isStartingWorkout ? "Iniciando..." : "Iniciar treino"}
               </BeeButton>
+              {startError && (
+                <IonText style={{ color: "#FCA5A5", fontFamily: "var(--font-inter)", fontSize: 13 }}>
+                  {startError}
+                </IonText>
+              )}
             </div>
           </IonCol>
         </IonRow>
