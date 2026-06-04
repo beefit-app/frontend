@@ -2,6 +2,7 @@ import type {
   ExerciseCatalogItem,
   WorkoutCompletionDraft,
   WorkoutExercise,
+  WorkoutCompletionSummary,
   WorkoutTemplate,
 } from "../types/workout";
 import { workoutDataSource } from "./workoutDataSource";
@@ -175,6 +176,15 @@ function normalizeStartedSession(response: BackendWorkoutSession) {
   };
 }
 
+function normalizeCompletionSummary(response: BackendWorkoutSession): WorkoutCompletionSummary {
+  return {
+    workoutId: response.id,
+    durationSeconds: response.durationSeconds ?? 0,
+    estimatedCalories: response.estimatedCalories ?? 0,
+    totalVolume: response.totalVolume ?? 0,
+  };
+}
+
 function toFinishPayload(draft: WorkoutCompletionDraft) {
   return {
     finishedAt: new Date().toISOString(),
@@ -189,6 +199,17 @@ function toFinishPayload(draft: WorkoutCompletionDraft) {
         weightKg: Number(set.weight.replace(",", ".")) || 0,
         reps: Number.parseInt(set.reps, 10) || 0,
       })),
+    })),
+  };
+}
+
+function toTemplatePayload(draft: WorkoutCompletionDraft) {
+  return {
+    name: draft.title,
+    muscleGroups: draft.selectedGroups.map(toBackendGroup),
+    exercises: draft.exercises.map((exercise, exerciseIndex) => ({
+      catalogExerciseId: exercise.catalogId,
+      order: exerciseIndex + 1,
     })),
   };
 }
@@ -321,10 +342,17 @@ export const workoutService = {
       throw new Error("Sessão de treino sem ID do backend.");
     }
 
-    return apiClient.post<BackendWorkoutSession>(
+    const response = await apiClient.post<BackendWorkoutSession>(
       `/api/workout/${draft.workoutId}/finish`,
       toFinishPayload(draft),
       { auth: true },
     );
+
+    if (draft.shouldSaveTemplate) {
+      const createdTemplate = await apiClient.post<BackendTemplate>("/api/templates", toTemplatePayload(draft), { auth: true });
+      templatesCache = [normalizeTemplate(createdTemplate), ...templatesCache.filter((template) => template.id !== createdTemplate.id)];
+    }
+
+    return normalizeCompletionSummary(response);
   },
 };

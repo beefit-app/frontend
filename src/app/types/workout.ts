@@ -31,9 +31,28 @@ export interface WorkoutCompletionDraft {
   title: string;
   photoUrl: string | null;
   shouldPostWorkout: boolean;
+  shouldSaveTemplate: boolean;
   selectedGroups: string[];
   elapsedSeconds: number;
   exercises: WorkoutExercise[];
+}
+
+export interface WorkoutDraft {
+  userId: string;
+  workoutId: string;
+  title: string;
+  selectedGroups: string[];
+  exercises: WorkoutExercise[];
+  shouldPostWorkout: boolean;
+  shouldSaveTemplate: boolean;
+  updatedAt: string;
+}
+
+export interface WorkoutCompletionSummary {
+  workoutId: string;
+  durationSeconds: number;
+  estimatedCalories: number;
+  totalVolume: number;
 }
 
 export interface MuscleGroupOption {

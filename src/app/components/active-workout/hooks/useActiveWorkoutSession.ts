@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { workoutService } from "../../../services/workoutService";
+import { workoutDraftStorage } from "../../../storage/workoutDraftStorage";
 import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } from "../../../types/workout";
 import type { ActiveWorkoutScreenProps, DetailViewSource } from "../types";
 import {
@@ -11,9 +12,11 @@ import {
 
 export function useActiveWorkoutSession({
   workoutId = null,
+  userId = null,
   selectedGroups,
   initialExercises = [],
   initialSessionExercises,
+  initialDraft = null,
   bodyWeightKg,
   ghostModeEnabled = false,
   onWorkoutComplete,
@@ -22,8 +25,10 @@ export function useActiveWorkoutSession({
   ActiveWorkoutScreenProps,
   | "selectedGroups"
   | "workoutId"
+  | "userId"
   | "initialExercises"
   | "initialSessionExercises"
+  | "initialDraft"
   | "bodyWeightKg"
   | "ghostModeEnabled"
   | "onWorkoutComplete"
@@ -37,13 +42,16 @@ export function useActiveWorkoutSession({
   const [detailViewSource, setDetailViewSource] = useState<DetailViewSource>("catalog");
   const [isWorkoutMenuOpen, setIsWorkoutMenuOpen] = useState(false);
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() =>
-    initialSessionExercises && initialSessionExercises.length > 0
+    initialDraft?.exercises && initialDraft.exercises.length > 0
+      ? initialDraft.exercises
+      : initialSessionExercises && initialSessionExercises.length > 0
       ? initialSessionExercises
       : initialExercises.map((exercise) => createExerciseCard(exercise, { withInitialSet: false })),
   );
-  const [finishTitle, setFinishTitle] = useState(selectedGroups.join(" & "));
+  const [finishTitle, setFinishTitle] = useState(initialDraft?.title ?? selectedGroups.join(" & "));
   const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(null);
-  const [shouldPostWorkout, setShouldPostWorkout] = useState(!ghostModeEnabled);
+  const [shouldPostWorkout, setShouldPostWorkout] = useState(initialDraft?.shouldPostWorkout ?? !ghostModeEnabled);
+  const [shouldSaveTemplate, setShouldSaveTemplate] = useState(initialDraft?.shouldSaveTemplate ?? false);
   const [finishTitleError, setFinishTitleError] = useState("");
   const [finishValidationError, setFinishValidationError] = useState("");
   const [catalog, setCatalog] = useState(() => workoutService.getCatalog());
@@ -143,9 +151,30 @@ export function useActiveWorkoutSession({
   }, [onSessionGroupsChange, sessionGroups]);
 
   useEffect(() => {
-    if (!isFinishingWorkout) return;
-    setShouldPostWorkout(!ghostModeEnabled);
-  }, [ghostModeEnabled, isFinishingWorkout]);
+    if (!userId || !workoutId) return;
+
+    const draft = {
+      userId,
+      workoutId,
+      title: finishTitle.trim() || defaultFinishTitle,
+      selectedGroups: sessionGroups,
+      exercises,
+      shouldPostWorkout,
+      shouldSaveTemplate,
+      updatedAt: new Date().toISOString(),
+    };
+
+    void workoutDraftStorage.saveDraft(draft);
+  }, [
+    defaultFinishTitle,
+    exercises,
+    finishTitle,
+    sessionGroups,
+    shouldPostWorkout,
+    shouldSaveTemplate,
+    userId,
+    workoutId,
+  ]);
 
   useEffect(() => {
     if (!finishValidationError) return;
@@ -215,10 +244,9 @@ export function useActiveWorkoutSession({
       return;
     }
 
-    setFinishTitle(defaultFinishTitle);
+    setFinishTitle((current) => (current.trim() ? current : defaultFinishTitle));
     setFinishTitleError("");
     setFinishValidationError("");
-    setShouldPostWorkout(!ghostModeEnabled);
     setIsFinishingWorkout(true);
   }
 
@@ -233,6 +261,7 @@ export function useActiveWorkoutSession({
       title: finishTitle.trim(),
       photoUrl: finishPhotoUrl,
       shouldPostWorkout,
+      shouldSaveTemplate,
       selectedGroups: sessionGroups,
       elapsedSeconds,
       exercises,
@@ -253,6 +282,7 @@ export function useActiveWorkoutSession({
     finishTitle,
     finishPhotoUrl,
     shouldPostWorkout,
+    shouldSaveTemplate,
     finishTitleError,
     finishValidationError,
     catalogLoadError,
@@ -278,6 +308,7 @@ export function useActiveWorkoutSession({
     setFinishTitle,
     setFinishPhotoUrl,
     setShouldPostWorkout,
+    setShouldSaveTemplate,
     setFinishTitleError,
     setFinishValidationError,
     addExercise,
