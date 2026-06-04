@@ -112,6 +112,25 @@ export function WorkoutStartScreen({
         await workoutService.loadCatalog();
         const templates = await workoutService.loadTemplates();
         if (active) setWorkoutTemplates(templates);
+
+        const activeSession = await workoutService.getActiveWorkout();
+        if (!active || !activeSession) return;
+
+        isClosingWorkoutRef.current = false;
+        setActiveWorkoutConfig({
+          workoutId: activeSession.id,
+          title: "Treino em andamento",
+          subtitle: "Sessão restaurada do backend. Continue registrando suas séries normalmente.",
+          selectedGroups: activeSession.muscleGroups,
+          startedAt: activeSession.startedAt,
+          initialExerciseIds: [],
+          initialSessionExercises: activeSession.exercises,
+        });
+        onActiveWorkoutChange?.({
+          workoutId: activeSession.id,
+          selectedGroups: activeSession.muscleGroups,
+          startedAt: activeSession.startedAt,
+        });
       } catch {
         // Keep mock data visible if the backend is unavailable during local UI work.
       }
@@ -122,7 +141,7 @@ export function WorkoutStartScreen({
     return () => {
       active = false;
     };
-  }, []);
+  }, [onActiveWorkoutChange]);
 
   async function handleStartWorkout() {
     if (!canStartWorkout) return;
@@ -147,7 +166,11 @@ export function WorkoutStartScreen({
           initialExerciseIds: templateExercises.map((exercise) => exercise.id),
           initialSessionExercises: startedSession.exercises,
         });
-        onActiveWorkoutChange?.({ selectedGroups: startedSession.muscleGroups, startedAt: startedSession.startedAt });
+        onActiveWorkoutChange?.({
+          workoutId: startedSession.id,
+          selectedGroups: startedSession.muscleGroups,
+          startedAt: startedSession.startedAt,
+        });
         return;
       }
 
@@ -167,6 +190,7 @@ export function WorkoutStartScreen({
         initialSessionExercises: startedSession.exercises,
       });
       onActiveWorkoutChange?.({
+        workoutId: startedSession.id,
         selectedGroups: startedSession.muscleGroups.length > 0 ? startedSession.muscleGroups : labels,
         startedAt: startedSession.startedAt,
       });
@@ -203,7 +227,11 @@ export function WorkoutStartScreen({
         }}
         onSessionGroupsChange={(groups) => {
           if (isClosingWorkoutRef.current) return;
-          onActiveWorkoutChange?.({ selectedGroups: groups, startedAt: activeWorkoutConfig.startedAt });
+          onActiveWorkoutChange?.({
+            workoutId: activeWorkoutConfig.workoutId,
+            selectedGroups: groups,
+            startedAt: activeWorkoutConfig.startedAt,
+          });
         }}
         onBack={closeActiveWorkout}
       />

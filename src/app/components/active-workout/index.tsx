@@ -61,6 +61,7 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
         groupedExercises={session.groupedExercises}
         activeCatalogGroupId={session.activeCatalogGroupId}
         visibleCatalogItems={session.visibleCatalogItems}
+        catalogLoadError={session.catalogLoadError}
         selectedCatalogIds={session.selectedCatalogIds}
         onBack={() => session.setIsCatalogOpen(false)}
         onSelectGroup={session.setActiveCatalogGroupId}

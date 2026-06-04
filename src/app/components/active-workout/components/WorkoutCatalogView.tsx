@@ -9,6 +9,7 @@ export function WorkoutCatalogView({
   groupedExercises,
   activeCatalogGroupId,
   visibleCatalogItems,
+  catalogLoadError,
   selectedCatalogIds,
   onBack,
   onSelectGroup,
@@ -17,6 +18,7 @@ export function WorkoutCatalogView({
   groupedExercises: { group: string; items: ExerciseCatalogItem[] }[];
   activeCatalogGroupId: string;
   visibleCatalogItems: ExerciseCatalogItem[];
+  catalogLoadError: string;
   selectedCatalogIds: Set<string>;
   onBack: () => void;
   onSelectGroup: (groupId: string) => void;
@@ -120,6 +122,38 @@ export function WorkoutCatalogView({
             </div>
 
             <div style={{ display: "grid", gap: 12 }}>
+              {catalogLoadError && (
+                <div
+                  style={{
+                    border: "1px solid rgba(239,68,68,0.35)",
+                    background: "rgba(239,68,68,0.1)",
+                    borderRadius: 18,
+                    padding: 16,
+                    color: "#FCA5A5",
+                    fontFamily: "var(--font-inter)",
+                    fontSize: 14,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {catalogLoadError}
+                </div>
+              )}
+              {!catalogLoadError && visibleCatalogItems.length === 0 && (
+                <div
+                  style={{
+                    border: "1px solid #2D2D2D",
+                    background: "#141414",
+                    borderRadius: 18,
+                    padding: 16,
+                    color: "#A3A3A3",
+                    fontFamily: "var(--font-inter)",
+                    fontSize: 14,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Nenhum exercício encontrado para este grupo muscular.
+                </div>
+              )}
               {visibleCatalogItems.map((exercise) => {
                 const alreadyAdded = selectedCatalogIds.has(exercise.id);
                 const style = muscleStyle(exercise.group);
