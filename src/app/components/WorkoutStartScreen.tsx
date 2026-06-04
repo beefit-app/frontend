@@ -6,7 +6,14 @@ import { BeeButton } from "./BeeButton";
 import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { workoutService } from "../services/workoutService";
-import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } from "../types/workout";
+import { workoutDraftStorage } from "../storage/workoutDraftStorage";
+import type {
+  ExerciseCatalogItem,
+  WorkoutCompletionDraft,
+  WorkoutCompletionSummary,
+  WorkoutDraft,
+  WorkoutExercise,
+} from "../types/workout";
 
 const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
@@ -41,6 +48,14 @@ function HexIcon({
   );
 }
 
+function formatCompletionSummary(summary: WorkoutCompletionSummary) {
+  const minutes = Math.max(0, Math.round(summary.durationSeconds / 60));
+  const calories = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(summary.estimatedCalories);
+  const volume = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(summary.totalVolume);
+
+  return `Treino finalizado: ${minutes} min, ${calories} kcal, ${volume} kg.`;
+}
+
 interface WorkoutStartScreenProps {
   ghostModeEnabled?: boolean;
   onActiveWorkoutChange?: (workout: { selectedGroups: string[]; startedAt: number } | null) => void;
@@ -57,6 +72,7 @@ export function WorkoutStartScreen({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [workoutTemplates, setWorkoutTemplates] = useState(() => workoutService.getTemplates());
   const [startError, setStartError] = useState("");
+  const [workoutDataError, setWorkoutDataError] = useState("");
   const [isStartingWorkout, setIsStartingWorkout] = useState(false);
   const [activeWorkoutConfig, setActiveWorkoutConfig] = useState<{
     workoutId: string | null;
@@ -66,6 +82,7 @@ export function WorkoutStartScreen({
     startedAt: number;
     initialExerciseIds: string[];
     initialSessionExercises: WorkoutExercise[];
+    initialDraft: WorkoutDraft | null;
   } | null>(null);
   const isClosingWorkoutRef = useRef(false);
 
@@ -88,6 +105,7 @@ export function WorkoutStartScreen({
 
   function closeActiveWorkout() {
     isClosingWorkoutRef.current = true;
+    void workoutDraftStorage.removeDraft(user?.id, activeWorkoutConfig?.workoutId);
     resetWorkoutState();
     onActiveWorkoutChange?.(null);
   }
@@ -108,12 +126,52 @@ export function WorkoutStartScreen({
     let active = true;
 
     async function loadWorkoutData() {
+      let latestError = "";
+
       try {
         await workoutService.loadCatalog();
+      } catch (error) {
+        latestError = error instanceof Error ? error.message : "Não foi possível carregar o catálogo.";
+      }
+
+      try {
         const templates = await workoutService.loadTemplates();
         if (active) setWorkoutTemplates(templates);
-      } catch {
-        // Keep mock data visible if the backend is unavailable during local UI work.
+      } catch (error) {
+        latestError = error instanceof Error ? error.message : "Não foi possível carregar os templates.";
+      }
+
+      try {
+        const activeSession = await workoutService.getActiveWorkout();
+        if (!active) return;
+
+        setWorkoutDataError(latestError);
+        if (!activeSession) return;
+
+        const restoredDraft = await workoutDraftStorage.getDraft(user?.id, activeSession.id);
+        if (!active) return;
+
+        isClosingWorkoutRef.current = false;
+        setActiveWorkoutConfig({
+          workoutId: activeSession.id,
+          title: restoredDraft?.title ?? "Treino em andamento",
+          subtitle: restoredDraft
+            ? "Sessão restaurada com o rascunho local deste aparelho."
+            : "Sessão restaurada do backend. Continue registrando suas séries normalmente.",
+          selectedGroups: restoredDraft?.selectedGroups ?? activeSession.muscleGroups,
+          startedAt: activeSession.startedAt,
+          initialExerciseIds: [],
+          initialSessionExercises: restoredDraft?.exercises ?? activeSession.exercises,
+          initialDraft: restoredDraft,
+        });
+        onActiveWorkoutChange?.({
+          workoutId: activeSession.id,
+          selectedGroups: restoredDraft?.selectedGroups ?? activeSession.muscleGroups,
+          startedAt: activeSession.startedAt,
+        });
+      } catch (error) {
+        if (!active) return;
+        setWorkoutDataError(error instanceof Error ? error.message : "Não foi possível restaurar o treino ativo.");
       }
     }
 
@@ -122,7 +180,7 @@ export function WorkoutStartScreen({
     return () => {
       active = false;
     };
-  }, []);
+  }, [onActiveWorkoutChange]);
 
   async function handleStartWorkout() {
     if (!canStartWorkout) return;
@@ -146,8 +204,13 @@ export function WorkoutStartScreen({
           startedAt: startedSession.startedAt,
           initialExerciseIds: templateExercises.map((exercise) => exercise.id),
           initialSessionExercises: startedSession.exercises,
+          initialDraft: null,
         });
-        onActiveWorkoutChange?.({ selectedGroups: startedSession.muscleGroups, startedAt: startedSession.startedAt });
+        onActiveWorkoutChange?.({
+          workoutId: startedSession.id,
+          selectedGroups: startedSession.muscleGroups,
+          startedAt: startedSession.startedAt,
+        });
         return;
       }
 
@@ -165,8 +228,10 @@ export function WorkoutStartScreen({
         startedAt: startedSession.startedAt,
         initialExerciseIds: [],
         initialSessionExercises: startedSession.exercises,
+        initialDraft: null,
       });
       onActiveWorkoutChange?.({
+        workoutId: startedSession.id,
         selectedGroups: startedSession.muscleGroups.length > 0 ? startedSession.muscleGroups : labels,
         startedAt: startedSession.startedAt,
       });
@@ -181,6 +246,7 @@ export function WorkoutStartScreen({
     return (
       <ActiveWorkoutScreen
         workoutId={activeWorkoutConfig.workoutId}
+        userId={user?.id}
         title={activeWorkoutConfig.title}
         subtitle={activeWorkoutConfig.subtitle}
         selectedGroups={activeWorkoutConfig.selectedGroups}
@@ -189,12 +255,15 @@ export function WorkoutStartScreen({
           .map((exerciseId) => workoutService.getCatalogItemById(exerciseId))
           .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null)}
         initialSessionExercises={activeWorkoutConfig.initialSessionExercises}
+        initialDraft={activeWorkoutConfig.initialDraft}
         ghostModeEnabled={ghostModeEnabled}
         onWorkoutComplete={(draft) => {
           void (async () => {
             try {
-              await workoutService.finishWorkout(draft);
+              const summary = await workoutService.finishWorkout(draft);
+              await workoutDraftStorage.removeDraft(user?.id, draft.workoutId);
               closeActiveWorkout();
+              window.alert(formatCompletionSummary(summary));
               onWorkoutCompleted?.(draft);
             } catch (error) {
               window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o treino.");
@@ -203,7 +272,11 @@ export function WorkoutStartScreen({
         }}
         onSessionGroupsChange={(groups) => {
           if (isClosingWorkoutRef.current) return;
-          onActiveWorkoutChange?.({ selectedGroups: groups, startedAt: activeWorkoutConfig.startedAt });
+          onActiveWorkoutChange?.({
+            workoutId: activeWorkoutConfig.workoutId,
+            selectedGroups: groups,
+            startedAt: activeWorkoutConfig.startedAt,
+          });
         }}
         onBack={closeActiveWorkout}
       />
@@ -212,7 +285,7 @@ export function WorkoutStartScreen({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, padding: "32px 12px 24px" }}>
+      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "32px 12px 24px" }}>
         <IonRow>
           <IonCol size="12">
             <div style={{ display: "grid", gap: 10 }}>
@@ -493,6 +566,11 @@ export function WorkoutStartScreen({
               {startError && (
                 <IonText style={{ color: "#FCA5A5", fontFamily: "var(--font-inter)", fontSize: 13 }}>
                   {startError}
+                </IonText>
+              )}
+              {workoutDataError && (
+                <IonText style={{ color: "#FCA5A5", fontFamily: "var(--font-inter)", fontSize: 13, lineHeight: 1.5 }}>
+                  {workoutDataError}
                 </IonText>
               )}
             </div>

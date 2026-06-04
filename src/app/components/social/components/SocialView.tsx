@@ -535,7 +535,7 @@ export function SocialView({ state }: { state: SocialState }) {
 
   return (
     <PageBackground>
-      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-7" style={{ maxWidth: 393 }}>
+      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-7" style={{ width: "100%", maxWidth: 393, margin: "0 auto" }}>
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <header className="relative mb-6">

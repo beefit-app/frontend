@@ -20,6 +20,7 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
         totalVolumeKg={session.totalVolumeKg}
         estimatedCalories={session.estimatedCalories}
         shouldPostWorkout={session.shouldPostWorkout}
+        shouldSaveTemplate={session.shouldSaveTemplate}
         ghostModeEnabled={props.ghostModeEnabled ?? false}
         onBack={() => {
           session.setFinishValidationError("");
@@ -33,6 +34,7 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
           session.setFinishTitleError("");
         }}
         onTogglePost={() => session.setShouldPostWorkout((current) => !current)}
+        onToggleSaveTemplate={() => session.setShouldSaveTemplate((current) => !current)}
         onFinish={session.handleFinishWorkout}
       />
     );
@@ -61,6 +63,7 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
         groupedExercises={session.groupedExercises}
         activeCatalogGroupId={session.activeCatalogGroupId}
         visibleCatalogItems={session.visibleCatalogItems}
+        catalogLoadError={session.catalogLoadError}
         selectedCatalogIds={session.selectedCatalogIds}
         onBack={() => session.setIsCatalogOpen(false)}
         onSelectGroup={session.setActiveCatalogGroupId}

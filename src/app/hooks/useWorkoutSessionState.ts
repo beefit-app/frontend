@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 export interface ActiveWorkoutBannerState {
+  workoutId?: string | null;
   selectedGroups: string[];
   startedAt: number;
 }

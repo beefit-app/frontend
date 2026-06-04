@@ -1,5 +1,5 @@
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
-import { Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-react";
+import { Bookmark, Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-react";
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
@@ -13,11 +13,13 @@ export function FinishWorkoutView({
   totalVolumeKg,
   estimatedCalories,
   shouldPostWorkout,
+  shouldSaveTemplate,
   ghostModeEnabled,
   onBack,
   onPhotoChange,
   onTitleChange,
   onTogglePost,
+  onToggleSaveTemplate,
   onFinish,
 }: {
   finishPhotoInputRef: React.RefObject<HTMLInputElement | null>;
@@ -27,11 +29,13 @@ export function FinishWorkoutView({
   totalVolumeKg: number;
   estimatedCalories: number;
   shouldPostWorkout: boolean;
+  shouldSaveTemplate: boolean;
   ghostModeEnabled: boolean;
   onBack: () => void;
   onPhotoChange: (file: File | null) => void;
   onTitleChange: (value: string) => void;
   onTogglePost: () => void;
+  onToggleSaveTemplate: () => void;
   onFinish: () => void;
 }) {
   const formattedVolume = new Intl.NumberFormat("pt-BR", {
@@ -43,7 +47,7 @@ export function FinishWorkoutView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, padding: "32px 12px 24px", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "32px 12px 24px", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
             <button
@@ -293,6 +297,52 @@ export function FinishWorkoutView({
                           transition: "all 0.2s ease",
                         }}
                       />
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 16,
+                      padding: "16px 14px",
+                      borderRadius: 18,
+                      border: "1px solid #2D2D2D",
+                      background: "#171717",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <span style={{ display: "block", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700, color: "#FFFFFF", marginBottom: 4 }}>
+                        Salvar como template
+                      </span>
+                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#737373" }}>
+                        Usa o título como nome e salva apenas grupos e exercícios.
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={onToggleSaveTemplate}
+                      aria-pressed={shouldSaveTemplate}
+                      aria-label={shouldSaveTemplate ? "Não salvar template" : "Salvar template"}
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 14,
+                        border: "1px solid",
+                        borderColor: shouldSaveTemplate ? "#FFD700" : "#404040",
+                        background: shouldSaveTemplate ? "rgba(255,215,0,0.18)" : "#101010",
+                        color: shouldSaveTemplate ? "#FFD700" : "#737373",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Bookmark size={18} fill={shouldSaveTemplate ? "#FFD700" : "none"} />
                     </button>
                   </div>
                 </div>
