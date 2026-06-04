@@ -240,7 +240,7 @@ export function WorkoutStartScreen({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, padding: "32px 12px 24px" }}>
+      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "32px 12px 24px" }}>
         <IonRow>
           <IonCol size="12">
             <div style={{ display: "grid", gap: 10 }}>
