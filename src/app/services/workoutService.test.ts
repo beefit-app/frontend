@@ -75,6 +75,26 @@ describe("workoutService.finishWorkout", () => {
     await workoutService.finishWorkout(createDraft(true));
 
     expect(apiClient.post).toHaveBeenNthCalledWith(
+      1,
+      "/api/workout/workout-1/finish",
+      {
+        finishedAt: expect.any(String),
+        title: "Push pesado",
+        shouldPostWorkout: true,
+        muscleGroups: ["CHEST"],
+        exercises: [
+          {
+            sessionExerciseId: "session-exercise-1",
+            catalogExerciseId: "catalog-1",
+            order: 1,
+            sets: [{ id: "set-backend-1", order: 1, weightKg: 80, reps: 8 }],
+          },
+        ],
+      },
+      { auth: true },
+    );
+
+    expect(apiClient.post).toHaveBeenNthCalledWith(
       2,
       "/api/templates",
       {
@@ -94,5 +114,15 @@ describe("workoutService.finishWorkout", () => {
     await workoutService.finishWorkout(createDraft(false));
 
     expect(apiClient.post).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancela treino ativo com endpoint dedicado", async () => {
+    const { apiClient } = await import("./apiClient");
+    vi.mocked(apiClient.post).mockResolvedValueOnce(finishedSession);
+
+    const { workoutService } = await import("./workoutService");
+    await workoutService.cancelWorkout("workout-1");
+
+    expect(apiClient.post).toHaveBeenCalledWith("/api/workout/workout-1/cancel", undefined, { auth: true });
   });
 });

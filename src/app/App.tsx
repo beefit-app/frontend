@@ -20,7 +20,8 @@ import { useAuth } from "./auth/AuthContext";
 import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
 import { useStreakState } from "./hooks/useStreakState";
 import { useWorkoutSessionState } from "./hooks/useWorkoutSessionState";
-import type { WorkoutCompletionDraft } from "./types/workout";
+import { profileService } from "./services/profileService";
+import type { WorkoutCompletionDraft, WorkoutCompletionSummary } from "./types/workout";
 
 setupIonicReact({ mode: "md" });
 
@@ -57,28 +58,27 @@ const TAB_ITEMS: {
 ];
 
 export default function App() {
-  const { isAuthenticated, isBootstrapping } = useAuth();
+  const { isAuthenticated, isBootstrapping, user } = useAuth();
   const contentRef = useRef<HTMLIonContentElement | null>(null);
   const { authScreen, screen, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
-  const { streak, isStreakFedToday, feedStreak, clearPendingFeed, scheduleFeed } = useStreakState();
+  const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState();
   const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
 
-  function handleWorkoutCompleted(draft: WorkoutCompletionDraft) {
+  function handleWorkoutCompleted(_draft: WorkoutCompletionDraft, _summary: WorkoutCompletionSummary) {
     clearPendingFeed();
     completeWorkout();
     setScreen("feed");
-
-    if (!draft.shouldPostWorkout) {
-      feedStreak();
-      return;
-    }
-
-    window.setTimeout(() => {
-      void contentRef.current?.scrollToTop(320);
-      scheduleFeed(420);
-    }, 40);
+    void contentRef.current?.scrollToTop(320);
+    void (async () => {
+      try {
+        const profile = await profileService.getProfile(user);
+        syncStreakCount(profile.streak);
+      } catch {
+        // Mantem o valor atual quando o refresh do perfil falha.
+      }
+    })();
   }
 
   const activeWorkoutLabel = activeWorkout?.selectedGroups.join(" · ");

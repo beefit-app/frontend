@@ -13,6 +13,7 @@ import {
 export function useActiveWorkoutSession({
   workoutId = null,
   userId = null,
+  startedAt = null,
   selectedGroups,
   initialExercises = [],
   initialSessionExercises,
@@ -26,6 +27,7 @@ export function useActiveWorkoutSession({
   | "selectedGroups"
   | "workoutId"
   | "userId"
+  | "startedAt"
   | "initialExercises"
   | "initialSessionExercises"
   | "initialDraft"
@@ -34,7 +36,9 @@ export function useActiveWorkoutSession({
   | "onWorkoutComplete"
   | "onSessionGroupsChange"
 >) {
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(() =>
+    startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0,
+  );
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isFinishingWorkout, setIsFinishingWorkout] = useState(false);
   const [activeCatalogGroupId, setActiveCatalogGroupId] = useState("peito");
@@ -88,9 +92,14 @@ export function useActiveWorkoutSession({
   );
 
   useEffect(() => {
-    const timer = window.setInterval(() => setElapsedSeconds((current) => current + 1), 1000);
+    const updateElapsedSeconds = () => {
+      setElapsedSeconds(startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0);
+    };
+
+    updateElapsedSeconds();
+    const timer = window.setInterval(updateElapsedSeconds, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [startedAt]);
 
   useEffect(() => {
     let active = true;

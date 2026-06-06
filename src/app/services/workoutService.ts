@@ -188,6 +188,8 @@ function normalizeCompletionSummary(response: BackendWorkoutSession): WorkoutCom
 function toFinishPayload(draft: WorkoutCompletionDraft) {
   return {
     finishedAt: new Date().toISOString(),
+    title: draft.title,
+    shouldPostWorkout: draft.shouldPostWorkout,
     muscleGroups: draft.selectedGroups.map(toBackendGroup),
     exercises: draft.exercises.map((exercise, exerciseIndex) => ({
       sessionExerciseId: exercise.sessionExerciseId ?? null,
@@ -354,5 +356,13 @@ export const workoutService = {
     }
 
     return normalizeCompletionSummary(response);
+  },
+
+  async cancelWorkout(workoutId: string | null | undefined) {
+    if (!workoutId) {
+      throw new Error("Sessão de treino sem ID do backend.");
+    }
+
+    await apiClient.post(`/api/workout/${workoutId}/cancel`, undefined, { auth: true });
   },
 };

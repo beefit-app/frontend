@@ -3,6 +3,7 @@ import { Bookmark, Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
+import { formatElapsedTime } from "../utils";
 import { SurfaceCard } from "./shared";
 
 export function FinishWorkoutView({
@@ -10,6 +11,7 @@ export function FinishWorkoutView({
   finishPhotoUrl,
   finishTitle,
   finishTitleError,
+  elapsedSeconds,
   totalVolumeKg,
   estimatedCalories,
   shouldPostWorkout,
@@ -26,6 +28,7 @@ export function FinishWorkoutView({
   finishPhotoUrl: string | null;
   finishTitle: string;
   finishTitleError: string;
+  elapsedSeconds: number;
   totalVolumeKg: number;
   estimatedCalories: number;
   shouldPostWorkout: boolean;
@@ -44,6 +47,7 @@ export function FinishWorkoutView({
   const formattedCalories = new Intl.NumberFormat("pt-BR", {
     maximumFractionDigits: 0,
   }).format(estimatedCalories);
+  const formattedDuration = formatElapsedTime(elapsedSeconds);
 
   return (
     <PageBackground>
@@ -158,6 +162,44 @@ export function FinishWorkoutView({
               <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)">
                 <div style={{ display: "grid", gap: 18 }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div
+                      style={{
+                        borderRadius: 18,
+                        border: "1px solid #2D2D2D",
+                        background: "#171717",
+                        padding: 14,
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <ImageIcon size={16} color="#60A5FA" />
+                        <span
+                          style={{
+                            fontFamily: "var(--font-inter)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            color: "#737373",
+                          }}
+                        >
+                          Duração
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-montserrat)",
+                          fontSize: 24,
+                          fontWeight: 800,
+                          color: "#FFFFFF",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {formattedDuration}
+                      </span>
+                    </div>
+
                     <div
                       style={{
                         borderRadius: 18,

@@ -3,6 +3,7 @@ import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutDraft, Workout
 export interface ActiveWorkoutScreenProps {
   workoutId?: string | null;
   userId?: string | null;
+  startedAt?: number | null;
   title: string;
   subtitle: string;
   selectedGroups: string[];

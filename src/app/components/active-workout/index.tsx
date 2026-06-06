@@ -17,6 +17,7 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
         finishPhotoUrl={session.finishPhotoUrl}
         finishTitle={session.finishTitle}
         finishTitleError={session.finishTitleError}
+        elapsedSeconds={session.elapsedSeconds}
         totalVolumeKg={session.totalVolumeKg}
         estimatedCalories={session.estimatedCalories}
         shouldPostWorkout={session.shouldPostWorkout}

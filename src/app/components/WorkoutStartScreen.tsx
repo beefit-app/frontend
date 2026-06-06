@@ -59,7 +59,7 @@ function formatCompletionSummary(summary: WorkoutCompletionSummary) {
 interface WorkoutStartScreenProps {
   ghostModeEnabled?: boolean;
   onActiveWorkoutChange?: (workout: { selectedGroups: string[]; startedAt: number } | null) => void;
-  onWorkoutCompleted?: (draft: WorkoutCompletionDraft) => void;
+  onWorkoutCompleted?: (draft: WorkoutCompletionDraft, summary: WorkoutCompletionSummary) => void;
 }
 
 export function WorkoutStartScreen({
@@ -73,6 +73,7 @@ export function WorkoutStartScreen({
   const [workoutTemplates, setWorkoutTemplates] = useState(() => workoutService.getTemplates());
   const [startError, setStartError] = useState("");
   const [workoutDataError, setWorkoutDataError] = useState("");
+  const [completionMessage, setCompletionMessage] = useState("");
   const [isStartingWorkout, setIsStartingWorkout] = useState(false);
   const [activeWorkoutConfig, setActiveWorkoutConfig] = useState<{
     workoutId: string | null;
@@ -103,11 +104,27 @@ export function WorkoutStartScreen({
     setActiveWorkoutConfig(null);
   }
 
-  function closeActiveWorkout() {
+  function clearActiveWorkoutLocally() {
     isClosingWorkoutRef.current = true;
-    void workoutDraftStorage.removeDraft(user?.id, activeWorkoutConfig?.workoutId);
     resetWorkoutState();
     onActiveWorkoutChange?.(null);
+  }
+
+  function closeActiveWorkout() {
+    if (!activeWorkoutConfig?.workoutId) {
+      clearActiveWorkoutLocally();
+      return;
+    }
+
+    void (async () => {
+      try {
+        await workoutService.cancelWorkout(activeWorkoutConfig.workoutId);
+        await workoutDraftStorage.removeDraft(user?.id, activeWorkoutConfig.workoutId);
+        clearActiveWorkoutLocally();
+      } catch (error) {
+        setWorkoutDataError(error instanceof Error ? error.message : "Não foi possível cancelar o treino.");
+      }
+    })();
   }
 
   function toggleGroup(groupId: string) {
@@ -186,6 +203,7 @@ export function WorkoutStartScreen({
     if (!canStartWorkout) return;
     setIsStartingWorkout(true);
     setStartError("");
+    setCompletionMessage("");
 
     try {
       if (selectedTemplate) {
@@ -247,6 +265,7 @@ export function WorkoutStartScreen({
       <ActiveWorkoutScreen
         workoutId={activeWorkoutConfig.workoutId}
         userId={user?.id}
+        startedAt={activeWorkoutConfig.startedAt}
         title={activeWorkoutConfig.title}
         subtitle={activeWorkoutConfig.subtitle}
         selectedGroups={activeWorkoutConfig.selectedGroups}
@@ -262,9 +281,9 @@ export function WorkoutStartScreen({
             try {
               const summary = await workoutService.finishWorkout(draft);
               await workoutDraftStorage.removeDraft(user?.id, draft.workoutId);
-              closeActiveWorkout();
-              window.alert(formatCompletionSummary(summary));
-              onWorkoutCompleted?.(draft);
+              setCompletionMessage(formatCompletionSummary(summary));
+              clearActiveWorkoutLocally();
+              onWorkoutCompleted?.(draft, summary);
             } catch (error) {
               window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o treino.");
             }
@@ -314,6 +333,30 @@ export function WorkoutStartScreen({
             </div>
           </IonCol>
         </IonRow>
+
+        {completionMessage && (
+          <IonRow className="mt-5">
+            <IonCol size="12">
+              <IonCard
+                style={
+                  {
+                    "--background": "rgba(34,197,94,0.1)",
+                    "--color": "#FFFFFF",
+                    "--border-radius": "20px",
+                    margin: 0,
+                    border: "1px solid rgba(34,197,94,0.28)",
+                  } as React.CSSProperties
+                }
+              >
+                <IonCardContent style={{ padding: 16 }}>
+                  <IonText style={{ color: "#BBF7D0", fontFamily: "var(--font-inter)", fontSize: 14, lineHeight: 1.6 }}>
+                    {completionMessage}
+                  </IonText>
+                </IonCardContent>
+              </IonCard>
+            </IonCol>
+          </IonRow>
+        )}
 
         <IonRow className="mt-7">
           <IonCol size="12">
