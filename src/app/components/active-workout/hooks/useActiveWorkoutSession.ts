@@ -15,6 +15,7 @@ export function useActiveWorkoutSession({
   selectedGroups,
   initialExercises = [],
   initialSessionExercises,
+  initialFinishPhotoFile = null,
   bodyWeightKg,
   ghostModeEnabled = false,
   onWorkoutComplete,
@@ -27,6 +28,7 @@ export function useActiveWorkoutSession({
   | "startedAt"
   | "initialExercises"
   | "initialSessionExercises"
+  | "initialFinishPhotoFile"
   | "bodyWeightKg"
   | "ghostModeEnabled"
   | "onWorkoutComplete"
@@ -46,8 +48,8 @@ export function useActiveWorkoutSession({
       : initialExercises.map((exercise) => createExerciseCard(exercise, { withInitialSet: false })),
   );
   const [finishTitle, setFinishTitle] = useState(selectedGroups.join(" & "));
-  const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(null);
-  const [finishPhotoFile, setFinishPhotoFile] = useState<File | null>(null);
+  const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(() => initialFinishPhotoFile ? URL.createObjectURL(initialFinishPhotoFile) : null);
+  const [finishPhotoFile, setFinishPhotoFile] = useState<File | null>(initialFinishPhotoFile);
   const [shouldPostWorkout, setShouldPostWorkout] = useState(!ghostModeEnabled);
   const [finishTitleError, setFinishTitleError] = useState("");
   const [finishValidationError, setFinishValidationError] = useState("");

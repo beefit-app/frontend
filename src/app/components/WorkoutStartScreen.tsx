@@ -7,6 +7,7 @@ import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { workoutService } from "../services/workoutService";
 import { workoutDraftStorage } from "../storage/workoutDraftStorage";
+import { persistWorkoutPhoto, removePersistedWorkoutPhoto, restoreWorkoutPhoto } from "../platform/workoutPhoto";
 import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } from "../types/workout";
 
 const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
@@ -67,6 +68,7 @@ export function WorkoutStartScreen({
     startedAt: number;
     initialExerciseIds: string[];
     initialSessionExercises: WorkoutExercise[];
+    initialFinishPhotoFile?: File | null;
   } | null>(null);
   const isClosingWorkoutRef = useRef(false);
 
@@ -89,6 +91,8 @@ export function WorkoutStartScreen({
 
   async function closeActiveWorkout() {
     isClosingWorkoutRef.current = true;
+    const draft = await workoutDraftStorage.get();
+    await removePersistedWorkoutPhoto(draft?.photoFileName);
     resetWorkoutState();
     await workoutDraftStorage.clear();
     onActiveWorkoutChange?.(null);
@@ -140,6 +144,7 @@ export function WorkoutStartScreen({
         const startedAt = session.startedAt;
         const exercises = persisted?.workoutId === session.id ? persisted.exercises : session.exercises;
         const groups = session.muscleGroups;
+        const restoredPhoto = persisted?.photoFileName ? await restoreWorkoutPhoto(persisted.photoFileName) : null;
         setActiveWorkoutConfig({
           workoutId: session.id,
           title: persisted?.title || "Treino em andamento",
@@ -148,6 +153,7 @@ export function WorkoutStartScreen({
           startedAt,
           initialExerciseIds: [],
           initialSessionExercises: exercises,
+          initialFinishPhotoFile: restoredPhoto,
         });
         onActiveWorkoutChange?.({ selectedGroups: groups, startedAt });
       } catch (error) {
@@ -224,6 +230,7 @@ export function WorkoutStartScreen({
           .map((exerciseId) => workoutService.getCatalogItemById(exerciseId))
           .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null)}
         initialSessionExercises={activeWorkoutConfig.initialSessionExercises}
+        initialFinishPhotoFile={activeWorkoutConfig.initialFinishPhotoFile}
         ghostModeEnabled={ghostModeEnabled}
         onWorkoutComplete={(draft) => {
           void (async () => {
@@ -232,6 +239,7 @@ export function WorkoutStartScreen({
               await closeActiveWorkout();
               onWorkoutCompleted?.(draft);
             } catch (error) {
+              const photoFileName = draft.photoFile ? await persistWorkoutPhoto(draft.photoFile) : null;
               await workoutDraftStorage.set({
                 workoutId: draft.workoutId ?? activeWorkoutConfig.workoutId ?? "",
                 startedAt: activeWorkoutConfig.startedAt,
@@ -240,7 +248,7 @@ export function WorkoutStartScreen({
                 title: draft.title,
                 shouldPostWorkout: draft.shouldPostWorkout,
                 photoUrl: draft.photoUrl,
-                photoFileName: draft.photoFile?.name ?? null,
+                photoFileName,
                 pendingFinish: true,
                 updatedAt: Date.now(),
               });
