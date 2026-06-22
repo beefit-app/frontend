@@ -7,8 +7,8 @@ export function WorkoutPostCard({
   onSaveTemplate,
 }: {
   post: SocialFeedPost;
-  onToggleLike: (id: number) => void;
-  onSaveTemplate: (id: number) => void;
+  onToggleLike: (id: string | number) => void;
+  onSaveTemplate: (id: string | number) => void;
 }) {
   return (
     <WorkoutPostCardBase
