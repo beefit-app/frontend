@@ -23,11 +23,14 @@ export function ProfileScreen({
     loadError,
     saveError,
     accountSettingsError,
+    recentPosts,
+    trainedDays,
     goToView,
     goToEdit,
     goToAccount,
     handleProfileSave,
     handleAccountSettingsSave,
+    handleAccountDelete,
     clearLoadError,
     clearSaveError,
     clearAccountSettingsError,
@@ -59,6 +62,11 @@ export function ProfileScreen({
         onSave={handleAccountSettingsSave}
         onCancel={goToView}
         onClearSaveError={clearAccountSettingsError}
+        onDeleteAccount={async (password) => {
+          const deleted = await handleAccountDelete(password);
+          if (deleted) await logout();
+          return deleted;
+        }}
       />
     );
   }
@@ -68,8 +76,8 @@ export function ProfileScreen({
       profile={profile}
       isLoading={isLoading}
       loadError={loadError}
-      trainedDays={profileService.getTrainedDays()}
-      recentPosts={profileService.getRecentPosts()}
+      trainedDays={trainedDays}
+      recentPosts={recentPosts}
       onEdit={goToEdit}
       onManageAccount={goToAccount}
       onDismissError={clearLoadError}

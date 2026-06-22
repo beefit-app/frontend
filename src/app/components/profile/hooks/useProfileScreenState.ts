@@ -8,6 +8,7 @@ import type {
   ProfileData,
   ProfileScreenMode,
 } from "../types";
+import type { WorkoutPost } from "../types";
 
 export function useProfileScreenState({
   authUser,
@@ -25,6 +26,8 @@ export function useProfileScreenState({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [accountSettingsError, setAccountSettingsError] = useState<string | null>(null);
+  const [recentPosts, setRecentPosts] = useState<WorkoutPost[]>([]);
+  const [trainedDays, setTrainedDays] = useState<number[]>([]);
 
   useEffect(() => {
     const fallbackProfile = profileService.getProfileFallback(authUser);
@@ -64,6 +67,10 @@ export function useProfileScreenState({
         if (cancelled) return;
         setIsLoading(false);
       });
+
+    void Promise.all([profileService.getRecentPosts(), profileService.getTrainedDays()])
+      .then(([posts, days]) => { if (!cancelled) { setRecentPosts(posts); setTrainedDays(days); } })
+      .catch(() => { if (!cancelled) { setRecentPosts([]); setTrainedDays([]); } });
 
     return () => {
       cancelled = true;
@@ -114,6 +121,14 @@ export function useProfileScreenState({
     }
   }
 
+  async function handleAccountDelete(password: string) {
+    setIsSubmitting(true);
+    setAccountSettingsError(null);
+    try { await accountSettingsService.deleteAccount(password); return true; }
+    catch (error) { setAccountSettingsError(error instanceof Error ? error.message : "Não foi possível excluir a conta."); return false; }
+    finally { setIsSubmitting(false); }
+  }
+
   return {
     profile,
     accountSettings,
@@ -123,11 +138,14 @@ export function useProfileScreenState({
     loadError,
     saveError,
     accountSettingsError,
+    recentPosts,
+    trainedDays,
     goToView: () => setScreenMode("view"),
     goToEdit: () => setScreenMode("edit"),
     goToAccount: () => setScreenMode("account"),
     handleProfileSave,
     handleAccountSettingsSave,
+    handleAccountDelete,
     clearLoadError: () => setLoadError(null),
     clearSaveError: () => setSaveError(null),
     clearAccountSettingsError: () => setAccountSettingsError(null),

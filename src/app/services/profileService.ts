@@ -1,5 +1,4 @@
 import type { WorkoutPost } from "../components/profile/types";
-import { MOCK_POSTS, TRAINED_DAYS } from "../components/profile/mock";
 import { sessionStorage } from "../storage/sessionStorage";
 import type { AuthUser } from "../types/auth";
 import type { UserProfile, UserProfileUpdate } from "../types/user";
@@ -23,6 +22,7 @@ interface UpdateProfileRequest {
   fullName: string;
   biography: string;
   bodyWeight: number | null;
+  profilePicture: string | null;
 }
 
 function hasBrowserStorage() {
@@ -109,6 +109,7 @@ function buildUpdatePayload(currentProfile: UserProfile, update: UserProfileUpda
       typeof update.weight === "number"
         ? update.weight
         : currentProfile.weight,
+    profilePicture: update.avatarUrl ?? currentProfile.avatarUrl,
   };
 }
 
@@ -147,17 +148,24 @@ export const profileService = {
       displayName: payload.fullName,
       bio: payload.biography,
       weight: payload.bodyWeight,
+      avatarUrl: payload.profilePicture,
     };
 
     await persistAuthUserUpdate(authUser, nextProfile);
     return nextProfile;
   },
-
-  getRecentPosts(): WorkoutPost[] {
-    return MOCK_POSTS;
+  async uploadProfilePhoto(file: File) {
+    const formData = new FormData();
+    formData.append("file", file, file.name || "profile-photo.jpg");
+    const response = await apiClient.post<{ url: string }>("/api/media/profile-photo", formData, { auth: true });
+    return response.url;
   },
-
-  getTrainedDays() {
-    return TRAINED_DAYS;
+  async getRecentPosts(): Promise<WorkoutPost[]> {
+    const response = await apiClient.get<{ content?: Array<{ postId: string; title?: string; publishedAt: string; totalLikes: number; likedByCurrentUser: boolean; photoUrl?: string | null; durationSeconds: number; bodyHeatMap: string[]; exercises: Array<{ exerciseName: string; sets: Array<{ weightKg: number; reps: number }> }> }> }>("/api/profile/me/posts?size=10", { auth: true });
+    return (response.content ?? []).map((post) => ({ id: post.postId, title: post.title || "Treino concluído", date: new Date(post.publishedAt).toLocaleDateString("pt-BR"), duration: `${Math.floor(post.durationSeconds / 60)} min`, rarity: "comum", muscles: post.bodyHeatMap, emoji: "💪", photoUrl: post.photoUrl ?? null, exerciseDetails: post.exercises.map((exercise) => ({ name: exercise.exerciseName, sets: exercise.sets.map((set) => ({ weight: set.weightKg, reps: set.reps })) })), likes: post.totalLikes, liked: post.likedByCurrentUser, templateSaved: false, comments: [] }));
+  },
+  async getTrainedDays(month = new Date()) {
+    const monthValue = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}`;
+    return apiClient.get<number[]>(`/api/profile/me/training-days?month=${monthValue}`, { auth: true });
   },
 };

@@ -14,5 +14,5 @@ export interface UserProfile {
 }
 
 export type UserProfileUpdate = Partial<
-  Pick<UserProfile, "displayName" | "bio" | "weight">
+  Pick<UserProfile, "displayName" | "bio" | "weight" | "avatarUrl">
 >;

@@ -120,6 +120,7 @@ describe("profileService", () => {
         fullName: "Bee Prime",
         biography: "Bio nova",
         bodyWeight: 81.2,
+        profilePicture: null,
       }),
     });
     expect(nextProfile.displayName).toBe("Bee Prime");

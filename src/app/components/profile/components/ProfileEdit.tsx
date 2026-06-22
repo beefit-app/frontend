@@ -8,6 +8,7 @@ import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
 import type { ProfileData } from "../types";
 import { BeeTextarea, HexAvatar } from "./shared";
+import { profileService } from "../../../services/profileService";
 
 export function ProfileEdit({
   profile,
@@ -28,6 +29,8 @@ export function ProfileEdit({
   const [bio, setBio] = useState(profile.bio);
   const [weight, setWeight] = useState(String(profile.weight));
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState(profile.avatarUrl);
 
   function validate() {
     const nextErrors: Record<string, string> = {};
@@ -51,10 +54,12 @@ export function ProfileEdit({
       return;
     }
 
+    const avatarUrl = avatarFile ? await profileService.uploadProfilePhoto(avatarFile) : profile.avatarUrl;
     await onSave({
       displayName: displayName.trim(),
       bio,
       weight: parseFloat(weight) || profile.weight,
+      avatarUrl,
     });
   }
 
@@ -69,7 +74,13 @@ export function ProfileEdit({
           <IonCol size="12">
             <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>
               <div style={{ display: "flex", justifyContent: "center" }}>
-                <HexAvatar src={profile.avatarUrl} initials={initials} size={96} />
+                <label style={{ cursor: "pointer" }}>
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    setAvatarFile(file); setAvatarPreview(file ? URL.createObjectURL(file) : profile.avatarUrl);
+                  }} />
+                  <HexAvatar src={avatarPreview} initials={initials} size={96} />
+                </label>
               </div>
 
               <BeeCard hover={false}>

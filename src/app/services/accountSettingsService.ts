@@ -51,4 +51,8 @@ export const accountSettingsService = {
       ghostModeEnabled: input.ghostModeEnabled,
     };
   },
+
+  async deleteAccount(password: string) {
+    await apiClient.delete("/api/profile/me", { password }, { auth: true });
+  },
 };

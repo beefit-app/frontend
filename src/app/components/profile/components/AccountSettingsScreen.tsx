@@ -15,6 +15,7 @@ export function AccountSettingsScreen({
   onSave,
   onCancel,
   onClearSaveError,
+  onDeleteAccount,
 }: {
   settings: { ghostModeEnabled: boolean };
   isSubmitting?: boolean;
@@ -22,6 +23,7 @@ export function AccountSettingsScreen({
   onSave: (data: AccountSettingsSaveInput) => Promise<boolean>;
   onCancel: () => void;
   onClearSaveError?: () => void;
+  onDeleteAccount?: (password: string) => Promise<boolean>;
 }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -32,6 +34,7 @@ export function AccountSettingsScreen({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
 
   const EyeToggleIcon = ({ visible }: { visible: boolean }) => (visible ? <EyeOff size={18} /> : <Eye size={18} />);
 
@@ -182,6 +185,22 @@ export function AccountSettingsScreen({
                       </span>
                     }
                   />
+                </div>
+              </BeeCard>
+
+              <BeeCard hover={false}>
+                <div style={{ display: "grid", gap: 14 }}>
+                  <SectionLabel icon={<LockKeyhole size={13} color="#F87171" />} label="Excluir conta" />
+                  <p style={{ margin: 0, color: "#FCA5A5", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.55 }}>
+                    Esta ação remove permanentemente seus treinos, posts, mídias, cartas e relações sociais.
+                  </p>
+                  <BeeInput label="Confirme sua senha" type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} disabled={isSubmitting} />
+                  <BeeButton variant="dark" fullWidth disabled={isSubmitting || !deletePassword.trim()} onClick={() => {
+                    if (!window.confirm("Excluir permanentemente sua conta?")) return;
+                    void onDeleteAccount?.(deletePassword).then((deleted) => { if (deleted) setDeletePassword(""); });
+                  }}>
+                    Excluir permanentemente
+                  </BeeButton>
                 </div>
               </BeeCard>
 
