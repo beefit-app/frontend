@@ -1,9 +1,12 @@
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 import { Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { CameraSource } from "@capacitor/camera";
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
 import { SurfaceCard } from "./shared";
+import { captureWorkoutPhoto } from "../../../platform/workoutPhoto";
 
 export function FinishWorkoutView({
   finishPhotoInputRef,
@@ -91,7 +94,13 @@ export function FinishWorkoutView({
 
               <button
                 type="button"
-                onClick={() => finishPhotoInputRef.current?.click()}
+                onClick={() => {
+                  if (!Capacitor.isNativePlatform()) {
+                    finishPhotoInputRef.current?.click();
+                    return;
+                  }
+                  void captureWorkoutPhoto(CameraSource.Prompt).then((file) => onPhotoChange(file));
+                }}
                 style={{
                   width: "100%",
                   minHeight: 220,

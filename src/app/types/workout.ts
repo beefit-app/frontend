@@ -30,10 +30,38 @@ export interface WorkoutCompletionDraft {
   workoutId?: string | null;
   title: string;
   photoUrl: string | null;
+  photoFile?: File | null;
   shouldPostWorkout: boolean;
   selectedGroups: string[];
   elapsedSeconds: number;
   exercises: WorkoutExercise[];
+}
+
+export interface PersistedWorkoutDraft {
+  workoutId: string;
+  startedAt: number;
+  selectedGroups: string[];
+  exercises: WorkoutExercise[];
+  title: string;
+  shouldPostWorkout: boolean;
+  photoUrl: string | null;
+  photoFileName: string | null;
+  pendingFinish: boolean;
+  updatedAt: number;
+}
+
+export interface WorkoutCompletionResult {
+  id: string;
+  durationSeconds: number | null;
+  estimatedCalories: number | null;
+  totalVolume: number | null;
+  card: {
+    id: string;
+    attackPower: number;
+    rarity: string;
+    muscleGroup: string;
+    isPersonalRecord: boolean;
+  } | null;
 }
 
 export interface MuscleGroupOption {

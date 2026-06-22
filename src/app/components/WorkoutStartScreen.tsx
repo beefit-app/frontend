@@ -6,6 +6,7 @@ import { BeeButton } from "./BeeButton";
 import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { workoutService } from "../services/workoutService";
+import { workoutDraftStorage } from "../storage/workoutDraftStorage";
 import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } from "../types/workout";
 
 const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
@@ -86,9 +87,10 @@ export function WorkoutStartScreen({
     setActiveWorkoutConfig(null);
   }
 
-  function closeActiveWorkout() {
+  async function closeActiveWorkout() {
     isClosingWorkoutRef.current = true;
     resetWorkoutState();
+    await workoutDraftStorage.clear();
     onActiveWorkoutChange?.(null);
   }
 
@@ -113,7 +115,7 @@ export function WorkoutStartScreen({
         const templates = await workoutService.loadTemplates();
         if (active) setWorkoutTemplates(templates);
       } catch {
-        // Keep mock data visible if the backend is unavailable during local UI work.
+        if (active) setStartError("Não foi possível carregar catálogo e templates.");
       }
     }
 
@@ -123,6 +125,39 @@ export function WorkoutStartScreen({
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function restoreActiveWorkout() {
+      try {
+        const session = await workoutService.getActiveWorkout();
+        if (!active || !session) {
+          if (active) await workoutDraftStorage.clear();
+          return;
+        }
+        const persisted = await workoutDraftStorage.get();
+        const startedAt = session.startedAt;
+        const exercises = persisted?.workoutId === session.id ? persisted.exercises : session.exercises;
+        const groups = session.muscleGroups;
+        setActiveWorkoutConfig({
+          workoutId: session.id,
+          title: persisted?.title || "Treino em andamento",
+          subtitle: "Sessão recuperada. Seus dados locais foram restaurados quando disponíveis.",
+          selectedGroups: groups,
+          startedAt,
+          initialExerciseIds: [],
+          initialSessionExercises: exercises,
+        });
+        onActiveWorkoutChange?.({ selectedGroups: groups, startedAt });
+      } catch (error) {
+        if (active) setStartError(error instanceof Error ? error.message : "Não foi possível recuperar o treino ativo.");
+      }
+    }
+
+    void restoreActiveWorkout();
+    return () => { active = false; };
+  }, [onActiveWorkoutChange]);
 
   async function handleStartWorkout() {
     if (!canStartWorkout) return;
@@ -194,9 +229,21 @@ export function WorkoutStartScreen({
           void (async () => {
             try {
               await workoutService.finishWorkout(draft);
-              closeActiveWorkout();
+              await closeActiveWorkout();
               onWorkoutCompleted?.(draft);
             } catch (error) {
+              await workoutDraftStorage.set({
+                workoutId: draft.workoutId ?? activeWorkoutConfig.workoutId ?? "",
+                startedAt: activeWorkoutConfig.startedAt,
+                selectedGroups: draft.selectedGroups,
+                exercises: draft.exercises,
+                title: draft.title,
+                shouldPostWorkout: draft.shouldPostWorkout,
+                photoUrl: draft.photoUrl,
+                photoFileName: draft.photoFile?.name ?? null,
+                pendingFinish: true,
+                updatedAt: Date.now(),
+              });
               window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o treino.");
             }
           })();
@@ -205,7 +252,53 @@ export function WorkoutStartScreen({
           if (isClosingWorkoutRef.current) return;
           onActiveWorkoutChange?.({ selectedGroups: groups, startedAt: activeWorkoutConfig.startedAt });
         }}
-        onBack={closeActiveWorkout}
+        onDraftChange={(draft) => {
+          void workoutDraftStorage.set({
+            workoutId: activeWorkoutConfig.workoutId ?? "",
+            startedAt: activeWorkoutConfig.startedAt,
+            selectedGroups: draft.selectedGroups,
+            exercises: draft.exercises,
+            title: activeWorkoutConfig.title,
+            shouldPostWorkout: !ghostModeEnabled,
+            photoUrl: null,
+            photoFileName: null,
+            pendingFinish: false,
+            updatedAt: Date.now(),
+          });
+        }}
+        onCancelWorkout={async () => {
+          if (!activeWorkoutConfig.workoutId || !window.confirm("Cancelar este treino? Os registros não poderão ser recuperados.")) return false;
+          try {
+            await workoutService.cancelWorkout(activeWorkoutConfig.workoutId);
+            await closeActiveWorkout();
+            return true;
+          } catch (error) {
+            window.alert(error instanceof Error ? error.message : "Não foi possível cancelar o treino.");
+            return false;
+          }
+        }}
+        onSaveTemplate={async (groups, exercises) => {
+          if (exercises.length === 0) {
+            window.alert("Adicione ao menos um exercício antes de salvar o template.");
+            return false;
+          }
+          const name = window.prompt("Nome do template");
+          if (!name?.trim()) return false;
+          try {
+            await workoutService.createTemplate({
+              name: name.trim(),
+              groups,
+              exerciseIds: exercises.map((exercise) => exercise.catalogId),
+            });
+            setWorkoutTemplates(await workoutService.loadTemplates());
+            window.alert("Template salvo.");
+            return true;
+          } catch (error) {
+            window.alert(error instanceof Error ? error.message : "Não foi possível salvar o template.");
+            return false;
+          }
+        }}
+        onBack={() => {}}
       />
     );
   }

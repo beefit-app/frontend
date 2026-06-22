@@ -77,7 +77,9 @@ async function request<T>(path: string, options: RequestOptions = {}) {
     ...headers,
   };
 
-  if (body !== undefined) {
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+
+  if (body !== undefined && !isFormData) {
     finalHeaders["Content-Type"] = "application/json";
   }
 
@@ -104,7 +106,7 @@ async function request<T>(path: string, options: RequestOptions = {}) {
       response = await fetch(requestUrl, {
         method,
         headers: finalHeaders,
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
       });
       break;
     } catch (error) {
@@ -162,5 +164,13 @@ export const apiClient = {
 
   put<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) {
     return request<T>(path, { ...options, method: "PUT", body });
+  },
+
+  patch<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) {
+    return request<T>(path, { ...options, method: "PATCH", body });
+  },
+
+  delete<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) {
+    return request<T>(path, { ...options, method: "DELETE", body });
   },
 };

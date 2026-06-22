@@ -11,6 +11,7 @@ import {
 
 export function useActiveWorkoutSession({
   workoutId = null,
+  startedAt = null,
   selectedGroups,
   initialExercises = [],
   initialSessionExercises,
@@ -18,16 +19,19 @@ export function useActiveWorkoutSession({
   ghostModeEnabled = false,
   onWorkoutComplete,
   onSessionGroupsChange,
+  onDraftChange,
 }: Pick<
   ActiveWorkoutScreenProps,
   | "selectedGroups"
   | "workoutId"
+  | "startedAt"
   | "initialExercises"
   | "initialSessionExercises"
   | "bodyWeightKg"
   | "ghostModeEnabled"
   | "onWorkoutComplete"
   | "onSessionGroupsChange"
+  | "onDraftChange"
 >) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -43,6 +47,7 @@ export function useActiveWorkoutSession({
   );
   const [finishTitle, setFinishTitle] = useState(selectedGroups.join(" & "));
   const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(null);
+  const [finishPhotoFile, setFinishPhotoFile] = useState<File | null>(null);
   const [shouldPostWorkout, setShouldPostWorkout] = useState(!ghostModeEnabled);
   const [finishTitleError, setFinishTitleError] = useState("");
   const [finishValidationError, setFinishValidationError] = useState("");
@@ -79,9 +84,17 @@ export function useActiveWorkoutSession({
   );
 
   useEffect(() => {
-    const timer = window.setInterval(() => setElapsedSeconds((current) => current + 1), 1000);
+    const updateElapsed = () => {
+      if (startedAt) {
+        setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+        return;
+      }
+      setElapsedSeconds((current) => current + 1);
+    };
+    updateElapsed();
+    const timer = window.setInterval(updateElapsed, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [startedAt]);
 
   useEffect(() => {
     if (!pendingExerciseFocusId) return;
@@ -118,6 +131,10 @@ export function useActiveWorkoutSession({
   useEffect(() => {
     onSessionGroupsChange?.(sessionGroups);
   }, [onSessionGroupsChange, sessionGroups]);
+
+  useEffect(() => {
+    onDraftChange?.({ exercises, selectedGroups: sessionGroups });
+  }, [exercises, onDraftChange, sessionGroups]);
 
   useEffect(() => {
     if (!isFinishingWorkout) return;
@@ -209,6 +226,7 @@ export function useActiveWorkoutSession({
       workoutId,
       title: finishTitle.trim(),
       photoUrl: finishPhotoUrl,
+      photoFile: finishPhotoFile,
       shouldPostWorkout,
       selectedGroups: sessionGroups,
       elapsedSeconds,
@@ -229,6 +247,7 @@ export function useActiveWorkoutSession({
     exercises,
     finishTitle,
     finishPhotoUrl,
+    finishPhotoFile,
     shouldPostWorkout,
     finishTitleError,
     finishValidationError,
@@ -253,6 +272,7 @@ export function useActiveWorkoutSession({
     setIsWorkoutMenuOpen,
     setFinishTitle,
     setFinishPhotoUrl,
+    setFinishPhotoFile,
     setShouldPostWorkout,
     setFinishTitleError,
     setFinishValidationError,

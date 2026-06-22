@@ -26,7 +26,8 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
           session.setIsFinishingWorkout(false);
         }}
         onPhotoChange={(file) => {
-          if (file) session.setFinishPhotoUrl(URL.createObjectURL(file));
+          session.setFinishPhotoFile(file);
+          session.setFinishPhotoUrl(file ? URL.createObjectURL(file) : null);
         }}
         onTitleChange={(value) => {
           session.setFinishTitle(value);
@@ -82,7 +83,8 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
       seriesContainerRefs={session.seriesContainerRefs}
       isWorkoutMenuOpen={session.isWorkoutMenuOpen}
       onToggleWorkoutMenu={() => session.setIsWorkoutMenuOpen((current) => !current)}
-      onCancelWorkout={props.onBack}
+      onCancelWorkout={() => void props.onCancelWorkout?.()}
+      onSaveTemplate={() => void props.onSaveTemplate?.(session.sessionGroups, session.exercises)}
       onOpenExerciseInfo={(catalogId) => {
         session.setDetailViewSource("session");
         session.setCatalogDetailExerciseId(catalogId);

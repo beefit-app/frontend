@@ -2,6 +2,7 @@ import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } fro
 
 export interface ActiveWorkoutScreenProps {
   workoutId?: string | null;
+  startedAt?: number | null;
   title: string;
   subtitle: string;
   selectedGroups: string[];
@@ -10,8 +11,11 @@ export interface ActiveWorkoutScreenProps {
   bodyWeightKg?: number | null;
   ghostModeEnabled?: boolean;
   onBack: () => void;
+  onCancelWorkout?: () => Promise<boolean>;
+  onSaveTemplate?: (groups: string[], exercises: WorkoutExercise[]) => Promise<boolean>;
   onWorkoutComplete?: (draft: WorkoutCompletionDraft) => void;
   onSessionGroupsChange?: (groups: string[]) => void;
+  onDraftChange?: (draft: Pick<WorkoutCompletionDraft, "exercises" | "selectedGroups">) => void;
 }
 
 export type DetailViewSource = "catalog" | "session";

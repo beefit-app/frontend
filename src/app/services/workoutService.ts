@@ -1,6 +1,7 @@
 import type {
   ExerciseCatalogItem,
   WorkoutCompletionDraft,
+  WorkoutCompletionResult,
   WorkoutExercise,
   WorkoutTemplate,
 } from "../types/workout";
@@ -56,6 +57,13 @@ interface BackendWorkoutSession {
   muscleGroups: string[];
   isPrivate: boolean;
   exercises: BackendSessionExercise[];
+  card?: {
+    id: string;
+    attackPower: number;
+    rarity: string;
+    muscleGroup: string;
+    isPersonalRecord: boolean;
+  } | null;
 }
 
 const GROUP_LABEL_BY_ID: Record<string, string> = {
@@ -159,7 +167,9 @@ function normalizeSessionExercise(exercise: BackendSessionExercise): WorkoutExer
 function toFinishPayload(draft: WorkoutCompletionDraft) {
   return {
     finishedAt: new Date().toISOString(),
-    muscleGroups: draft.selectedGroups.map(normalizeGroupId),
+    muscleGroups: draft.selectedGroups.map(toApiMuscleGroup),
+    title: draft.title,
+    shouldPostWorkout: draft.shouldPostWorkout,
     exercises: draft.exercises.map((exercise, exerciseIndex) => ({
       sessionExerciseId: exercise.sessionExerciseId ?? null,
       catalogExerciseId: exercise.catalogId,
@@ -171,6 +181,20 @@ function toFinishPayload(draft: WorkoutCompletionDraft) {
         reps: Number.parseInt(set.reps, 10) || 0,
       })),
     })),
+  };
+}
+
+function toApiMuscleGroup(value: string) {
+  return normalizeGroupId(value);
+}
+
+function normalizeWorkoutResult(response: BackendWorkoutSession): WorkoutCompletionResult {
+  return {
+    id: response.id,
+    durationSeconds: response.durationSeconds ?? null,
+    estimatedCalories: response.estimatedCalories ?? null,
+    totalVolume: response.totalVolume ?? null,
+    card: response.card ?? null,
   };
 }
 
@@ -270,7 +294,7 @@ export const workoutService = {
     const response = await apiClient.post<BackendWorkoutSession>(
       "/api/workout/start",
       {
-        muscleGroups: input.selectedGroups.map(normalizeGroupId),
+        muscleGroups: input.selectedGroups.map(toApiMuscleGroup),
         isPrivate: input.isPrivate,
         templateId: input.templateId ?? null,
         exercises: [],
@@ -291,10 +315,61 @@ export const workoutService = {
       throw new Error("Sessão de treino sem ID do backend.");
     }
 
-    return apiClient.post<BackendWorkoutSession>(
+    let photoMediaId: string | null = null;
+    if (draft.photoFile && draft.shouldPostWorkout) {
+      photoMediaId = await this.uploadWorkoutPhoto(draft.photoFile);
+    }
+
+    const response = await apiClient.post<BackendWorkoutSession>(
       `/api/workout/${draft.workoutId}/finish`,
-      toFinishPayload(draft),
+      { ...toFinishPayload(draft), photoMediaId },
       { auth: true },
     );
+    return normalizeWorkoutResult(response);
+  },
+
+  async getActiveWorkout() {
+    const response = await apiClient.get<BackendWorkoutSession | null>("/api/workout/active", { auth: true });
+    if (!response) return null;
+    return {
+      id: response.id,
+      startedAt: new Date(response.startedAt).getTime(),
+      muscleGroups: response.muscleGroups.map((group) => getGroupLabel(normalizeGroupId(group))),
+      exercises: response.exercises.map(normalizeSessionExercise),
+    };
+  },
+
+  async cancelWorkout(workoutId: string) {
+    return apiClient.post<BackendWorkoutSession>(`/api/workout/${workoutId}/cancel`, undefined, { auth: true });
+  },
+
+  async addMuscleGroup(workoutId: string, groupId: string) {
+    return apiClient.post<BackendWorkoutSession>(
+      `/api/workout/${workoutId}/muscle-groups/${encodeURIComponent(groupId)}`,
+      undefined,
+      { auth: true },
+    );
+  },
+
+  async createTemplate(input: { name: string; groups: string[]; exerciseIds: string[] }) {
+    const response = await apiClient.post<BackendTemplate>(
+      "/api/templates",
+      {
+        name: input.name,
+        muscleGroups: input.groups.map(toApiMuscleGroup),
+        exercises: input.exerciseIds.map((catalogExerciseId, index) => ({ catalogExerciseId, order: index + 1 })),
+      },
+      { auth: true },
+    );
+    const template = normalizeTemplate(response);
+    templatesCache = [...templatesCache.filter((item) => item.id !== template.id), template];
+    return template;
+  },
+
+  async uploadWorkoutPhoto(file: File) {
+    const formData = new FormData();
+    formData.append("file", file, file.name || "workout-photo.jpg");
+    const response = await apiClient.post<{ mediaId: string }>("/api/media/workout-photo", formData, { auth: true });
+    return response.mediaId;
   },
 };

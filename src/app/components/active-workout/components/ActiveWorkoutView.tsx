@@ -17,6 +17,7 @@ export function ActiveWorkoutView({
   isWorkoutMenuOpen,
   onToggleWorkoutMenu,
   onCancelWorkout,
+  onSaveTemplate,
   onOpenExerciseInfo,
   onUpdateSet,
   onAddSet,
@@ -32,6 +33,7 @@ export function ActiveWorkoutView({
   isWorkoutMenuOpen: boolean;
   onToggleWorkoutMenu: () => void;
   onCancelWorkout: () => void;
+  onSaveTemplate: () => void;
   onOpenExerciseInfo: (catalogId: string) => void;
   onUpdateSet: (exerciseId: string, setId: string, field: "weight" | "reps", value: string) => void;
   onAddSet: (exerciseId: string) => void;
@@ -79,6 +81,25 @@ export function ActiveWorkoutView({
                       zIndex: 3,
                     }}
                   >
+                    <button
+                      type="button"
+                      onClick={onSaveTemplate}
+                      style={{
+                        width: "100%",
+                        border: "none",
+                        background: "transparent",
+                        color: "#FFD700",
+                        borderRadius: 12,
+                        padding: "12px 14px",
+                        textAlign: "left",
+                        fontFamily: "var(--font-inter)",
+                        fontSize: 14,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Salvar como template
+                    </button>
                     <button
                       type="button"
                       onClick={onCancelWorkout}
