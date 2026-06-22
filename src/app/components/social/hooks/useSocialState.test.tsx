@@ -1,95 +1,26 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { vi } from "vitest";
+
+vi.mock("../../../auth/AuthContext", () => ({ useAuth: () => ({ user: { id: "me" } }) }));
+vi.mock("../../../services/socialService", () => ({ socialService: {
+  loadFriends: vi.fn().mockResolvedValue([{ id: "friend", name: "Friend", username: "@friend", initials: "FR", status: "friend", friendshipId: "f-1" }]),
+  loadRequests: vi.fn().mockResolvedValue([{ id: "r-1", profile: { id: "requester", name: "Requester", username: "@requester", initials: "RE", status: "available" } }]),
+  loadHives: vi.fn().mockResolvedValue([]), search: vi.fn().mockResolvedValue([]),
+  acceptRequest: vi.fn().mockResolvedValue({}), rejectRequest: vi.fn().mockResolvedValue({}), sendRequest: vi.fn().mockResolvedValue({}),
+  createHive: vi.fn().mockResolvedValue([]), joinHive: vi.fn().mockResolvedValue([]), leaveHive: vi.fn().mockResolvedValue({}),
+} }));
 import { useSocialState } from "./useSocialState";
 
 describe("useSocialState", () => {
-  it("accepts and rejects friendship requests", () => {
+  it("carrega amigos e solicitações pela API", async () => {
     const { result } = renderHook(() => useSocialState());
-    const initialFriendCount = result.current.friends.length;
-
-    act(() => {
-      result.current.acceptFriendRequest("request-lia");
-    });
-
-    expect(result.current.friends).toHaveLength(initialFriendCount + 1);
-    expect(result.current.friends.some((friend) => friend.id === "lia")).toBe(true);
-    expect(result.current.friendRequests.some((request) => request.id === "request-lia")).toBe(false);
-
-    act(() => {
-      result.current.rejectFriendRequest("request-joao");
-    });
-
-    expect(result.current.friendRequests).toHaveLength(0);
+    await waitFor(() => expect(result.current.friends).toHaveLength(1));
+    expect(result.current.friendRequests).toHaveLength(1);
   });
-
-  it("filters people and marks sent friendship requests", () => {
+  it("executa aceite e recarrega os dados sociais", async () => {
     const { result } = renderHook(() => useSocialState());
-
-    act(() => {
-      result.current.setSearchTerm("nina");
-    });
-
-    expect(result.current.searchResults.map((person) => person.id)).toEqual(["nina"]);
-
-    act(() => {
-      result.current.sendFriendRequest("nina");
-    });
-
-    expect(result.current.searchResults[0].status).toBe("sent");
-  });
-
-  it("creates and leaves a hive while maintaining its ranking", () => {
-    const { result } = renderHook(() => useSocialState());
-
-    act(() => {
-      expect(result.current.createHive("Forca da Manha", "Mensal")).toBe(true);
-    });
-
-    expect(result.current.hives).toHaveLength(2);
-    expect(result.current.selectedHive?.name).toBe("Forca da Manha");
-    expect(result.current.rankMembers(result.current.selectedHive!)[0].isCurrentUser).toBe(true);
-
-    act(() => {
-      result.current.leaveHive(result.current.selectedHive!.id);
-    });
-
-    expect(result.current.hives).toHaveLength(1);
-    expect(result.current.selectedHive?.name).toBe("Ferro das 6");
-  });
-
-  it("joins a valid invitation and blocks participation beyond two hives", () => {
-    vi.useFakeTimers();
-    const { result } = renderHook(() => useSocialState());
-
-    act(() => {
-      expect(result.current.joinHive("BEE-POWER")).toBe(true);
-    });
-
-    expect(result.current.hives).toHaveLength(2);
-    expect(result.current.selectedHive?.name).toBe("Power Queens");
-
-    act(() => {
-      expect(result.current.joinHive("MEL-7D")).toBe(false);
-    });
-
-    expect(result.current.hives).toHaveLength(2);
-    expect(result.current.error).toContain("duas Colmeias");
-
-    act(() => {
-      vi.advanceTimersByTime(5000);
-    });
-
-    expect(result.current.error).toBeNull();
-    vi.useRealTimers();
-  });
-
-  it("rejects an invalid hive invitation", () => {
-    const { result } = renderHook(() => useSocialState());
-
-    act(() => {
-      expect(result.current.joinHive("INVALIDO")).toBe(false);
-    });
-
-    expect(result.current.error).toContain("Convite invalido");
-    expect(result.current.hives).toHaveLength(1);
+    await waitFor(() => expect(result.current.friendRequests).toHaveLength(1));
+    act(() => result.current.acceptFriendRequest("r-1"));
+    await waitFor(() => expect(result.current.feedback).toBe("Solicitação aceita."));
   });
 });

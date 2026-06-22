@@ -8,7 +8,7 @@ export interface SocialFeedPost extends WorkoutPost {
 }
 
 export interface LiveFriend {
-  id: number;
+  id: string | number;
   name: string;
   initials: string;
   photoUrl: string | null;

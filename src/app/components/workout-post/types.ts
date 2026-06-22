@@ -12,7 +12,7 @@ export interface ExerciseDetail {
 }
 
 export interface Comment {
-  id: number;
+  id: string | number;
   author: string;
   text: string;
   timeAgo: string;

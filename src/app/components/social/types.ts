@@ -8,6 +8,7 @@ export interface FriendProfile {
   username: string;
   initials: string;
   status: FriendshipStatus;
+  friendshipId?: string;
 }
 
 export interface FriendRequest {
