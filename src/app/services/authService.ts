@@ -252,7 +252,7 @@ const mockAuthGateway: AuthGateway = {
 async function fetchCurrentUserFromApi(fallbackUser: AuthUser | null) {
   for (const path of CURRENT_USER_PATHS) {
     try {
-      const response = await apiClient.get<unknown>(path, { auth: true });
+      const response = await apiClient.get<unknown>(path, { auth: true, logoutOnUnauthorized: true });
       return mergeCurrentUserResponse(response, fallbackUser);
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {

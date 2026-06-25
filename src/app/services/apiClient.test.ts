@@ -50,4 +50,40 @@ describe("apiClient", () => {
       status: 400,
     });
   });
+
+  it("não dispara logout global para 401 de uma tela autenticada por padrão", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createJsonResponse({ message: "Credenciais inválidas." }, { status: 401 }),
+    );
+    const listener = vi.fn();
+    window.addEventListener("beefit:auth-unauthorized", listener);
+
+    const { apiClient } = await import("./apiClient");
+
+    await expect(apiClient.get("/api/posts/feed", { auth: true })).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(listener).not.toHaveBeenCalled();
+
+    window.removeEventListener("beefit:auth-unauthorized", listener);
+  });
+
+  it("dispara logout global para 401 quando a chamada valida a sessão", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createJsonResponse({ message: "Credenciais inválidas." }, { status: 401 }),
+    );
+    const listener = vi.fn();
+    window.addEventListener("beefit:auth-unauthorized", listener);
+
+    const { apiClient } = await import("./apiClient");
+
+    await expect(
+      apiClient.get("/auth/me", { auth: true, logoutOnUnauthorized: true }),
+    ).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    window.removeEventListener("beefit:auth-unauthorized", listener);
+  });
 });

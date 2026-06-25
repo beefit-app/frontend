@@ -15,6 +15,12 @@ export function SocialFeedView({
   streakBurstToken,
   onToggleLike,
   onSaveTemplate,
+  isLoading,
+  isLoadingMore,
+  hasMore,
+  error,
+  onLoadMore,
+  onRetry,
 }: {
   posts: SocialFeedPost[];
   liveFriends: LiveFriend[];
@@ -32,11 +38,11 @@ export function SocialFeedView({
 }) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!hasMore || isLoading || isLoadingMore || !sentinelRef.current) return;
+    if (error || !hasMore || isLoading || isLoadingMore || !sentinelRef.current) return;
     const observer = new IntersectionObserver((entries) => { if (entries[0]?.isIntersecting) onLoadMore(); }, { rootMargin: "240px" });
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [hasMore, isLoading, isLoadingMore, onLoadMore]);
+  }, [error, hasMore, isLoading, isLoadingMore, onLoadMore]);
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0A0A0A] pb-8">
       <HexagonPattern />
@@ -98,7 +104,7 @@ export function SocialFeedView({
                   />
                 ))}
                 {error && <div className="rounded-2xl border border-[rgba(248,113,113,0.28)] px-4 py-4 text-center font-inter text-sm text-[#FCA5A5]">{error}<button type="button" onClick={onRetry} className="ml-2 font-bold underline">Tentar novamente</button></div>}
-                {hasMore && <div ref={sentinelRef} className="py-4 text-center font-inter text-xs text-[#737373]">{isLoadingMore ? "Buscando mais treinos..." : ""}</div>}
+                {!error && hasMore && <div ref={sentinelRef} className="py-4 text-center font-inter text-xs text-[#737373]">{isLoadingMore ? "Buscando mais treinos..." : ""}</div>}
                 {!isLoading && !hasMore && posts.length > 0 && <div className="rounded-2xl border border-dashed border-[rgba(255,215,0,0.25)] px-4 py-5 text-center font-inter text-sm text-[#B8A65A]">Você chegou ao fim da colmeia por enquanto 🐝 Volte depois para ver novos treinos.</div>}
               </section>
             </div>

@@ -1,4 +1,4 @@
-import { apiClient } from "./apiClient";
+import { ApiError, apiClient } from "./apiClient";
 import type { SocialFeedPost } from "../components/social-feed/types";
 
 interface ApiPost { postId: string; username: string; publishedAt: string; totalLikes: number; likedByCurrentUser: boolean; title?: string | null; photoUrl?: string | null; durationSeconds: number; bodyHeatMap: string[]; exercises: { exerciseName: string; sets: { weightKg: number; reps: number }[] }[] }
@@ -11,7 +11,17 @@ function toPost(post: ApiPost): SocialFeedPost {
     likes: post.totalLikes, liked: post.likedByCurrentUser, templateSaved: false, comments: [] };
 }
 export const socialFeedService = {
-  async load(page = 0) { const response = await apiClient.get<{ content?: ApiPost[]; last?: boolean }>(`/api/posts/feed?page=${page}&size=10`, { auth: true }); return { posts: (response.content ?? []).map(toPost), last: response.last ?? true }; },
+  async load(page = 0) {
+    try {
+      const response = await apiClient.get<{ content?: ApiPost[]; last?: boolean }>(`/api/posts/feed?page=${page}&size=10`, { auth: true });
+      return { posts: (response.content ?? []).map(toPost), last: response.last ?? true };
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        throw new Error("Não foi possível carregar o feed com a sessão atual.");
+      }
+      throw error;
+    }
+  },
   async toggleLike(postId: string | number) { return apiClient.post<{ liked: boolean; likes_count: number }>(`/api/posts/${postId}/like`, undefined, { auth: true }); },
   async importTemplate(postId: string | number) { return apiClient.post(`/api/templates/import/${postId}`, undefined, { auth: true }); },
 };

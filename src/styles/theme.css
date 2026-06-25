@@ -80,7 +80,13 @@ ion-page {
 html,
 body,
 #root {
+  height: 100%;
   min-height: 100%;
+}
+
+ion-app,
+ion-page {
+  height: 100%;
 }
 
 body {
@@ -327,4 +333,15 @@ ion-button::part(native) {
 ion-tab-bar,
 ion-tab-button {
   font-family: var(--font-montserrat);
+}
+
+ion-footer {
+  display: block;
+  flex: 0 0 auto;
+  background: #0A0A0A;
+  z-index: 20;
+}
+
+ion-tab-bar {
+  min-height: 68px;
 }

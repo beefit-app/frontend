@@ -18,6 +18,7 @@ interface RequestOptions {
   method?: HttpMethod;
   body?: unknown;
   auth?: boolean;
+  logoutOnUnauthorized?: boolean;
   headers?: Record<string, string>;
 }
 
@@ -71,7 +72,7 @@ function getErrorMessage(data: unknown, fallbackMessage: string) {
 }
 
 async function request<T>(path: string, options: RequestOptions = {}) {
-  const { method = "GET", body, auth = false, headers = {} } = options;
+  const { method = "GET", body, auth = false, logoutOnUnauthorized = false, headers = {} } = options;
   const finalHeaders: Record<string, string> = {
     Accept: "application/json",
     ...headers,
@@ -139,7 +140,7 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   }
 
   if (!response.ok) {
-    if (response.status === 401 && auth) {
+    if (response.status === 401 && auth && logoutOnUnauthorized) {
       window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
     }
 

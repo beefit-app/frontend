@@ -5,9 +5,6 @@ import {
   IonPage,
   IonContent,
   IonFooter,
-  IonTabBar,
-  IonTabButton,
-  IonLabel,
 } from "@ionic/react";
 import { ChevronRight, Dumbbell, Newspaper, Package2, Users, User } from "lucide-react";
 import { LoginScreen } from "./components/LoginScreen";
@@ -82,7 +79,6 @@ export default function App() {
   }
 
   const activeWorkoutLabel = activeWorkout?.selectedGroups.join(" · ");
-
   return (
     <IonApp>
       <IonPage>
@@ -180,52 +176,82 @@ export default function App() {
               </div>
             </>
           )}
+
         </IonContent>
 
-        {isAuthenticated && (
-        <IonFooter className="ion-no-border">
-          <IonTabBar
-            style={
-              {
-                "--background": "#0A0A0A",
-                "--border": "1px solid #2D2D2D",
-                "--color": "#737373",
-                "--color-selected": "#FFD700",
-                height: "68px",
-                maxWidth: "393px",
+        {!isBootstrapping && isAuthenticated && (
+          <IonFooter
+            className="ion-no-border"
+            data-testid="bottom-navigation"
+            style={{
+              background: "#0A0A0A",
+              paddingBottom: "env(safe-area-inset-bottom)",
+            }}
+          >
+            <nav
+              aria-label="Navegação principal"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                width: "100%",
+                maxWidth: 393,
+                height: 68,
                 margin: "0 auto",
-                borderTopLeftRadius: "22px",
-                borderTopRightRadius: "22px",
+                background: "#0A0A0A",
+                borderTop: "2px solid #FFD700",
                 borderLeft: "1px solid #2D2D2D",
                 borderRight: "1px solid #2D2D2D",
-                paddingBottom: "env(safe-area-inset-bottom)",
-              } as React.CSSProperties
-            }
-          >
-            {TAB_ITEMS.map(({ id, label, implemented, Icon }) => {
-              const active = screen === id;
-              return (
-              <IonTabButton
-                key={id}
-                tab={id}
-                selected={active}
-                onClick={() => handleTabChange(id, implemented)}
-                style={
-                  {
-                    "--color": active ? "#FFD700" : "#737373",
-                    "--color-selected": "#FFD700",
-                    "--background": "#0A0A0A",
-                    opacity: implemented || id === "workout" ? 1 : 0.72,
-                  } as React.CSSProperties
-                }
-              >
-                <Icon size={id === "workout" ? 18 : 22} active={active} />
-                <IonLabel>{label}</IonLabel>
-              </IonTabButton>
-              );
-            })}
-          </IonTabBar>
-        </IonFooter>
+                borderTopLeftRadius: 22,
+                borderTopRightRadius: 22,
+                boxShadow: "0 -12px 32px rgba(0,0,0,0.42)",
+                overflow: "hidden",
+              }}
+            >
+              {TAB_ITEMS.map(({ id, label, implemented, Icon }) => {
+                const active = screen === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => handleTabChange(id, implemented)}
+                    style={{
+                      minWidth: 0,
+                      border: "none",
+                      background: "transparent",
+                      color: active ? "#FFD700" : "#737373",
+                      opacity: implemented || id === "workout" ? 1 : 0.72,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4,
+                      padding: "6px 4px",
+                      fontFamily: "var(--font-montserrat)",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Icon size={id === "workout" ? 18 : 22} active={active} />
+                    <span
+                      style={{
+                        display: "block",
+                        maxWidth: "100%",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          </IonFooter>
         )}
       </IonPage>
     </IonApp>
