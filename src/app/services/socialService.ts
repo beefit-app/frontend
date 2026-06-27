@@ -24,9 +24,13 @@ function datesForPeriod(value: HiveRankingPeriod) {
 
 export const socialService = {
   async loadFriends() { return (await apiClient.get<ApiFriendship[]>("/api/social/friends", { auth: true })).map((item) => ({ ...profile(item.user, "friend"), friendshipId: item.id })); },
-  async loadRequests(): Promise<FriendRequest[]> {
+  async loadIncomingRequests(): Promise<FriendRequest[]> {
     const items = await apiClient.get<ApiFriendship[]>("/api/social/friends/requests/incoming", { auth: true });
     return items.map((item) => ({ id: item.id, profile: profile(item.user, "available") }));
+  },
+  async loadOutgoingRequests(): Promise<FriendRequest[]> {
+    const items = await apiClient.get<ApiFriendship[]>("/api/social/friends/requests/outgoing", { auth: true });
+    return items.map((item) => ({ id: item.id, profile: profile(item.user, "sent") }));
   },
   async search(query: string) {
     const response = await apiClient.get<{ content?: ApiUser[] }>(`/api/social/friends/search?query=${encodeURIComponent(query)}&size=20`, { auth: true });

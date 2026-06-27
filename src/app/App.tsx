@@ -161,7 +161,7 @@ export default function App() {
                 />
               </div>
               <div style={{ display: screen === "social" ? "block" : "none" }}>
-                <SocialScreen />
+                <SocialScreen isActive={screen === "social"} />
               </div>
               <div style={{ display: screen === "workout" ? "block" : "none" }}>
                 <WorkoutStartScreen
