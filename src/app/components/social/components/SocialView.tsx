@@ -107,22 +107,6 @@ function Notice({
   );
 }
 
-function SummaryCard({ icon, value, label }: { icon: ReactNode; value: number; label: string }) {
-  return (
-    <div className="flex flex-1 items-center gap-3 rounded-[18px] border border-[#2D2D2D] bg-[#171717] px-3 py-3.5">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(255,215,0,0.2)] bg-[rgba(255,215,0,0.08)] text-[#FFD700]">
-        {icon}
-      </div>
-      <div>
-        <span className="block font-montserrat text-[19px] font-extrabold leading-none text-white">{value}</span>
-        <span className="font-inter text-[10px] font-semibold uppercase tracking-wide text-[#737373]">
-          {label}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function PersonIdentity({ person }: { person: FriendProfile }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
@@ -137,96 +121,40 @@ function PersonIdentity({ person }: { person: FriendProfile }) {
 
 function FriendsPanel({
   state,
-  requestsOpen,
-  searchOpen,
 }: {
   state: SocialState;
-  requestsOpen: boolean;
-  searchOpen: boolean;
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <AnimatePresence initial={false}>
-        {requestsOpen && (
-          <Motion.section
-            key="requests"
-            initial={{ opacity: 0, height: 0, y: -8 }}
-            animate={{ opacity: 1, height: "auto", y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -8 }}
-            transition={{ duration: 0.22 }}
-            className="overflow-hidden"
-          >
-            <SectionTitle icon={<UserPlus size={14} color="#FFD700" />}>
-              Solicitacoes recebidas
-            </SectionTitle>
-            <div className="flex flex-col gap-2.5">
-              {state.friendRequests.length === 0 && (
-                <div className="rounded-[18px] border border-dashed border-[#2D2D2D] px-4 py-5 text-center font-inter text-[12px] text-[#737373]">
-                  Nenhuma solicitacao pendente.
+      {state.friendRequests.length > 0 && (
+        <section>
+          <SectionTitle icon={<UserPlus size={14} color="#FFD700" />}>
+            Solicitacoes recebidas
+          </SectionTitle>
+          <div className="flex flex-col gap-2.5">
+            {state.friendRequests.map((request) => (
+              <div
+                key={request.id}
+                className="flex items-center justify-between gap-2 rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3"
+              >
+                <PersonIdentity person={request.profile} />
+                <div className="flex shrink-0 gap-1.5">
+                  <SmallButton variant="gold" onClick={() => state.acceptFriendRequest(request.id)}>
+                    Aceitar
+                  </SmallButton>
+                  <SmallButton onClick={() => state.rejectFriendRequest(request.id)}>Recusar</SmallButton>
                 </div>
-              )}
-              {state.friendRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="flex items-center justify-between gap-2 rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3"
-                >
-                  <PersonIdentity person={request.profile} />
-                  <div className="flex shrink-0 gap-1.5">
-                    <SmallButton variant="gold" onClick={() => state.acceptFriendRequest(request.id)}>
-                      Aceitar
-                    </SmallButton>
-                    <SmallButton onClick={() => state.rejectFriendRequest(request.id)}>Recusar</SmallButton>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Motion.section>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence initial={false}>
-        {searchOpen && (
-          <Motion.section
-            key="search"
-            initial={{ opacity: 0, height: 0, y: -8 }}
-            animate={{ opacity: 1, height: "auto", y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -8 }}
-            transition={{ duration: 0.22 }}
-            className="overflow-hidden"
-          >
-            <BeeInput
-              value={state.searchTerm}
-              onChange={(event) => state.setSearchTerm(event.target.value)}
-              icon={<Search size={17} />}
-              placeholder="Buscar por nome ou usuario"
-            />
-            {state.searchTerm.trim() && (
-              <div className="mt-3 flex flex-col gap-2.5">
-                {state.searchResults.length === 0 && (
-                  <p className="rounded-[18px] border border-dashed border-[#2D2D2D] px-4 py-4 text-center font-inter text-[12px] text-[#737373]">
-                    Nenhuma pessoa encontrada.
-                  </p>
-                )}
-                {state.searchResults.map((person) => (
-                  <div key={person.id} className="flex items-center justify-between gap-3 rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3">
-                    <PersonIdentity person={person} />
-                    <SmallButton
-                      variant={person.status === "sent" ? "neutral" : "gold"}
-                      disabled={person.status === "sent"}
-                      onClick={() => state.sendFriendRequest(person.id)}
-                    >
-                      {person.status === "sent" ? "Enviada" : "Adicionar"}
-                    </SmallButton>
-                  </div>
-                ))}
               </div>
-            )}
-          </Motion.section>
-        )}
-      </AnimatePresence>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
-        <SectionTitle icon={<Users size={14} color="#FFD700" />}>Seus amigos</SectionTitle>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <SectionTitle icon={<Users size={14} color="#FFD700" />}>Seus amigos</SectionTitle>
+          <span className="font-montserrat text-[14px] font-bold text-[#FFD700]">{state.friends.length}</span>
+        </div>
         <div className="flex flex-col gap-2.5">
           {state.friends.map((friend) => (
             <div key={friend.id} className="flex items-center justify-between rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3">
@@ -455,12 +383,11 @@ function HivesPanel({ state }: { state: SocialState }) {
       </div>
 
       <section>
-        <SectionTitle icon={<HiveIcon size={13} />}>Suas Colmeias</SectionTitle>
-        {state.hives.length === 0 ? (
-          <p className="rounded-[20px] border border-dashed border-[#2D2D2D] p-6 text-center font-inter text-[12px] text-[#737373]">
-            Voce ainda nao participa de uma Colmeia.
-          </p>
-        ) : (
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <SectionTitle icon={<HiveIcon size={13} />}>Suas Colmeias</SectionTitle>
+          <span className="font-montserrat text-[14px] font-bold text-[#FFD700]">{state.hives.length}</span>
+        </div>
+        {state.hives.length > 0 && (
           <div className="flex gap-3 overflow-x-auto pb-1">
             {state.hives.map((hive) => (
               <HiveCard
@@ -518,31 +445,23 @@ function HivesPanel({ state }: { state: SocialState }) {
 }
 
 export function SocialView({ state }: { state: SocialState }) {
-  const [requestsOpen, setRequestsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  function openFriendsUtility(utility: "requests" | "search") {
+  function openFriendsUtility() {
     state.setActiveSection("friends");
-    if (utility === "requests") {
-      setRequestsOpen((current) => !current);
-      setSearchOpen(false);
-      return;
-    }
-
     setSearchOpen((current) => !current);
-    setRequestsOpen(false);
   }
 
   return (
     <PageBackground>
-      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-7" style={{ maxWidth: 393 }}>
+      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-5" style={{ maxWidth: 393 }}>
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <header className="relative mb-6">
               <div className="absolute right-0 top-0 flex gap-2">
                 <button
                   type="button"
-                  onClick={() => openFriendsUtility("search")}
+                  onClick={() => openFriendsUtility()}
                   aria-label={searchOpen ? "Fechar busca de amigos" : "Pesquisar amigos"}
                   className={`flex h-10 w-10 items-center justify-center rounded-[13px] border transition-colors ${
                     searchOpen
@@ -552,40 +471,60 @@ export function SocialView({ state }: { state: SocialState }) {
                 >
                   <Search size={18} />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => openFriendsUtility("requests")}
-                  aria-label="Ver solicitacoes de amizade"
-                  className={`relative flex h-10 w-10 items-center justify-center rounded-[13px] border transition-colors ${
-                    requestsOpen
-                      ? "border-[rgba(255,215,0,0.32)] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
-                      : "border-[#2D2D2D] bg-[#141414] text-[#A3A3A3]"
-                  }`}
-                >
-                  <UserPlus size={18} />
-                  {state.friendRequests.length > 0 && (
-                    <span className="absolute right-[9px] top-[9px] h-2.5 w-2.5 rounded-full border-2 border-[#141414] bg-[#EF4444]" />
-                  )}
-                </button>
               </div>
 
               <div className="pr-[98px]">
-                <span className="font-inter text-[11px] font-bold uppercase tracking-[0.18em] text-[#B8A65A]">
-                  Comunidade
-                </span>
-                <h1 className="mt-2 font-montserrat text-[30px] font-extrabold leading-none text-white">
+                <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
                   Social<span className="text-[#FFD700]">.</span>
                 </h1>
               </div>
-              <p className="mt-3 max-w-[320px] font-inter text-[13px] leading-5 text-[#A3A3A3]">
+              <p className="mt-2 max-w-[320px] font-inter text-[14px] leading-[1.45] text-[#A3A3A3]">
                 Conecte-se com amigos e dispute consistencia em suas Colmeias.
               </p>
             </header>
 
-            <div className="mb-5 flex gap-2.5">
-              <SummaryCard icon={<Users size={18} />} value={state.friends.length} label="Amigos" />
-              <SummaryCard icon={<HiveIcon />} value={state.hives.length} label="Colmeias" />
-            </div>
+            {state.activeSection === "friends" && (
+              <AnimatePresence initial={false}>
+                {searchOpen && (
+                  <Motion.section
+                    key="search"
+                    initial={{ opacity: 0, height: 0, y: -8 }}
+                    animate={{ opacity: 1, height: "auto", y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: -8 }}
+                    transition={{ duration: 0.22 }}
+                    className="mb-5 overflow-hidden"
+                  >
+                    <BeeInput
+                      value={state.searchTerm}
+                      onChange={(event) => state.setSearchTerm(event.target.value)}
+                      icon={<Search size={17} />}
+                      placeholder="Buscar por nome ou usuario"
+                    />
+                    {state.searchTerm.trim() && (
+                      <div className="mt-3 flex flex-col gap-2.5">
+                        {state.searchResults.length === 0 && (
+                          <p className="rounded-[18px] border border-dashed border-[#2D2D2D] px-4 py-4 text-center font-inter text-[12px] text-[#737373]">
+                            Nenhuma pessoa encontrada.
+                          </p>
+                        )}
+                        {state.searchResults.map((person) => (
+                          <div key={person.id} className="flex items-center justify-between gap-3 rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3">
+                            <PersonIdentity person={person} />
+                            <SmallButton
+                              variant={person.status === "sent" ? "neutral" : "gold"}
+                              disabled={person.status === "sent"}
+                              onClick={() => state.sendFriendRequest(person.id)}
+                            >
+                              {person.status === "sent" ? "Enviada" : "Adicionar"}
+                            </SmallButton>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Motion.section>
+                )}
+              </AnimatePresence>
+            )}
 
             <AnimatePresence initial={false}>
               {(state.feedback || state.error) && (
@@ -634,7 +573,7 @@ export function SocialView({ state }: { state: SocialState }) {
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
                 {state.activeSection === "friends" ? (
-                  <FriendsPanel state={state} requestsOpen={requestsOpen} searchOpen={searchOpen} />
+                  <FriendsPanel state={state} />
                 ) : (
                   <HivesPanel state={state} />
                 )}
