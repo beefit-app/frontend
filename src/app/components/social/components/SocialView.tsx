@@ -2,6 +2,8 @@ import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import {
   Copy,
   Crown,
+  Ellipsis,
+  Plus,
   Search,
   Trophy,
   UserPlus,
@@ -9,10 +11,12 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion as Motion } from "motion/react";
-import { useState, type ReactNode } from "react";
+import { forwardRef, useEffect, useState, type ReactNode } from "react";
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
+import { profileService } from "../../../services/profileService";
+import type { UserProfile } from "../../../types/user";
 import { HexAvatar } from "../../workout-post";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
 import type { useSocialState } from "../hooks/useSocialState";
@@ -119,11 +123,50 @@ function PersonIdentity({ person }: { person: FriendProfile }) {
   );
 }
 
+const EllipsisActionButton = forwardRef<HTMLButtonElement, React.ComponentProps<"button">>(
+  ({ className, type = "button", ...props }, ref) => (
+    <button
+      ref={ref}
+      type={type}
+      className={`flex h-10 w-10 items-center justify-center rounded-[12px] border border-[#2D2D2D] bg-[#181818] text-[#A3A3A3] transition-colors hover:border-[#525252] hover:text-white ${className ?? ""}`}
+      {...props}
+    >
+      <Ellipsis size={16} />
+    </button>
+  ),
+);
+
+EllipsisActionButton.displayName = "EllipsisActionButton";
+
 function FriendsPanel({
   state,
 }: {
   state: SocialState;
 }) {
+  const [selectedFriend, setSelectedFriend] = useState<FriendProfile | null>(null);
+  const [friendActionsOpen, setFriendActionsOpen] = useState(false);
+  const [friendProfileOpen, setFriendProfileOpen] = useState(false);
+  const [friendProfile, setFriendProfile] = useState<UserProfile | null>(null);
+  const [friendProfileLoading, setFriendProfileLoading] = useState(false);
+  const [friendProfileError, setFriendProfileError] = useState<string | null>(null);
+
+  async function openFriendProfile(friend: FriendProfile) {
+    setFriendActionsOpen(false);
+    setFriendProfileOpen(true);
+    setFriendProfileLoading(true);
+    setFriendProfileError(null);
+
+    try {
+      const profile = await profileService.getProfileByUsername(friend.username);
+      setFriendProfile(profile);
+    } catch (cause) {
+      setFriendProfileError(cause instanceof Error ? cause.message : "Não foi possível carregar o perfil.");
+      setFriendProfile(null);
+    } finally {
+      setFriendProfileLoading(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {state.friendRequests.length > 0 && (
@@ -150,6 +193,27 @@ function FriendsPanel({
         </section>
       )}
 
+      {state.sentRequests.length > 0 && (
+        <section>
+          <SectionTitle icon={<UserPlus size={14} color="#737373" />}>
+            Solicitacoes enviadas
+          </SectionTitle>
+          <div className="flex flex-col gap-2.5">
+            {state.sentRequests.map((request) => (
+              <div
+                key={request.id}
+                className="flex items-center justify-between gap-2 rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3"
+              >
+                <PersonIdentity person={request.profile} />
+                <span className="rounded-full bg-[#202020] px-3 py-1.5 font-inter text-[10px] font-bold uppercase tracking-wide text-[#A3A3A3]">
+                  Enviada
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <SectionTitle icon={<Users size={14} color="#FFD700" />}>Seus amigos</SectionTitle>
@@ -159,13 +223,107 @@ function FriendsPanel({
           {state.friends.map((friend) => (
             <div key={friend.id} className="flex items-center justify-between rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3">
               <PersonIdentity person={friend} />
-              <span className="rounded-full bg-[rgba(34,197,94,0.12)] px-3 py-1.5 font-inter text-[10px] font-bold uppercase tracking-wide text-[#4ADE80]">
-                Amigo
-              </span>
+              <EllipsisActionButton
+                aria-label={`Abrir ações de ${friend.name}`}
+                onClick={() => {
+                  setSelectedFriend(friend);
+                  setFriendActionsOpen(true);
+                }}
+              />
             </div>
           ))}
         </div>
       </section>
+
+      <Sheet open={friendActionsOpen} onOpenChange={setFriendActionsOpen}>
+        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+          <SheetHeader className="px-0 pb-3 pt-3 text-left">
+            <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
+              {selectedFriend?.name ?? "Ações do amigo"}
+            </SheetTitle>
+            <SheetDescription className="font-inter text-[13px] text-[#737373]">
+              Escolha uma ação para este amigo.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-2.5">
+            <BeeButton
+              variant="dark"
+              fullWidth
+              onClick={() => {
+                if (selectedFriend) void openFriendProfile(selectedFriend);
+              }}
+            >
+              Ver perfil
+            </BeeButton>
+            <BeeButton
+              variant="red"
+              fullWidth
+              onClick={() => {
+                if (selectedFriend?.friendshipId) state.removeFriend(selectedFriend.friendshipId);
+                setFriendActionsOpen(false);
+              }}
+            >
+              Remover amigo
+            </BeeButton>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={friendProfileOpen} onOpenChange={setFriendProfileOpen}>
+        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+          <SheetHeader className="px-0 pb-3 pt-3 text-left">
+            <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
+              {friendProfile?.displayName ?? selectedFriend?.name ?? "Perfil"}
+            </SheetTitle>
+            <SheetDescription className="font-inter text-[13px] text-[#737373]">
+              {friendProfile?.username ?? selectedFriend?.username ?? ""}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col items-center gap-4 py-2 text-center">
+            <HexAvatar
+              src={friendProfile?.avatarUrl ?? null}
+              initials={friendProfile?.displayName
+                ?.split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part[0])
+                .join("")
+                .toUpperCase() ?? selectedFriend?.initials ?? "BF"}
+              size={82}
+            />
+            {friendProfileLoading && (
+              <p className="font-inter text-[13px] text-[#B8A65A]">Carregando perfil...</p>
+            )}
+            {friendProfileError && (
+              <p className="font-inter text-[13px] text-[#FCA5A5]">{friendProfileError}</p>
+            )}
+            {!friendProfileLoading && !friendProfileError && friendProfile && (
+              <div className="flex w-full flex-col gap-3 rounded-[20px] border border-[#2D2D2D] bg-[#171717] p-4 text-left">
+                <div>
+                  <p className="mb-1 font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#737373]">Bio</p>
+                  <p className="font-inter text-[13px] leading-[1.6] text-[#D4D4D4]">
+                    {friendProfile.bio || "Esse usuário ainda não adicionou uma bio."}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-[16px] border border-[#262626] bg-[#181818] px-3 py-3 text-center">
+                    <p className="font-montserrat text-[15px] font-bold text-[#FFD700]">{friendProfile.weight ?? "--"}</p>
+                    <p className="font-inter text-[10px] text-[#737373]">Peso</p>
+                  </div>
+                  <div className="rounded-[16px] border border-[#262626] bg-[#181818] px-3 py-3 text-center">
+                    <p className="font-montserrat text-[15px] font-bold text-[#FFD700]">{friendProfile.cards}</p>
+                    <p className="font-inter text-[10px] text-[#737373]">Cartas</p>
+                  </div>
+                  <div className="rounded-[16px] border border-[#262626] bg-[#181818] px-3 py-3 text-center">
+                    <p className="font-montserrat text-[15px] font-bold text-[#FFD700]">{friendProfile.totalWorkouts}</p>
+                    <p className="font-inter text-[10px] text-[#737373]">Treinos</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -208,6 +366,27 @@ function HiveCard({
   );
 }
 
+function AddHiveCard({
+  onClick,
+}: {
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="min-w-[270px] rounded-[20px] border border-dashed border-[rgba(255,215,0,0.5)] bg-[rgba(255,215,0,0.1)] p-4 text-left transition-colors"
+      style={{ height: 100 }}
+    >
+      <div className="flex h-full items-center justify-center">
+        <div className="flex h-[58px] w-[58px] items-center justify-center rounded-[18px] border border-[rgba(255,228,77,0.25)] bg-[rgba(255,215,0,0.14)] text-[#FFE44D]">
+          <Plus size={24} />
+        </div>
+      </div>
+    </button>
+  );
+}
+
 function RankingPanel({
   hive,
   state,
@@ -218,6 +397,7 @@ function RankingPanel({
   onRequestLeave: () => void;
 }) {
   const rankedMembers = state.rankMembers(hive);
+  const [hiveActionsOpen, setHiveActionsOpen] = useState(false);
 
   return (
     <div className="rounded-[22px] border border-[#2D2D2D] bg-[#141414] p-4">
@@ -228,11 +408,7 @@ function RankingPanel({
           </span>
           <h3 className="mt-1 font-montserrat text-[17px] font-bold text-white">{hive.name}</h3>
         </div>
-        <SmallButton onClick={() => state.copyInviteCode(hive)}>
-          <span className="flex items-center gap-1.5">
-            <Copy size={11} /> {hive.inviteCode}
-          </span>
-        </SmallButton>
+        <EllipsisActionButton aria-label="Ações da colmeia" onClick={() => setHiveActionsOpen(true)} />
       </div>
 
       <div className="flex flex-col gap-2">
@@ -246,13 +422,11 @@ function RankingPanel({
             }`}
           >
             <span className={`w-6 font-montserrat text-[13px] font-bold ${index === 0 ? "text-[#FFD700]" : "text-[#737373]"}`}>
-              {index + 1}
+              {index === 0 ? <Crown size={14} color="#FFD700" /> : index + 1}
             </span>
-            {index === 0 ? <Crown size={14} color="#FFD700" /> : <HexAvatar initials={member.initials} size={22} />}
+            <HexAvatar initials={member.initials} size={22} />
             <div className="min-w-0 flex-1">
-              <p className="truncate font-montserrat text-[12px] font-bold text-white">
-                {member.name} {member.isCurrentUser ? "(voce)" : ""}
-              </p>
+              <p className="truncate font-montserrat text-[12px] font-bold text-white">{member.name}</p>
               <p className="font-inter text-[10px] text-[#737373]">{member.honeys} Honeys</p>
             </div>
             <span className="font-montserrat text-[13px] font-bold text-[#FFD700]">{member.workouts}</span>
@@ -261,13 +435,40 @@ function RankingPanel({
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={onRequestLeave}
-        className="mt-4 w-full rounded-full border border-[rgba(239,68,68,0.24)] py-2.5 font-montserrat text-[10px] font-bold uppercase tracking-wide text-[#FCA5A5]"
-      >
-        Sair da colmeia
-      </button>
+      <Sheet open={hiveActionsOpen} onOpenChange={setHiveActionsOpen}>
+        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+          <SheetHeader className="px-0 pb-3 pt-3 text-left">
+            <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
+              {hive.name}
+            </SheetTitle>
+            <SheetDescription className="font-inter text-[13px] text-[#737373]">
+              Escolha uma ação para esta colmeia.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-2.5">
+            <BeeButton
+              variant="dark"
+              fullWidth
+              onClick={() => {
+                state.copyInviteCode(hive);
+                setHiveActionsOpen(false);
+              }}
+            >
+              Copiar código
+            </BeeButton>
+            <BeeButton
+              variant="red"
+              fullWidth
+              onClick={() => {
+                setHiveActionsOpen(false);
+                onRequestLeave();
+              }}
+            >
+              Sair da colmeia
+            </BeeButton>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -346,6 +547,7 @@ function HiveSheet({
 }
 
 function HivesPanel({ state }: { state: SocialState }) {
+  const [actionOpen, setActionOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [leaveConfirmationOpen, setLeaveConfirmationOpen] = useState(false);
@@ -365,29 +567,12 @@ function HivesPanel({ state }: { state: SocialState }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-2 gap-2.5">
-        <button
-          type="button"
-          onClick={() => openHiveAction("create")}
-          className="rounded-full border border-[#353535] bg-[#171717] py-3 font-montserrat text-[11px] font-bold uppercase tracking-wide text-[#A3A3A3] transition-colors hover:border-[#525252] hover:text-white"
-        >
-          Criar Colmeia
-        </button>
-        <button
-          type="button"
-          onClick={() => openHiveAction("join")}
-          className="rounded-full border border-[#353535] bg-[#171717] py-3 font-montserrat text-[11px] font-bold uppercase tracking-wide text-[#A3A3A3] transition-colors hover:border-[#525252] hover:text-white"
-        >
-          Entrar
-        </button>
-      </div>
-
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <SectionTitle icon={<HiveIcon size={13} />}>Suas Colmeias</SectionTitle>
           <span className="font-montserrat text-[14px] font-bold text-[#FFD700]">{state.hives.length}</span>
         </div>
-        {state.hives.length > 0 && (
+        {(state.hives.length > 0 || !state.isHiveLimitReached) && (
           <div className="flex gap-3 overflow-x-auto pb-1">
             {state.hives.map((hive) => (
               <HiveCard
@@ -398,6 +583,9 @@ function HivesPanel({ state }: { state: SocialState }) {
                 onSelect={() => state.setSelectedHiveId(hive.id)}
               />
             ))}
+            {!state.isHiveLimitReached && (
+              <AddHiveCard onClick={() => setActionOpen(true)} />
+            )}
           </div>
         )}
       </section>
@@ -413,6 +601,38 @@ function HivesPanel({ state }: { state: SocialState }) {
         </section>
       )}
 
+      <Sheet open={actionOpen} onOpenChange={setActionOpen}>
+        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+          <SheetHeader className="px-0 pb-3 pt-3 text-left">
+            <SheetTitle className="font-montserrat text-[20px] font-bold text-white">Adicionar Colmeia</SheetTitle>
+            <SheetDescription className="font-inter text-[13px] text-[#737373]">
+              Escolha se você quer criar uma colmeia nova ou entrar com um convite.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-2.5">
+            <BeeButton
+              variant="primary"
+              fullWidth
+              onClick={() => {
+                setActionOpen(false);
+                openHiveAction("create");
+              }}
+            >
+              Criar Colmeia
+            </BeeButton>
+            <BeeButton
+              variant="dark"
+              fullWidth
+              onClick={() => {
+                setActionOpen(false);
+                openHiveAction("join");
+              }}
+            >
+              Entrar por convite
+            </BeeButton>
+          </div>
+        </SheetContent>
+      </Sheet>
       <HiveSheet mode="create" open={createOpen} onOpenChange={setCreateOpen} state={state} />
       <HiveSheet mode="join" open={joinOpen} onOpenChange={setJoinOpen} state={state} />
       <Sheet open={leaveConfirmationOpen} onOpenChange={setLeaveConfirmationOpen}>
@@ -446,6 +666,14 @@ function HivesPanel({ state }: { state: SocialState }) {
 
 export function SocialView({ state }: { state: SocialState }) {
   const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    if (!state.activeSection || state.activeSection !== "friends") {
+      setSearchOpen(false);
+      state.setSearchTerm("");
+      return;
+    }
+  }, [state.activeSection, state.setSearchTerm]);
 
   function openFriendsUtility() {
     state.setActiveSection("friends");
@@ -510,13 +738,19 @@ export function SocialView({ state }: { state: SocialState }) {
                         {state.searchResults.map((person) => (
                           <div key={person.id} className="flex items-center justify-between gap-3 rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3">
                             <PersonIdentity person={person} />
-                            <SmallButton
-                              variant={person.status === "sent" ? "neutral" : "gold"}
-                              disabled={person.status === "sent"}
-                              onClick={() => state.sendFriendRequest(person.id)}
-                            >
-                              {person.status === "sent" ? "Enviada" : "Adicionar"}
-                            </SmallButton>
+                            {person.status === "friend" ? (
+                              <span className="rounded-full bg-[rgba(34,197,94,0.12)] px-3 py-1.5 font-inter text-[10px] font-bold uppercase tracking-wide text-[#4ADE80]">
+                                Amigo
+                              </span>
+                            ) : (
+                              <SmallButton
+                                variant={person.status === "sent" ? "neutral" : "gold"}
+                                disabled={person.status === "sent"}
+                                onClick={() => state.sendFriendRequest(person.id)}
+                              >
+                                {person.status === "sent" ? "Enviada" : "Adicionar"}
+                              </SmallButton>
+                            )}
                           </div>
                         ))}
                       </div>

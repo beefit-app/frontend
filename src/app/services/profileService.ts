@@ -135,6 +135,28 @@ export const profileService = {
     return mergeProfile(baseProfile, response);
   },
 
+  async getProfileByUsername(username: string): Promise<UserProfile> {
+    const normalizedUsername = username.replace(/^@/, "").trim();
+    const response = await apiClient.get<BackendProfileResponse>(`/api/profile/${encodeURIComponent(normalizedUsername)}`, { auth: true });
+    return mergeProfile(
+      {
+        id: `profile-${normalizedUsername || "friend"}`,
+        displayName: response.fullName?.trim() || normalizedUsername,
+        username: normalizeUsername(response.username || normalizedUsername),
+        email: "",
+        bio: "",
+        avatarUrl: null,
+        weight: null,
+        weeklyGoal: null,
+        ghostModeEnabled: false,
+        cards: 0,
+        streak: 0,
+        totalWorkouts: 0,
+      },
+      response,
+    );
+  },
+
   async saveProfile(
     authUser: AuthUser | null,
     currentProfile: UserProfile,
