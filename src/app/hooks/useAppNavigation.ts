@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
 export type AuthScreen = "login" | "register";
-export type AppScreen = "feed" | "social" | "workout" | "profile";
-export type TabId = "feed" | "social" | "workout" | "search" | "profile";
+export type AppScreen = "feed" | "social" | "workout" | "inventory" | "profile";
+export type TabId = "feed" | "social" | "workout" | "inventory" | "profile";
 
 export function useAppNavigation(isAuthenticated: boolean) {
   const [authScreen, setAuthScreen] = useState<AuthScreen>("login");

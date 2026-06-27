@@ -12,6 +12,7 @@ import { RegisterScreen } from "./components/RegisterScreen";
 import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } from "./components/ProfileScreen";
 import { SocialFeedScreen } from "./components/SocialFeedScreen";
 import { SocialScreen } from "./components/SocialScreen";
+import { InventoryScreen } from "./components/InventoryScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
 import { useAuth } from "./auth/AuthContext";
 import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
@@ -49,7 +50,7 @@ const TAB_ITEMS: {
       </span>
     ),
   },
-  { id: "search", label: "Inventário", implemented: false, Icon: ({ size }) => <Package2 size={size} /> },
+  { id: "inventory", label: "Inventário", implemented: true, Icon: ({ size }) => <Package2 size={size} /> },
   { id: "profile", label: "Perfil", implemented: true, Icon: ({ size }) => <User size={size} /> },
 ];
 
@@ -167,6 +168,9 @@ export default function App() {
                   onActiveWorkoutChange={setActiveWorkout}
                   onWorkoutCompleted={handleWorkoutCompleted}
                 />
+              </div>
+              <div style={{ display: screen === "inventory" ? "block" : "none" }}>
+                <InventoryScreen />
               </div>
               <div style={{ display: screen === "profile" ? "block" : "none" }}>
                 <ProfileScreen

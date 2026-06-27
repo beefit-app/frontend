@@ -46,6 +46,10 @@ vi.mock("./components/WorkoutStartScreen", () => ({
   WorkoutStartScreen: () => <div>workout-screen</div>,
 }));
 
+vi.mock("./components/InventoryScreen", () => ({
+  InventoryScreen: () => <div>inventory-screen</div>,
+}));
+
 vi.mock("./components/ProfileScreen", () => ({
   DEFAULT_ACCOUNT_SETTINGS: { ghostModeEnabled: false },
   ProfileScreen: () => <div>profile-screen</div>,
@@ -112,10 +116,12 @@ describe("App", () => {
     expect(screen.getByText("social-feed-screen")).toBeInTheDocument();
     expect(screen.getByText("social-screen")).toBeInTheDocument();
     expect(screen.getByText("workout-screen")).toBeInTheDocument();
+    expect(screen.getByText("inventory-screen")).toBeInTheDocument();
     expect(screen.getByText("profile-screen")).toBeInTheDocument();
     expect(screen.getByText("Feed")).toBeInTheDocument();
     expect(screen.getByText("Social")).toBeInTheDocument();
     expect(screen.getByText("Treino")).toBeInTheDocument();
+    expect(screen.getByText("Inventário")).toBeInTheDocument();
     expect(screen.getByText("Perfil")).toBeInTheDocument();
     expect(screen.getByTestId("bottom-navigation").tagName.toLowerCase()).toBe("ion-footer");
   });

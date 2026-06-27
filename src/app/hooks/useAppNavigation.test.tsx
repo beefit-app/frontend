@@ -11,4 +11,14 @@ describe("useAppNavigation", () => {
 
     expect(result.current.screen).toBe("social");
   });
+
+  it("opens the inventory tab for an authenticated user", () => {
+    const { result } = renderHook(() => useAppNavigation(true));
+
+    act(() => {
+      result.current.handleTabChange("inventory", true);
+    });
+
+    expect(result.current.screen).toBe("inventory");
+  });
 });
