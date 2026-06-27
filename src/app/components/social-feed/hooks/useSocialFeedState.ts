@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
 import type { LiveFriend, SocialFeedPost } from "../types";
 import { subscribeSocialEvents, type WorkoutPresenceEvent } from "../../../services/socialEventsService";
+import { socialFeedStorage } from "../../../storage/socialFeedStorage";
 
 export function useSocialFeedState() {
   const [posts, setPosts] = useState<SocialFeedPost[]>([]);
-  const [liveFriends, setLiveFriends] = useState<LiveFriend[]>([]);
+  const [liveFriends, setLiveFriends] = useState<LiveFriend[]>(() => socialFeedStorage.getLiveFriends());
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,6 +31,14 @@ export function useSocialFeedState() {
   useEffect(() => { void loadPage(0, true); }, [loadPage]);
   const loadMore = useCallback(() => void loadPage(page + 1), [loadPage, page]);
   const retry = useCallback(() => void loadPage(posts.length ? page + 1 : 0, posts.length === 0), [loadPage, page, posts.length]);
+
+  useEffect(() => {
+    if (liveFriends.length === 0) {
+      socialFeedStorage.clearLiveFriends();
+      return;
+    }
+    socialFeedStorage.setLiveFriends(liveFriends);
+  }, [liveFriends]);
 
   useEffect(() => {
     const controller = new AbortController(); let retryTimer: number | null = null;

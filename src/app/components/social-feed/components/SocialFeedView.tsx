@@ -2,6 +2,7 @@ import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import { Dumbbell, Radio } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { HexagonPattern } from "../../HexagonPattern";
+import logoImg from "../../../../imports/logo.png";
 import type { LiveFriend, SocialFeedPost } from "../types";
 import { LiveFriendCard } from "./LiveFriendCard";
 import { StreakCard } from "./StreakCard";
@@ -61,30 +62,54 @@ export function SocialFeedView({
         <IonRow className="ion-justify-content-center">
           <IonCol size="12" style={{ maxWidth: 393 }}>
             <div className="flex flex-col gap-6">
-              <header className="relative z-20 flex items-center justify-between gap-4 pt-3">
-                <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
-                  <span className="text-[#FFD700]">Bee</span>Fit
-                </h1>
-                <StreakCard
-                  count={streakCount}
-                  isFedToday={isStreakFedToday}
-                  burstToken={streakBurstToken}
-                />
+              <header className="relative z-20 pt-0">
+                <div className="flex items-start justify-between gap-4">
+                  <div
+                    style={{
+                      height: 56,
+                      width: 56,
+                      overflow: "hidden",
+                      borderRadius: 16,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <img
+                      src={logoImg}
+                      alt="BeeFit"
+                      style={{
+                        height: "100%",
+                        width: "100%",
+                        display: "block",
+                        objectFit: "cover",
+                        objectPosition: "center",
+                        transform: "scale(1.32)",
+                        transformOrigin: "center",
+                      }}
+                    />
+                  </div>
+                  <StreakCard
+                    count={streakCount}
+                    isFedToday={isStreakFedToday}
+                    burstToken={streakBurstToken}
+                  />
+                </div>
               </header>
 
-              <section>
-                <div className="mb-3 flex items-center gap-2">
-                  <Radio size={16} color="#FFD700" />
-                  <h2 className="font-montserrat text-[14px] font-bold uppercase tracking-wide text-[#A3A3A3]">
-                    Treinando agora
-                  </h2>
-                </div>
-                <div className="flex gap-3 overflow-x-auto pb-1">
-                  {liveFriends.map((friend) => (
-                    <LiveFriendCard key={friend.id} friend={friend} />
-                  ))}
-                </div>
-              </section>
+              {liveFriends.length > 0 && (
+                <section>
+                  <div className="mb-3 flex items-center gap-2">
+                    <Radio size={16} color="#FFD700" />
+                    <h2 className="font-montserrat text-[14px] font-bold uppercase tracking-wide text-[#A3A3A3]">
+                      Treinando agora
+                    </h2>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto pb-1">
+                    {liveFriends.map((friend) => (
+                      <LiveFriendCard key={friend.id} friend={friend} />
+                    ))}
+                  </div>
+                </section>
+              )}
 
               <section className="flex flex-col gap-5">
                 <div className="mb-1 flex items-center gap-2">

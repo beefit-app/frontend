@@ -55,12 +55,14 @@ const TAB_ITEMS: {
 ];
 
 export default function App() {
-  const { isAuthenticated, isBootstrapping } = useAuth();
+  const { isAuthenticated, isBootstrapping, user } = useAuth();
   const contentRef = useRef<HTMLIonContentElement | null>(null);
   const { authScreen, screen, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
-  const { streak, isStreakFedToday, feedStreak, clearPendingFeed, scheduleFeed } = useStreakState();
+  const { streak, isStreakFedToday, feedStreak, clearPendingFeed, scheduleFeed } = useStreakState(
+    isAuthenticated ? (user ?? null) : null,
+  );
   const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
 
   function handleWorkoutCompleted(draft: WorkoutCompletionDraft) {

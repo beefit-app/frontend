@@ -313,31 +313,32 @@ export function WorkoutStartScreen({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, padding: "32px 12px 24px" }}>
+      <IonGrid fixed className="relative z-10 px-3 py-5" style={{ maxWidth: 393 }}>
         <IonRow>
           <IonCol size="12">
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gap: 0 }}>
               <h1
                 style={{
                   margin: 0,
                   color: "#FFFFFF",
                   fontFamily: "var(--font-montserrat)",
-                  fontSize: 30,
+                  fontSize: 34,
                   fontWeight: 800,
-                  lineHeight: 1.1,
+                  lineHeight: 1,
                 }}
               >
-                Início do treino
+                Início do treino<span style={{ color: "#FFD700" }}>.</span>
               </h1>
               <IonText
                 style={{
+                  marginTop: 8,
                   color: "#B5B5B5",
                   fontFamily: "var(--font-inter)",
-                  fontSize: 15,
-                  lineHeight: 1.6,
+                  fontSize: 14,
+                  lineHeight: 1.45,
                 }}
               >
-                Escolha os grupos musculares que serão treinados ou selecione um template salvo. O treino só pode ser iniciado com uma dessas opções.
+                Escolha os grupos musculares ou use um template salvo para começar.
               </IonText>
             </div>
           </IonCol>
