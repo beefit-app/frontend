@@ -19,6 +19,7 @@ export interface FriendRequest {
 export interface HiveMember {
   id: string;
   name: string;
+  username: string;
   initials: string;
   workouts: number;
   honeys: number;

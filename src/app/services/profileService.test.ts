@@ -24,7 +24,7 @@ describe("profileService", () => {
     vi.unstubAllGlobals();
   });
 
-  it("busca o perfil remoto e preserva dados da sessao local", async () => {
+  it("busca o perfil remoto e preserva dados da sessão local", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       createJsonResponse({
         fullName: "Bee Fit Updated",
@@ -73,7 +73,7 @@ describe("profileService", () => {
     });
   });
 
-  it("envia o update do perfil e atualiza o usuario persistido", async () => {
+  it("envia o update do perfil e atualiza o usuário persistido", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
 
     window.localStorage.setItem("beefit.auth.accessToken", "jwt-backend");

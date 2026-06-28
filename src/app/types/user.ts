@@ -13,6 +13,14 @@ export interface UserProfile {
   totalWorkouts: number;
 }
 
+export type PublicProfileRelationshipStatus = "SELF" | "FRIEND" | "NONE" | "REQUEST_SENT" | "REQUEST_RECEIVED";
+
+export interface PublicUserProfile extends UserProfile {
+  userId: string;
+  relationshipStatus: PublicProfileRelationshipStatus;
+  friendshipId: string | null;
+}
+
 export type UserProfileUpdate = Partial<
   Pick<UserProfile, "displayName" | "bio" | "weight" | "avatarUrl">
 >;

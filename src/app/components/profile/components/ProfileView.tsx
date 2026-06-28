@@ -1,5 +1,5 @@
 import { IonCol, IonGrid, IonRow } from "@ionic/react";
-import { ChevronRight, Dumbbell, Flame, MoreVertical, Scale, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Dumbbell, Flame, MoreVertical, Scale, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { BeeCard } from "../../BeeCard";
 import { PageBackground } from "../../PageBackground";
@@ -18,6 +18,11 @@ export function ProfileView({
   recentPosts,
   onEdit,
   onManageAccount,
+  managementEnabled = true,
+  publicActionLabel,
+  publicActionDisabled = false,
+  onPublicAction,
+  onBack,
   onDismissError,
   onDismissPostsError,
   onLogout,
@@ -28,11 +33,16 @@ export function ProfileView({
   postsLoadError?: string | null;
   trainedDays: number[];
   recentPosts: WorkoutPost[];
-  onEdit: () => void;
-  onManageAccount: () => void;
+  onEdit?: () => void;
+  onManageAccount?: () => void;
+  managementEnabled?: boolean;
+  publicActionLabel?: string | null;
+  publicActionDisabled?: boolean;
+  onPublicAction?: () => void;
+  onBack?: () => void;
   onDismissError?: () => void;
   onDismissPostsError?: () => void;
-  onLogout: () => void;
+  onLogout?: () => void;
 }) {
   const initials = getProfileInitials(profile);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -43,30 +53,58 @@ export function ProfileView({
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <div style={{ position: "relative" }}>
-              <button
-                type="button"
-                onClick={() => setIsProfileMenuOpen(true)}
-                style={{
-                  position: "absolute",
-                  top: 16,
-                  right: 16,
-                  zIndex: 10,
-                  width: 40,
-                  height: 40,
-                  borderRadius: 14,
-                  border: "1px solid #2D2D2D",
-                  background: "#141414",
-                  color: "#D4D4D4",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                }}
-                aria-label="Abrir opções do perfil"
-              >
-                <MoreVertical size={18} />
-              </button>
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  style={{
+                    position: "absolute",
+                    top: 16,
+                    left: 16,
+                    zIndex: 10,
+                    width: 40,
+                    height: 40,
+                    borderRadius: 14,
+                    border: "1px solid #2D2D2D",
+                    background: "#141414",
+                    color: "#D4D4D4",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                  }}
+                  aria-label="Voltar"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+              )}
+              {managementEnabled && (
+                <button
+                  type="button"
+                  onClick={() => setIsProfileMenuOpen(true)}
+                  style={{
+                    position: "absolute",
+                    top: 16,
+                    right: 16,
+                    zIndex: 10,
+                    width: 40,
+                    height: 40,
+                    borderRadius: 14,
+                    border: "1px solid #2D2D2D",
+                    background: "#141414",
+                    color: "#D4D4D4",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                  }}
+                  aria-label="Abrir opções do perfil"
+                >
+                  <MoreVertical size={18} />
+                </button>
+              )}
 
+              {managementEnabled && (
               <Sheet open={isProfileMenuOpen} onOpenChange={setIsProfileMenuOpen}>
                 <SheetContent side="right" className="border-l border-[#2D2D2D] bg-[#141414] text-white sm:max-w-[360px]">
                   <SheetHeader className="border-b border-[#2D2D2D] px-5 py-5 text-left">
@@ -84,7 +122,7 @@ export function ProfileView({
                         type="button"
                         onClick={() => {
                           setIsProfileMenuOpen(false);
-                          onEdit();
+                          onEdit?.();
                         }}
                         className="flex w-full items-center justify-between rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-4 py-4 text-left transition-colors hover:border-[#404040] hover:bg-[#202020]"
                       >
@@ -103,7 +141,7 @@ export function ProfileView({
                         type="button"
                         onClick={() => {
                           setIsProfileMenuOpen(false);
-                          onManageAccount();
+                          onManageAccount?.();
                         }}
                         className="flex w-full items-center justify-between rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-4 py-4 text-left transition-colors hover:border-[#404040] hover:bg-[#202020]"
                       >
@@ -122,7 +160,7 @@ export function ProfileView({
                         type="button"
                         onClick={() => {
                           setIsProfileMenuOpen(false);
-                          onLogout();
+                          onLogout?.();
                         }}
                         className="flex w-full items-center justify-between rounded-2xl border border-[rgba(239,68,68,0.28)] bg-[rgba(239,68,68,0.08)] px-4 py-4 text-left transition-colors hover:border-[rgba(239,68,68,0.4)] hover:bg-[rgba(239,68,68,0.12)]"
                       >
@@ -140,6 +178,7 @@ export function ProfileView({
                   </div>
                 </SheetContent>
               </Sheet>
+              )}
 
               <div style={{ position: "relative", zIndex: 1, padding: "32px 12px 0" }}>
                 {loadError && (
@@ -209,6 +248,27 @@ export function ProfileView({
                     >
                       Atualizando perfil...
                     </span>
+                  )}
+                  {publicActionLabel && (
+                    <button
+                      type="button"
+                      onClick={onPublicAction}
+                      disabled={publicActionDisabled}
+                      style={{
+                        marginTop: 2,
+                        border: publicActionDisabled ? "1px solid #2D2D2D" : "1px solid rgba(255,215,0,0.38)",
+                        borderRadius: 999,
+                        background: publicActionDisabled ? "#171717" : "#FFD700",
+                        color: publicActionDisabled ? "#A3A3A3" : "#0A0A0A",
+                        cursor: publicActionDisabled ? "default" : "pointer",
+                        fontFamily: "var(--font-montserrat)",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        padding: "10px 16px",
+                      }}
+                    >
+                      {publicActionLabel}
+                    </button>
                   )}
                 </div>
 

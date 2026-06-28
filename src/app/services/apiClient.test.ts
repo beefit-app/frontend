@@ -87,7 +87,7 @@ describe("apiClient", () => {
     window.removeEventListener("beefit:auth-unauthorized", listener);
   });
 
-  it("renova o access token e repete a request quando a sessao expira", async () => {
+  it("renova o access token e repete a request quando a sessão expira", async () => {
     window.localStorage.setItem("beefit.auth.accessToken", "expired-token");
     window.localStorage.setItem("beefit.auth.refreshToken", "refresh-token");
     window.localStorage.setItem("beefit.auth.deviceId", "device-1");

@@ -219,6 +219,7 @@ export function useSocialState(isActive = false) {
   return {
     activeSection, friends, friendRequests, sentRequests, searchTerm, searchResults, hives, selectedHive, feedback, error, isHiveLimitReached,
     setActiveSection, setSearchTerm, setSelectedHiveId,
+    refreshFriendships,
     acceptFriendRequest: (id: string) => void action(async () => {
       const response = await socialService.acceptRequest(id);
       const nextFriend = buildFriendProfile(

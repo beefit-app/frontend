@@ -15,8 +15,7 @@ import { forwardRef, useEffect, useState, type ReactNode } from "react";
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
-import { profileService } from "../../../services/profileService";
-import type { UserProfile } from "../../../types/user";
+import { PublicProfilePage } from "../../profile/components/PublicProfileSheet";
 import { HexAvatar } from "../../workout-post";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
 import type { useSocialState } from "../hooks/useSocialState";
@@ -140,39 +139,20 @@ EllipsisActionButton.displayName = "EllipsisActionButton";
 
 function FriendsPanel({
   state,
+  onOpenProfile,
 }: {
   state: SocialState;
+  onOpenProfile: (username: string) => void;
 }) {
   const [selectedFriend, setSelectedFriend] = useState<FriendProfile | null>(null);
   const [friendActionsOpen, setFriendActionsOpen] = useState(false);
-  const [friendProfileOpen, setFriendProfileOpen] = useState(false);
-  const [friendProfile, setFriendProfile] = useState<UserProfile | null>(null);
-  const [friendProfileLoading, setFriendProfileLoading] = useState(false);
-  const [friendProfileError, setFriendProfileError] = useState<string | null>(null);
-
-  async function openFriendProfile(friend: FriendProfile) {
-    setFriendActionsOpen(false);
-    setFriendProfileOpen(true);
-    setFriendProfileLoading(true);
-    setFriendProfileError(null);
-
-    try {
-      const profile = await profileService.getProfileByUsername(friend.username);
-      setFriendProfile(profile);
-    } catch (cause) {
-      setFriendProfileError(cause instanceof Error ? cause.message : "Não foi possível carregar o perfil.");
-      setFriendProfile(null);
-    } finally {
-      setFriendProfileLoading(false);
-    }
-  }
 
   return (
     <div className="flex flex-col gap-6">
       {state.friendRequests.length > 0 && (
         <section>
           <SectionTitle icon={<UserPlus size={14} color="#FFD700" />}>
-            Solicitacoes recebidas
+            Solicitações recebidas
           </SectionTitle>
           <div className="flex flex-col gap-2.5">
             {state.friendRequests.map((request) => (
@@ -180,7 +160,13 @@ function FriendsPanel({
                 key={request.id}
                 className="flex items-center justify-between gap-2 rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3"
               >
-                <PersonIdentity person={request.profile} />
+                <button
+                  type="button"
+                  onClick={() => onOpenProfile(request.profile.username)}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <PersonIdentity person={request.profile} />
+                </button>
                 <div className="flex shrink-0 gap-1.5">
                   <SmallButton variant="gold" onClick={() => state.acceptFriendRequest(request.id)}>
                     Aceitar
@@ -196,7 +182,7 @@ function FriendsPanel({
       {state.sentRequests.length > 0 && (
         <section>
           <SectionTitle icon={<UserPlus size={14} color="#737373" />}>
-            Solicitacoes enviadas
+            Solicitações enviadas
           </SectionTitle>
           <div className="flex flex-col gap-2.5">
             {state.sentRequests.map((request) => (
@@ -204,7 +190,13 @@ function FriendsPanel({
                 key={request.id}
                 className="flex items-center justify-between gap-2 rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3"
               >
-                <PersonIdentity person={request.profile} />
+                <button
+                  type="button"
+                  onClick={() => onOpenProfile(request.profile.username)}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <PersonIdentity person={request.profile} />
+                </button>
                 <span className="rounded-full bg-[#202020] px-3 py-1.5 font-inter text-[10px] font-bold uppercase tracking-wide text-[#A3A3A3]">
                   Enviada
                 </span>
@@ -222,7 +214,13 @@ function FriendsPanel({
         <div className="flex flex-col gap-2.5">
           {state.friends.map((friend) => (
             <div key={friend.id} className="flex items-center justify-between rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3">
-              <PersonIdentity person={friend} />
+              <button
+                type="button"
+                onClick={() => onOpenProfile(friend.username)}
+                className="min-w-0 flex-1 text-left"
+              >
+                <PersonIdentity person={friend} />
+              </button>
               <EllipsisActionButton
                 aria-label={`Abrir ações de ${friend.name}`}
                 onClick={() => {
@@ -250,7 +248,8 @@ function FriendsPanel({
               variant="dark"
               fullWidth
               onClick={() => {
-                if (selectedFriend) void openFriendProfile(selectedFriend);
+                if (selectedFriend) onOpenProfile(selectedFriend.username);
+                setFriendActionsOpen(false);
               }}
             >
               Ver perfil
@@ -269,61 +268,6 @@ function FriendsPanel({
         </SheetContent>
       </Sheet>
 
-      <Sheet open={friendProfileOpen} onOpenChange={setFriendProfileOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
-          <SheetHeader className="px-0 pb-3 pt-3 text-left">
-            <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
-              {friendProfile?.displayName ?? selectedFriend?.name ?? "Perfil"}
-            </SheetTitle>
-            <SheetDescription className="font-inter text-[13px] text-[#737373]">
-              {friendProfile?.username ?? selectedFriend?.username ?? ""}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="flex flex-col items-center gap-4 py-2 text-center">
-            <HexAvatar
-              src={friendProfile?.avatarUrl ?? null}
-              initials={friendProfile?.displayName
-                ?.split(/\s+/)
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((part) => part[0])
-                .join("")
-                .toUpperCase() ?? selectedFriend?.initials ?? "BF"}
-              size={82}
-            />
-            {friendProfileLoading && (
-              <p className="font-inter text-[13px] text-[#B8A65A]">Carregando perfil...</p>
-            )}
-            {friendProfileError && (
-              <p className="font-inter text-[13px] text-[#FCA5A5]">{friendProfileError}</p>
-            )}
-            {!friendProfileLoading && !friendProfileError && friendProfile && (
-              <div className="flex w-full flex-col gap-3 rounded-[20px] border border-[#2D2D2D] bg-[#171717] p-4 text-left">
-                <div>
-                  <p className="mb-1 font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#737373]">Bio</p>
-                  <p className="font-inter text-[13px] leading-[1.6] text-[#D4D4D4]">
-                    {friendProfile.bio || "Esse usuário ainda não adicionou uma bio."}
-                  </p>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-[16px] border border-[#262626] bg-[#181818] px-3 py-3 text-center">
-                    <p className="font-montserrat text-[15px] font-bold text-[#FFD700]">{friendProfile.weight ?? "--"}</p>
-                    <p className="font-inter text-[10px] text-[#737373]">Peso</p>
-                  </div>
-                  <div className="rounded-[16px] border border-[#262626] bg-[#181818] px-3 py-3 text-center">
-                    <p className="font-montserrat text-[15px] font-bold text-[#FFD700]">{friendProfile.cards}</p>
-                    <p className="font-inter text-[10px] text-[#737373]">Cartas</p>
-                  </div>
-                  <div className="rounded-[16px] border border-[#262626] bg-[#181818] px-3 py-3 text-center">
-                    <p className="font-montserrat text-[15px] font-bold text-[#FFD700]">{friendProfile.totalWorkouts}</p>
-                    <p className="font-inter text-[10px] text-[#737373]">Treinos</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
@@ -359,7 +303,7 @@ function HiveCard({
         </div>
         <div className="flex h-11 w-11 flex-col items-center justify-center rounded-[13px] border border-[rgba(255,215,0,0.24)] bg-[rgba(255,215,0,0.1)]">
           <span className="font-montserrat text-[16px] font-extrabold leading-none text-[#FFD700]">#{position}</span>
-          <span className="font-inter text-[8px] uppercase text-[#B8A65A]">voce</span>
+          <span className="font-inter text-[8px] uppercase text-[#B8A65A]">você</span>
         </div>
       </div>
     </button>
@@ -390,10 +334,12 @@ function AddHiveCard({
 function RankingPanel({
   hive,
   state,
+  onOpenProfile,
   onRequestLeave,
 }: {
   hive: Hive;
   state: SocialState;
+  onOpenProfile: (username: string) => void;
   onRequestLeave: () => void;
 }) {
   const rankedMembers = state.rankMembers(hive);
@@ -413,12 +359,14 @@ function RankingPanel({
 
       <div className="flex flex-col gap-2">
         {rankedMembers.map((member, index) => (
-          <div
+          <button
+            type="button"
             key={member.id}
-            className={`flex items-center gap-3 rounded-[16px] border px-3 py-2.5 ${
+            onClick={() => onOpenProfile(member.username)}
+            className={`flex w-full items-center gap-3 rounded-[16px] border px-3 py-2.5 text-left transition-colors ${
               member.isCurrentUser
                 ? "border-[rgba(255,215,0,0.3)] bg-[rgba(255,215,0,0.07)]"
-                : "border-[#262626] bg-[#181818]"
+                : "border-[#262626] bg-[#181818] hover:border-[#404040]"
             }`}
           >
             <span className={`w-6 font-montserrat text-[13px] font-bold ${index === 0 ? "text-[#FFD700]" : "text-[#737373]"}`}>
@@ -431,7 +379,7 @@ function RankingPanel({
             </div>
             <span className="font-montserrat text-[13px] font-bold text-[#FFD700]">{member.workouts}</span>
             <span className="font-inter text-[10px] text-[#737373]">treinos</span>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -506,8 +454,8 @@ function HiveSheet({
           <SheetTitle className="font-montserrat text-[20px] font-bold text-white">{title}</SheetTitle>
           <SheetDescription className="font-inter text-[13px] text-[#737373]">
             {mode === "create"
-              ? "Defina a disputa e compartilhe o codigo com seus amigos."
-              : "Use o codigo recebido para participar do ranking."}
+              ? "Defina a disputa e compartilhe o código com seus amigos."
+              : "Use o código recebido para participar do ranking."}
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-4">
@@ -515,7 +463,7 @@ function HiveSheet({
             <>
               <BeeInput label="Nome" value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex: Colmeia do Leg Day" />
               <div>
-                <p className="mb-2 font-montserrat text-[12px] font-bold uppercase tracking-wide text-[#D4D4D4]">Periodo</p>
+                <p className="mb-2 font-montserrat text-[12px] font-bold uppercase tracking-wide text-[#D4D4D4]">Período</p>
                 <div className="grid grid-cols-2 gap-2">
                   {(["Semanal", "Mensal"] as HiveRankingPeriod[]).map((option) => (
                     <button
@@ -535,7 +483,7 @@ function HiveSheet({
               </div>
             </>
           ) : (
-            <BeeInput label="Codigo do convite" value={code} onChange={(event) => setCode(event.target.value)} placeholder="Ex: BEE-POWER" />
+            <BeeInput label="Código do convite" value={code} onChange={(event) => setCode(event.target.value)} placeholder="Ex: BEE-POWER" />
           )}
           <BeeButton variant="primary" fullWidth onClick={submit}>
             {mode === "create" ? "Criar Colmeia" : "Entrar na Colmeia"}
@@ -546,7 +494,7 @@ function HiveSheet({
   );
 }
 
-function HivesPanel({ state }: { state: SocialState }) {
+function HivesPanel({ state, onOpenProfile }: { state: SocialState; onOpenProfile: (username: string) => void }) {
   const [actionOpen, setActionOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
@@ -592,10 +540,11 @@ function HivesPanel({ state }: { state: SocialState }) {
 
       {state.selectedHive && (
         <section>
-          <SectionTitle icon={<Trophy size={14} color="#FFD700" />}>Classificacao</SectionTitle>
+          <SectionTitle icon={<Trophy size={14} color="#FFD700" />}>Classificação</SectionTitle>
           <RankingPanel
             hive={state.selectedHive}
             state={state}
+            onOpenProfile={onOpenProfile}
             onRequestLeave={() => setLeaveConfirmationOpen(true)}
           />
         </section>
@@ -664,8 +613,25 @@ function HivesPanel({ state }: { state: SocialState }) {
   );
 }
 
-export function SocialView({ state }: { state: SocialState }) {
+export function SocialView({
+  state,
+  profileUsername,
+  onOpenProfileFromSocial,
+  onProfileClosed,
+}: {
+  state: SocialState;
+  profileUsername?: string | null;
+  onOpenProfileFromSocial?: () => void;
+  onProfileClosed?: () => void;
+}) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [selectedProfileUsername, setSelectedProfileUsername] = useState<string | null>(null);
+  const activeProfileUsername = profileUsername ?? selectedProfileUsername;
+
+  function openProfileFromSocial(username: string) {
+    onOpenProfileFromSocial?.();
+    setSelectedProfileUsername(username);
+  }
 
   useEffect(() => {
     if (!state.activeSection || state.activeSection !== "friends") {
@@ -678,6 +644,21 @@ export function SocialView({ state }: { state: SocialState }) {
   function openFriendsUtility() {
     state.setActiveSection("friends");
     setSearchOpen((current) => !current);
+  }
+
+  if (activeProfileUsername) {
+    return (
+      <PublicProfilePage
+        username={activeProfileUsername}
+        onBack={() => {
+          setSelectedProfileUsername(null);
+          onProfileClosed?.();
+        }}
+        onFriendshipChange={() => {
+          void state.refreshFriendships(false);
+        }}
+      />
+    );
   }
 
   return (
@@ -726,7 +707,7 @@ export function SocialView({ state }: { state: SocialState }) {
                       value={state.searchTerm}
                       onChange={(event) => state.setSearchTerm(event.target.value)}
                       icon={<Search size={17} />}
-                      placeholder="Buscar por nome ou usuario"
+                      placeholder="Buscar por nome ou usuário"
                     />
                     {state.searchTerm.trim() && (
                       <div className="mt-3 flex flex-col gap-2.5">
@@ -737,7 +718,13 @@ export function SocialView({ state }: { state: SocialState }) {
                         )}
                         {state.searchResults.map((person) => (
                           <div key={person.id} className="flex items-center justify-between gap-3 rounded-[18px] border border-[#2D2D2D] bg-[#171717] p-3">
-                            <PersonIdentity person={person} />
+                            <button
+                              type="button"
+                              onClick={() => openProfileFromSocial(person.username)}
+                              className="min-w-0 flex-1 bg-transparent p-0 text-left"
+                            >
+                              <PersonIdentity person={person} />
+                            </button>
                             {person.status === "friend" ? (
                               <span className="rounded-full bg-[rgba(34,197,94,0.12)] px-3 py-1.5 font-inter text-[10px] font-bold uppercase tracking-wide text-[#4ADE80]">
                                 Amigo
@@ -770,7 +757,7 @@ export function SocialView({ state }: { state: SocialState }) {
               )}
             </AnimatePresence>
 
-            <nav className="mb-6 grid grid-cols-2 rounded-[18px] border border-[#2D2D2D] bg-[#141414] p-1.5" aria-label="Secoes sociais">
+            <nav className="mb-6 grid grid-cols-2 rounded-[18px] border border-[#2D2D2D] bg-[#141414] p-1.5" aria-label="Seções sociais">
               {[
                 { id: "friends" as const, label: "Amigos", icon: <Users size={15} /> },
                 { id: "hives" as const, label: "Colmeias", icon: <HiveIcon /> },
@@ -807,9 +794,9 @@ export function SocialView({ state }: { state: SocialState }) {
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
                 {state.activeSection === "friends" ? (
-                  <FriendsPanel state={state} />
+                  <FriendsPanel state={state} onOpenProfile={openProfileFromSocial} />
                 ) : (
-                  <HivesPanel state={state} />
+                  <HivesPanel state={state} onOpenProfile={openProfileFromSocial} />
                 )}
               </Motion.div>
             </AnimatePresence>

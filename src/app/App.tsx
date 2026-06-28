@@ -102,6 +102,8 @@ export default function App() {
   const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
   const [profileRefreshToken, setProfileRefreshToken] = useState(0);
+  const [socialProfileUsername, setSocialProfileUsername] = useState<string | null>(null);
+  const [socialProfileReturnScreen, setSocialProfileReturnScreen] = useState<"feed" | "social">("social");
 
   function handleWorkoutCompleted(_draft: WorkoutCompletionDraft) {
     completeWorkout();
@@ -111,6 +113,15 @@ export default function App() {
     void refreshStreak(true);
     window.setTimeout(() => {
       void contentRef.current?.scrollToTop(320);
+    }, 40);
+  }
+
+  function openSocialProfile(username: string) {
+    setSocialProfileReturnScreen(screen === "feed" ? "feed" : "social");
+    setSocialProfileUsername(username);
+    setScreen("social");
+    window.setTimeout(() => {
+      void contentRef.current?.scrollToTop(0);
     }, 40);
   }
 
@@ -196,10 +207,21 @@ export default function App() {
                       streakCount={streak.count}
                       isStreakFedToday={isStreakFedToday}
                       streakBurstToken={streak.burstToken}
+                      onOpenUserProfile={openSocialProfile}
                     />
                   </div>
                   <div style={{ display: screen === "social" ? "block" : "none" }}>
-                    <SocialScreen isActive={screen === "social"} />
+                    <SocialScreen
+                      isActive={screen === "social"}
+                      profileUsername={socialProfileUsername}
+                      onOpenProfileFromSocial={() => setSocialProfileReturnScreen("social")}
+                      onProfileClosed={() => {
+                        setSocialProfileUsername(null);
+                        if (socialProfileReturnScreen !== "social") {
+                          setScreen(socialProfileReturnScreen);
+                        }
+                      }}
+                    />
                   </div>
                   <div style={{ display: screen === "workout" ? "block" : "none" }}>
                     <WorkoutStartScreen

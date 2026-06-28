@@ -155,7 +155,21 @@ export function WorkoutPostCardBase({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={author.onClick}
+                  disabled={!author.onClick}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    border: "none",
+                    background: "transparent",
+                    padding: 0,
+                    cursor: author.onClick ? "pointer" : "default",
+                    textAlign: "left",
+                  }}
+                >
                   <HexAvatar src={author.avatarUrl} initials={author.initials} size={26} />
                   <div>
                     <span
@@ -173,7 +187,7 @@ export function WorkoutPostCardBase({
                       {post.date}
                     </span>
                   </div>
-                </div>
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowExercises(true)}

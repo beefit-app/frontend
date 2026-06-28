@@ -15,6 +15,7 @@ export function SocialFeedView({
   streakBurstToken,
   onToggleLike,
   onSaveTemplate,
+  onOpenAuthorProfile,
   isLoading,
   isLoadingMore,
   hasMore,
@@ -29,6 +30,7 @@ export function SocialFeedView({
   streakBurstToken: number;
   onToggleLike: (id: string | number) => void;
   onSaveTemplate: (id: string | number) => void;
+  onOpenAuthorProfile?: (username: string) => void;
   isLoading: boolean;
   isLoadingMore: boolean;
   hasMore: boolean;
@@ -124,6 +126,7 @@ export function SocialFeedView({
                     post={post}
                     onToggleLike={onToggleLike}
                     onSaveTemplate={onSaveTemplate}
+                    onOpenAuthorProfile={onOpenAuthorProfile}
                   />
                 ))}
                 {error && <div className="rounded-2xl border border-[rgba(248,113,113,0.28)] px-4 py-4 text-center font-inter text-sm text-[#FCA5A5]">{error}<button type="button" onClick={onRetry} className="ml-2 font-bold underline">Tentar novamente</button></div>}

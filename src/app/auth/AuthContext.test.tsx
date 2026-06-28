@@ -23,7 +23,7 @@ describe("AuthProvider", () => {
     vi.resetModules();
   });
 
-  it("restaura uma sessao valida salva localmente", async () => {
+  it("restaura uma sessão válida salva localmente", async () => {
     vi.stubEnv("VITE_API_URL", "");
     vi.stubEnv("VITE_DEV_AUTH_BYPASS", "true");
     const { authService } = await import("../services/authService");
@@ -42,7 +42,7 @@ describe("AuthProvider", () => {
     expect(screen.getByTestId("user")).toHaveTextContent("Restore");
   });
 
-  it("limpa uma sessao invalida durante o boot", async () => {
+  it("limpa uma sessão inválida durante o boot", async () => {
     vi.stubEnv("VITE_API_URL", "");
     vi.stubEnv("VITE_DEV_AUTH_BYPASS", "true");
     const { AuthProvider, useAuth } = await import("./AuthContext");
@@ -60,7 +60,7 @@ describe("AuthProvider", () => {
     expect(window.localStorage.getItem("beefit.auth.accessToken")).toBeNull();
   });
 
-  it("executa logout e limpa a sessao persistida", async () => {
+  it("executa logout e limpa a sessão persistida", async () => {
     vi.stubEnv("VITE_API_URL", "");
     vi.stubEnv("VITE_DEV_AUTH_BYPASS", "true");
     const { authService } = await import("../services/authService");

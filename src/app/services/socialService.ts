@@ -11,7 +11,9 @@ function profile(user: ApiUser, status: FriendProfile["status"]): FriendProfile 
   return { id: user.id, name: user.fullName, username: `@${user.username.replace(/^@/, "")}`, initials: initials(user.fullName), status };
 }
 function period(hive: ApiHive): HiveRankingPeriod { return (new Date(hive.endDate).getMonth() === new Date(hive.startDate).getMonth() && new Date(hive.endDate).getDate() - new Date(hive.startDate).getDate() <= 7) ? "Semanal" : "Mensal"; }
-function hiveMember(item: ApiRanking): HiveMember { return { id: item.userId, name: item.fullName, initials: initials(item.fullName), workouts: item.score, honeys: 0 }; }
+function hiveMember(item: ApiRanking): HiveMember {
+  return { id: item.userId, name: item.fullName, username: `@${item.username.replace(/^@/, "")}`, initials: initials(item.fullName), workouts: item.score, honeys: 0 };
+}
 
 function datesForPeriod(value: HiveRankingPeriod) {
   const now = new Date();

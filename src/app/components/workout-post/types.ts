@@ -38,4 +38,5 @@ export interface WorkoutPostAuthor {
   name: string;
   initials: string;
   avatarUrl?: string | null;
+  onClick?: () => void;
 }

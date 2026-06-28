@@ -4,6 +4,7 @@ export interface SocialFeedPost extends WorkoutPost {
   author: string;
   username: string;
   initials: string;
+  authorAvatarUrl: string | null;
   bodyWeight: number;
 }
 

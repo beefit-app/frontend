@@ -61,7 +61,7 @@ describe("authService API integration", () => {
     expect(window.localStorage.getItem("beefit.auth.deviceId")).toBeTruthy();
   });
 
-  it("registra usuario usando o contrato atual do backend", async () => {
+  it("registra usuário usando o contrato atual do backend", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       createJsonResponse(
         {
@@ -121,7 +121,7 @@ describe("authService API integration", () => {
     expect(window.localStorage.getItem("beefit.auth.refreshToken")).toBe("refresh-register");
   });
 
-  it("restaura a sessao usando o perfil parcial e o cache local do usuario", async () => {
+  it("restaura a sessão usando o perfil parcial e o cache local do usuário", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(createJsonResponse({ message: "not found" }, { status: 404 }))
       .mockResolvedValueOnce(
@@ -169,7 +169,7 @@ describe("authService API integration", () => {
     });
   });
 
-  it("limpa a sessao persistida quando o token salvo e invalido", async () => {
+  it("limpa a sessão persistida quando o token salvo é inválido", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(createJsonResponse({ message: "unauthorized" }, { status: 401 }));
 
     window.localStorage.setItem("beefit.auth.accessToken", "broken-token");

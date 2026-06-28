@@ -2,7 +2,7 @@ import { ApiError, apiClient } from "./apiClient";
 import type { LiveFriend, SocialFeedPost } from "../components/social-feed/types";
 import { normalizeMuscleGroupLabels } from "./muscleGroups";
 
-interface ApiPost { postId: string; username: string; publishedAt: string; totalLikes: number; likedByCurrentUser: boolean; title?: string | null; photoUrl?: string | null; durationSeconds: number; bodyHeatMap: string[]; exercises: { exerciseName: string; sets: { weightKg: number; reps: number }[] }[] }
+interface ApiPost { postId: string; username: string; userProfilePicture?: string | null; publishedAt: string; totalLikes: number; likedByCurrentUser: boolean; title?: string | null; photoUrl?: string | null; durationSeconds: number; bodyHeatMap: string[]; exercises: { exerciseName: string; sets: { weightKg: number; reps: number }[] }[] }
 interface ApiLiveWorkout { workoutId: string; userId: string; username: string; fullName: string; status: string; occurredAt: string; muscleGroups: string[] }
 function initials(username: string) { return username.slice(0, 2).toUpperCase(); }
 function toPost(post: ApiPost): SocialFeedPost {
@@ -10,7 +10,7 @@ function toPost(post: ApiPost): SocialFeedPost {
     date: new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(post.publishedAt)), title: post.title || "Treino concluído",
     duration: `${Math.floor((post.durationSeconds ?? 0) / 60)} min`, rarity: "comum", muscles: normalizeMuscleGroupLabels(post.bodyHeatMap), emoji: "💪", photoUrl: post.photoUrl ?? null,
     exerciseDetails: post.exercises.map((exercise) => ({ name: exercise.exerciseName, sets: exercise.sets.map((set) => ({ weight: set.weightKg, reps: set.reps })) })),
-    likes: post.totalLikes, liked: post.likedByCurrentUser, templateSaved: false, comments: [] };
+    authorAvatarUrl: post.userProfilePicture ?? null, likes: post.totalLikes, liked: post.likedByCurrentUser, templateSaved: false, comments: [] };
 }
 function toLiveFriend(item: ApiLiveWorkout): LiveFriend {
   return {

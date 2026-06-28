@@ -1,7 +1,7 @@
 import type { WorkoutPost } from "../components/profile/types";
 import { sessionStorage } from "../storage/sessionStorage";
 import type { AuthUser } from "../types/auth";
-import type { UserProfile, UserProfileUpdate } from "../types/user";
+import type { PublicProfileRelationshipStatus, PublicUserProfile, UserProfile, UserProfileUpdate } from "../types/user";
 import { apiClient } from "./apiClient";
 import { normalizeMuscleGroupLabels } from "./muscleGroups";
 
@@ -17,6 +17,12 @@ interface BackendProfileResponse {
   offensiveHoneys?: number | null;
   cardsCount?: number | null;
   totalWorkouts?: number | null;
+}
+
+interface BackendPublicProfileResponse extends BackendProfileResponse {
+  userId: string;
+  relationshipStatus: PublicProfileRelationshipStatus;
+  friendshipId?: string | null;
 }
 
 interface UpdateProfileRequest {
@@ -125,6 +131,32 @@ function mergeProfile(baseProfile: UserProfile, response: BackendProfileResponse
   };
 }
 
+function publicProfileFromResponse(response: BackendPublicProfileResponse): PublicUserProfile {
+  const username = response.username?.trim() || "usuario";
+  return {
+    ...mergeProfile(
+      {
+        id: `profile-${username}`,
+        displayName: response.fullName?.trim() || username,
+        username: normalizeUsername(username),
+        email: "",
+        bio: "",
+        avatarUrl: null,
+        weight: null,
+        weeklyGoal: null,
+        ghostModeEnabled: false,
+        cards: 0,
+        streak: 0,
+        totalWorkouts: 0,
+      },
+      response,
+    ),
+    userId: response.userId,
+    relationshipStatus: response.relationshipStatus,
+    friendshipId: response.friendshipId ?? null,
+  };
+}
+
 function buildUpdatePayload(currentProfile: UserProfile, update: UserProfileUpdate): UpdateProfileRequest {
   return {
     fullName: update.displayName?.trim() || currentProfile.displayName,
@@ -207,6 +239,12 @@ export const profileService = {
     );
   },
 
+  async getPublicProfile(username: string): Promise<PublicUserProfile> {
+    const normalizedUsername = username.replace(/^@/, "").trim();
+    const response = await apiClient.get<BackendPublicProfileResponse>(`/api/profile/${encodeURIComponent(normalizedUsername)}`, { auth: true });
+    return publicProfileFromResponse(response);
+  },
+
   async saveProfile(
     authUser: AuthUser | null,
     currentProfile: UserProfile,
@@ -245,8 +283,19 @@ export const profileService = {
       .filter((post) => usernameKey((post as BackendProfilePost & { username?: string | null }).username) === currentUsername)
       .map(normalizeProfilePost);
   },
+  async getPublicPosts(username: string): Promise<WorkoutPost[]> {
+    const normalizedUsername = username.replace(/^@/, "").trim();
+    const response = await apiClient.get<BackendProfilePostsPage | BackendProfilePost[]>(`/api/profile/${encodeURIComponent(normalizedUsername)}/posts?size=30`, { auth: true });
+    const posts = Array.isArray(response) ? response : response.content ?? [];
+    return posts.map(normalizeProfilePost);
+  },
   async getTrainedDays(month = new Date()) {
     const monthValue = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}`;
     return apiClient.get<number[]>(`/api/profile/me/training-days?month=${monthValue}`, { auth: true });
+  },
+  async getPublicTrainedDays(username: string, month = new Date()) {
+    const normalizedUsername = username.replace(/^@/, "").trim();
+    const monthValue = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}`;
+    return apiClient.get<number[]>(`/api/profile/${encodeURIComponent(normalizedUsername)}/training-days?month=${monthValue}`, { auth: true });
   },
 };

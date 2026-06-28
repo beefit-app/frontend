@@ -63,7 +63,7 @@ describe("App", () => {
     };
   });
 
-  it("mostra a tela de boot enquanto a sessao esta sendo restaurada", () => {
+  it("mostra a tela de boot enquanto a sessão está sendo restaurada", () => {
     authState.current = {
       isAuthenticated: false,
       isBootstrapping: true,
@@ -84,7 +84,7 @@ describe("App", () => {
     expect(screen.getByText("login-screen")).toBeInTheDocument();
   });
 
-  it("volta sempre para login quando a sessao e encerrada", () => {
+  it("volta sempre para login quando a sessão é encerrada", () => {
     const { rerender } = render(<App />);
 
     fireEvent.click(screen.getByText("go-register"));
@@ -105,7 +105,7 @@ describe("App", () => {
     expect(screen.getByText("login-screen")).toBeInTheDocument();
   });
 
-  it("renderiza a area autenticada quando o usuario ja esta logado", () => {
+  it("renderiza a área autenticada quando o usuário já está logado", () => {
     authState.current = {
       isAuthenticated: true,
       isBootstrapping: false,
