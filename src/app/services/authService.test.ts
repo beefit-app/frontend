@@ -27,8 +27,9 @@ describe("authService API integration", () => {
   it("normaliza o login com o contrato atual do backend", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       createJsonResponse({
-        token: "jwt-backend",
-        userResponseDTO: {
+        accessToken: "jwt-backend",
+        refreshToken: "refresh-backend",
+        user: {
           id: "user-1",
           fullName: "Bee Fit",
           username: "beefit",
@@ -44,6 +45,7 @@ describe("authService API integration", () => {
 
     expect(session).toEqual({
       accessToken: "jwt-backend",
+      refreshToken: "refresh-backend",
       user: {
         id: "user-1",
         name: "Bee Fit",
@@ -54,15 +56,18 @@ describe("authService API integration", () => {
       },
     });
     expect(window.localStorage.getItem("beefit.auth.accessToken")).toBe("jwt-backend");
+    expect(window.localStorage.getItem("beefit.auth.refreshToken")).toBe("refresh-backend");
     expect(window.localStorage.getItem("beefit.auth.user")).toContain("\"Bee Fit\"");
+    expect(window.localStorage.getItem("beefit.auth.deviceId")).toBeTruthy();
   });
 
   it("registra usuario usando o contrato atual do backend", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       createJsonResponse(
         {
-          token: "jwt-register",
-          userResponseDTO: {
+          accessToken: "jwt-register",
+          refreshToken: "refresh-register",
+          user: {
             id: "user-2",
             fullName: "Nova Pessoa",
             username: "nova",
@@ -96,11 +101,13 @@ describe("authService API integration", () => {
           password: "123456",
           weeklyGoal: 5,
           bodyWeight: 68,
+          deviceId: window.localStorage.getItem("beefit.auth.deviceId"),
         }),
       }),
     );
     expect(session).toEqual({
       accessToken: "jwt-register",
+      refreshToken: "refresh-register",
       user: {
         id: "user-2",
         name: "Nova Pessoa",
@@ -111,6 +118,7 @@ describe("authService API integration", () => {
       },
     });
     expect(window.localStorage.getItem("beefit.auth.accessToken")).toBe("jwt-register");
+    expect(window.localStorage.getItem("beefit.auth.refreshToken")).toBe("refresh-register");
   });
 
   it("restaura a sessao usando o perfil parcial e o cache local do usuario", async () => {
@@ -124,6 +132,7 @@ describe("authService API integration", () => {
       );
 
     window.localStorage.setItem("beefit.auth.accessToken", "jwt-backend");
+    window.localStorage.setItem("beefit.auth.refreshToken", "refresh-backend");
     window.localStorage.setItem(
       "beefit.auth.user",
       JSON.stringify({
@@ -141,6 +150,7 @@ describe("authService API integration", () => {
 
     expect(session).toEqual({
       accessToken: "jwt-backend",
+      refreshToken: "refresh-backend",
       user: {
         id: "user-1",
         name: "Bee Fit Updated",
@@ -163,6 +173,7 @@ describe("authService API integration", () => {
     vi.mocked(fetch).mockResolvedValueOnce(createJsonResponse({ message: "unauthorized" }, { status: 401 }));
 
     window.localStorage.setItem("beefit.auth.accessToken", "broken-token");
+    window.localStorage.setItem("beefit.auth.refreshToken", "refresh-broken-token");
     window.localStorage.setItem(
       "beefit.auth.user",
       JSON.stringify({
@@ -177,6 +188,7 @@ describe("authService API integration", () => {
 
     expect(session).toBeNull();
     expect(window.localStorage.getItem("beefit.auth.accessToken")).toBeNull();
+    expect(window.localStorage.getItem("beefit.auth.refreshToken")).toBeNull();
     expect(window.localStorage.getItem("beefit.auth.user")).toBeNull();
   });
 });

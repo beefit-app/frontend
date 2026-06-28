@@ -1,5 +1,10 @@
+import { Capacitor } from "@capacitor/core";
+import { SecureStorage } from "@aparajita/capacitor-secure-storage";
+
 const ACCESS_TOKEN_KEY = "beefit.auth.accessToken";
+const REFRESH_TOKEN_KEY = "beefit.auth.refreshToken";
 const AUTH_USER_KEY = "beefit.auth.user";
+const DEVICE_ID_KEY = "beefit.auth.deviceId";
 
 function hasBrowserStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -8,6 +13,11 @@ function hasBrowserStorage() {
 async function readFromFallbackStorage() {
   if (!hasBrowserStorage()) return null;
   return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+async function readRefreshTokenFromFallbackStorage() {
+  if (!hasBrowserStorage()) return null;
+  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
 function isNative() {
@@ -19,9 +29,19 @@ async function writeToFallbackStorage(token: string) {
   window.localStorage.setItem(ACCESS_TOKEN_KEY, token);
 }
 
+async function writeRefreshTokenToFallbackStorage(token: string) {
+  if (!hasBrowserStorage()) return;
+  window.localStorage.setItem(REFRESH_TOKEN_KEY, token);
+}
+
 async function clearFallbackStorage() {
   if (!hasBrowserStorage()) return;
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
+async function clearRefreshTokenFallbackStorage() {
+  if (!hasBrowserStorage()) return;
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
 async function readUserFromFallbackStorage() {
@@ -49,6 +69,24 @@ async function clearUserFallbackStorage() {
   window.localStorage.removeItem(AUTH_USER_KEY);
 }
 
+async function readDeviceIdFromFallbackStorage() {
+  if (!hasBrowserStorage()) return null;
+  return window.localStorage.getItem(DEVICE_ID_KEY);
+}
+
+async function writeDeviceIdToFallbackStorage(deviceId: string) {
+  if (!hasBrowserStorage()) return;
+  window.localStorage.setItem(DEVICE_ID_KEY, deviceId);
+}
+
+function generateDeviceId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 // This adapter keeps the auth layer async so a native secure storage backend
 // can replace the fallback implementation without changing call sites.
 export const sessionStorage = {
@@ -66,6 +104,22 @@ export const sessionStorage = {
       return;
     }
     await writeToFallbackStorage(token);
+  },
+
+  async getRefreshToken() {
+    if (isNative()) {
+      const token = await SecureStorage.get(REFRESH_TOKEN_KEY);
+      return typeof token === "string" ? token : null;
+    }
+    return readRefreshTokenFromFallbackStorage();
+  },
+
+  async setRefreshToken(token: string) {
+    if (isNative()) {
+      await SecureStorage.set(REFRESH_TOKEN_KEY, token);
+      return;
+    }
+    await writeRefreshTokenToFallbackStorage(token);
   },
 
   async getUser<T>() {
@@ -91,6 +145,14 @@ export const sessionStorage = {
     await clearFallbackStorage();
   },
 
+  async clearRefreshToken() {
+    if (isNative()) {
+      await SecureStorage.remove(REFRESH_TOKEN_KEY);
+      return;
+    }
+    await clearRefreshTokenFallbackStorage();
+  },
+
   async clearUser() {
     if (isNative()) {
       await SecureStorage.remove(AUTH_USER_KEY);
@@ -98,6 +160,26 @@ export const sessionStorage = {
     }
     await clearUserFallbackStorage();
   },
+
+  async getDeviceId() {
+    if (isNative()) {
+      const deviceId = await SecureStorage.get(DEVICE_ID_KEY);
+      return typeof deviceId === "string" ? deviceId : null;
+    }
+    return readDeviceIdFromFallbackStorage();
+  },
+
+  async ensureDeviceId() {
+    const existingDeviceId = await this.getDeviceId();
+    if (existingDeviceId) return existingDeviceId;
+
+    const deviceId = generateDeviceId();
+    if (isNative()) {
+      await SecureStorage.set(DEVICE_ID_KEY, deviceId);
+      return deviceId;
+    }
+
+    await writeDeviceIdToFallbackStorage(deviceId);
+    return deviceId;
+  },
 };
-import { Capacitor } from "@capacitor/core";
-import { SecureStorage } from "@aparajita/capacitor-secure-storage";

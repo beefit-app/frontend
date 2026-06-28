@@ -41,14 +41,22 @@ export interface RegisterApiInput {
 
 export interface AuthTokenResponse {
   accessToken: string;
+  refreshToken: string;
 }
 
 export interface AuthSession {
   accessToken: string;
+  refreshToken: string;
   user: AuthUser;
 }
 
 export interface AuthSessionResponse {
   accessToken: string;
+  refreshToken: string;
   user: AuthApiUser;
+}
+
+export interface RefreshSessionResponse {
+  accessToken: string;
+  refreshToken: string;
 }

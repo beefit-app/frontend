@@ -1,4 +1,5 @@
 import { sessionStorage } from "../storage/sessionStorage";
+import type { RefreshSessionResponse } from "../types/auth";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -22,8 +23,14 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
+interface ParsedResponse {
+  responseData: unknown;
+  rawResponse: string;
+}
+
 const API_BASE_URL = import.meta.env?.VITE_API_URL?.replace(/\/$/, "") ?? "";
 export const AUTH_UNAUTHORIZED_EVENT = "beefit:auth-unauthorized";
+let refreshRequest: Promise<string | null> | null = null;
 
 function buildUrl(path: string) {
   if (/^https?:\/\//.test(path)) return path;
@@ -71,7 +78,98 @@ function getErrorMessage(data: unknown, fallbackMessage: string) {
   return fallbackMessage;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}) {
+function getErrorCode(data: unknown) {
+  if (!data || typeof data !== "object") return null;
+  const maybeError = "error" in data ? data.error : null;
+  return typeof maybeError === "string" && maybeError.trim() ? maybeError : null;
+}
+
+async function parseResponseBody(response: Response): Promise<ParsedResponse> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const rawResponse = await response.text();
+  let responseData: unknown = rawResponse;
+
+  if (contentType.includes("application/json") && rawResponse.trim()) {
+    try {
+      responseData = JSON.parse(rawResponse);
+    } catch {
+      responseData = rawResponse;
+    }
+  }
+
+  return { responseData, rawResponse };
+}
+
+async function performFetch(requestUrl: string, method: HttpMethod, finalHeaders: Record<string, string>, body: unknown) {
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  return fetch(requestUrl, {
+    method,
+    headers: finalHeaders,
+    body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
+  });
+}
+
+async function runRefreshRequest(): Promise<string | null> {
+  const refreshToken = await sessionStorage.getRefreshToken();
+  const deviceId = await sessionStorage.getDeviceId();
+
+  if (!refreshToken || !deviceId) {
+    return null;
+  }
+
+  const requestUrls = [buildUrl("/auth/refresh")];
+  const fallbackUrl = buildFallbackUrl("/auth/refresh");
+  if (requestUrls[0] !== fallbackUrl) {
+    requestUrls.push(fallbackUrl);
+  }
+
+  for (const requestUrl of requestUrls) {
+    try {
+      const response = await fetch(requestUrl, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken, deviceId }),
+      });
+
+      const { responseData } = await parseResponseBody(response);
+      if (!response.ok) {
+        continue;
+      }
+
+      if (
+        !responseData ||
+        typeof responseData !== "object" ||
+        typeof (responseData as RefreshSessionResponse).accessToken !== "string" ||
+        typeof (responseData as RefreshSessionResponse).refreshToken !== "string"
+      ) {
+        return null;
+      }
+
+      await sessionStorage.setToken((responseData as RefreshSessionResponse).accessToken);
+      await sessionStorage.setRefreshToken((responseData as RefreshSessionResponse).refreshToken);
+      return (responseData as RefreshSessionResponse).accessToken;
+    } catch {
+      // Tenta a URL de fallback antes de desistir.
+    }
+  }
+
+  return null;
+}
+
+async function refreshAccessToken() {
+  if (!refreshRequest) {
+    refreshRequest = runRefreshRequest().finally(() => {
+      refreshRequest = null;
+    });
+  }
+
+  return refreshRequest;
+}
+
+async function request<T>(path: string, options: RequestOptions = {}, hasRetriedAfterRefresh = false) {
   const { method = "GET", body, auth = false, logoutOnUnauthorized = false, headers = {} } = options;
   const finalHeaders: Record<string, string> = {
     Accept: "application/json",
@@ -104,11 +202,7 @@ async function request<T>(path: string, options: RequestOptions = {}) {
 
   for (const requestUrl of requestUrls) {
     try {
-      response = await fetch(requestUrl, {
-        method,
-        headers: finalHeaders,
-        body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
-      });
+      response = await performFetch(requestUrl, method, finalHeaders, body);
       break;
     } catch (error) {
       lastError = error;
@@ -127,19 +221,23 @@ async function request<T>(path: string, options: RequestOptions = {}) {
     return null as T;
   }
 
-  const contentType = response.headers.get("content-type") ?? "";
-  const rawResponse = await response.text();
-  let responseData: unknown = rawResponse;
-
-  if (contentType.includes("application/json") && rawResponse.trim()) {
-    try {
-      responseData = JSON.parse(rawResponse);
-    } catch {
-      responseData = rawResponse;
-    }
-  }
+  const { responseData } = await parseResponseBody(response);
 
   if (!response.ok) {
+    const errorCode = getErrorCode(responseData);
+
+    if (
+      response.status === 401 &&
+      auth &&
+      !hasRetriedAfterRefresh &&
+      (errorCode === "TOKEN_EXPIRED" || errorCode === "TOKEN_INVALID")
+    ) {
+      const refreshedAccessToken = await refreshAccessToken();
+      if (refreshedAccessToken) {
+        return request<T>(path, options, true);
+      }
+    }
+
     if (response.status === 401 && auth && logoutOnUnauthorized) {
       window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
     }

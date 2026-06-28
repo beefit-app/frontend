@@ -79,6 +79,7 @@ describe("AuthProvider", () => {
 
     await waitFor(() => expect(screen.getByTestId("auth")).toHaveTextContent("false"));
     expect(window.localStorage.getItem("beefit.auth.accessToken")).toBeNull();
+    expect(window.localStorage.getItem("beefit.auth.refreshToken")).toBeNull();
   });
 
   afterEach(() => {

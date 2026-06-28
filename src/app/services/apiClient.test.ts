@@ -86,4 +86,32 @@ describe("apiClient", () => {
 
     window.removeEventListener("beefit:auth-unauthorized", listener);
   });
+
+  it("renova o access token e repete a request quando a sessao expira", async () => {
+    window.localStorage.setItem("beefit.auth.accessToken", "expired-token");
+    window.localStorage.setItem("beefit.auth.refreshToken", "refresh-token");
+    window.localStorage.setItem("beefit.auth.deviceId", "device-1");
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        createJsonResponse({ error: "TOKEN_EXPIRED", message: "Sua sessão expirou." }, { status: 401 }),
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({ accessToken: "new-token", refreshToken: "new-refresh-token" }),
+      )
+      .mockResolvedValueOnce(createJsonResponse({ ok: true }));
+
+    const { apiClient } = await import("./apiClient");
+    const response = await apiClient.get("/api/workout/active", { auth: true });
+
+    expect(response).toEqual({ ok: true });
+    expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe(`${API_URL}/auth/refresh`);
+    expect(vi.mocked(fetch).mock.calls[2]?.[1]).toMatchObject({
+      headers: expect.objectContaining({
+        Authorization: "Bearer new-token",
+      }),
+    });
+    expect(window.localStorage.getItem("beefit.auth.accessToken")).toBe("new-token");
+    expect(window.localStorage.getItem("beefit.auth.refreshToken")).toBe("new-refresh-token");
+  });
 });

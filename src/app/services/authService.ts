@@ -18,17 +18,20 @@ const CURRENT_USER_PATHS = ["/auth/me", "/api/profile/me", "/users/me"] as const
 
 interface BackendAuthSessionResponse {
   accessToken: string;
+  refreshToken: string;
   user: AuthApiUser;
 }
 
 interface LegacyBackendAuthSessionResponse {
   token: string;
+  refreshToken?: string;
   userResponseDTO: AuthApiUser;
 }
 
 interface BackendTokenOnlyResponse {
   accessToken?: string;
   token?: string;
+  refreshToken?: string;
 }
 
 interface BackendProfileResponse {
@@ -80,6 +83,7 @@ function isBackendAuthSessionResponse(value: unknown): value is BackendAuthSessi
   return (
     isObject(value) &&
     typeof value.accessToken === "string" &&
+    typeof value.refreshToken === "string" &&
     isObject(value.user) &&
     typeof value.user.fullName === "string"
   );
@@ -116,9 +120,14 @@ function mapAuthApiUserToAuthUser(apiUser: AuthApiUser): AuthUser {
   };
 }
 
-function mapSessionResponseToAuthSession(accessToken: string, apiUser: AuthApiUser): AuthSession {
+function mapSessionResponseToAuthSessionWithRefresh(
+  accessToken: string,
+  refreshToken: string,
+  apiUser: AuthApiUser,
+): AuthSession {
   return {
     accessToken,
+    refreshToken,
     user: mapAuthApiUserToAuthUser(apiUser),
   };
 }
@@ -181,20 +190,24 @@ function mapRegisterInputToApi(input: RegisterInput): RegisterApiInput {
 
 async function persistSession(session: AuthSession) {
   await sessionStorage.setToken(session.accessToken);
+  await sessionStorage.setRefreshToken(session.refreshToken);
   await sessionStorage.setUser(session.user);
   return session;
 }
 
 async function clearStoredSession() {
   await sessionStorage.clearToken();
+  await sessionStorage.clearRefreshToken();
   await sessionStorage.clearUser();
 }
 
 const mockAuthGateway: AuthGateway = {
   async login(input) {
     const accessToken = buildMockToken(input.email);
+    const refreshToken = `refresh-${accessToken}`;
     const session = {
       accessToken,
+      refreshToken,
       user: buildMockUser(input.email),
     };
 
@@ -203,8 +216,10 @@ const mockAuthGateway: AuthGateway = {
 
   async register(input) {
     const accessToken = buildMockToken(input.email);
+    const refreshToken = `refresh-${accessToken}`;
     const session = {
       accessToken,
+      refreshToken,
       user: {
         ...buildMockUser(input.email),
         name: input.name.trim() || buildMockUser(input.email).name,
@@ -230,6 +245,7 @@ const mockAuthGateway: AuthGateway = {
 
     return {
       accessToken: token,
+      refreshToken: `refresh-${token}`,
       user: buildMockUser(email),
     };
   },
@@ -266,13 +282,14 @@ async function fetchCurrentUserFromApi(fallbackUser: AuthUser | null) {
   throw new Error("Endpoint de usuário autenticado não encontrado.");
 }
 
-async function createSessionFromToken(accessToken: string) {
+async function createSessionFromToken(accessToken: string, refreshToken: string) {
   const cachedUser = await sessionStorage.getUser<AuthUser>();
   await sessionStorage.setToken(accessToken);
+  await sessionStorage.setRefreshToken(refreshToken);
 
   try {
     const user = await fetchCurrentUserFromApi(cachedUser);
-    return persistSession({ accessToken, user });
+    return persistSession({ accessToken, refreshToken, user });
   } catch (error) {
     await clearStoredSession();
     throw error;
@@ -281,24 +298,31 @@ async function createSessionFromToken(accessToken: string) {
 
 async function normalizeApiSession(response: unknown, credentials?: LoginInput): Promise<AuthSession> {
   if (isBackendAuthSessionResponse(response)) {
-    return persistSession(mapSessionResponseToAuthSession(response.accessToken, response.user));
+    return persistSession(
+      mapSessionResponseToAuthSessionWithRefresh(response.accessToken, response.refreshToken, response.user),
+    );
   }
 
   if (isLegacyBackendAuthSessionResponse(response)) {
-    return persistSession(mapSessionResponseToAuthSession(response.token, response.userResponseDTO));
+    const refreshToken = typeof response.refreshToken === "string" ? response.refreshToken : response.token;
+    return persistSession(
+      mapSessionResponseToAuthSessionWithRefresh(response.token, refreshToken, response.userResponseDTO),
+    );
   }
 
   if (isBackendTokenOnlyResponse(response)) {
     const accessToken = response.accessToken ?? response.token;
+    const refreshToken = response.refreshToken ?? accessToken;
     if (!accessToken) {
       throw new Error("Resposta de autenticação inválida.");
     }
 
-    return createSessionFromToken(accessToken);
+    return createSessionFromToken(accessToken, refreshToken);
   }
 
   if (credentials) {
-    const loginResponse = await apiClient.post<unknown>(AUTH_LOGIN_PATH, credentials);
+    const deviceId = await sessionStorage.ensureDeviceId();
+    const loginResponse = await apiClient.post<unknown>(AUTH_LOGIN_PATH, { ...credentials, deviceId });
     return normalizeApiSession(loginResponse);
   }
 
@@ -307,12 +331,17 @@ async function normalizeApiSession(response: unknown, credentials?: LoginInput):
 
 const apiAuthGateway: AuthGateway = {
   async login(input) {
-    const response = await apiClient.post<unknown>(AUTH_LOGIN_PATH, input);
+    const deviceId = await sessionStorage.ensureDeviceId();
+    const response = await apiClient.post<unknown>(AUTH_LOGIN_PATH, { ...input, deviceId });
     return normalizeApiSession(response);
   },
 
   async register(input) {
-    const response = await apiClient.post<unknown>(AUTH_REGISTER_PATH, mapRegisterInputToApi(input));
+    const deviceId = await sessionStorage.ensureDeviceId();
+    const response = await apiClient.post<unknown>(AUTH_REGISTER_PATH, {
+      ...mapRegisterInputToApi(input),
+      deviceId,
+    });
     return normalizeApiSession(response, {
       email: input.email,
       password: input.password,
@@ -321,15 +350,17 @@ const apiAuthGateway: AuthGateway = {
 
   async restoreSession() {
     const accessToken = await sessionStorage.getToken();
+    const refreshToken = await sessionStorage.getRefreshToken();
 
-    if (!accessToken) {
+    if (!accessToken || !refreshToken) {
+      await clearStoredSession();
       return null;
     }
 
     try {
       const cachedUser = await sessionStorage.getUser<AuthUser>();
       const user = await fetchCurrentUserFromApi(cachedUser);
-      return persistSession({ accessToken, user });
+      return persistSession({ accessToken, refreshToken, user });
     } catch {
       await clearStoredSession();
       return null;
@@ -337,6 +368,17 @@ const apiAuthGateway: AuthGateway = {
   },
 
   async logout() {
+    const refreshToken = await sessionStorage.getRefreshToken();
+    const deviceId = await sessionStorage.getDeviceId();
+
+    if (refreshToken && deviceId) {
+      try {
+        await apiClient.post("/auth/logout", { refreshToken, deviceId });
+      } catch {
+        // O logout local deve prosseguir mesmo se a sessão já estiver inválida no servidor.
+      }
+    }
+
     await clearStoredSession();
   },
 
