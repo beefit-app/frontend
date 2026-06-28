@@ -63,6 +63,8 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
         activeCatalogGroupId={session.activeCatalogGroupId}
         visibleCatalogItems={session.visibleCatalogItems}
         selectedCatalogIds={session.selectedCatalogIds}
+        isLoadingCatalog={session.isLoadingCatalog}
+        catalogError={session.catalogError}
         onBack={() => session.setIsCatalogOpen(false)}
         onSelectGroup={session.setActiveCatalogGroupId}
         onOpenExercise={(exerciseId) => {
@@ -82,14 +84,14 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
       exerciseSlideRefs={session.exerciseSlideRefs}
       seriesContainerRefs={session.seriesContainerRefs}
       isWorkoutMenuOpen={session.isWorkoutMenuOpen}
+      activeExerciseMenuId={session.activeExerciseMenuId}
       onToggleWorkoutMenu={() => session.setIsWorkoutMenuOpen((current) => !current)}
       onCancelWorkout={() => void props.onCancelWorkout?.()}
       onSaveTemplate={() => void props.onSaveTemplate?.(session.sessionGroups, session.exercises)}
-      onOpenExerciseInfo={(catalogId) => {
-        session.setDetailViewSource("session");
-        session.setCatalogDetailExerciseId(catalogId);
-        session.setIsCatalogOpen(true);
-      }}
+      onToggleExerciseMenu={(exerciseId) =>
+        session.setActiveExerciseMenuId((current) => (current === exerciseId ? null : exerciseId))
+      }
+      onRemoveExercise={session.removeExercise}
       onUpdateSet={session.updateSet}
       onAddSet={session.addSet}
       onOpenCatalog={() => session.setIsCatalogOpen(true)}

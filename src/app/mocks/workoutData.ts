@@ -1,22 +1,6 @@
-import type { ExerciseCatalogItem, MuscleGroupOption, WorkoutTemplate } from "../types/workout";
+import type { MuscleGroupOption } from "../types/workout";
 
-// Fonte temporária de dados de treino até a API assumir esse papel.
-export const EXERCISES: ExerciseCatalogItem[] = [
-  { id: "supino-reto", name: "Supino reto", group: "Peito", groupId: "peito", notes: "Press horizontal com barra.", lastPerformed: "Ontem", bestWeight: "84 kg", lastWeight: "78 kg" },
-  { id: "supino-inclinado", name: "Supino inclinado", group: "Peito", groupId: "peito", notes: "Ênfase na parte superior do peitoral.", lastPerformed: "3 dias atrás", bestWeight: "70 kg", lastWeight: "64 kg" },
-  { id: "puxada-frontal", name: "Puxada frontal", group: "Costas", groupId: "costas", notes: "Trabalho principal de dorsais.", lastPerformed: "Hoje", bestWeight: "72 kg", lastWeight: "68 kg" },
-  { id: "remada-curvada", name: "Remada curvada", group: "Costas", groupId: "costas", notes: "Espessura e estabilidade.", lastPerformed: "5 dias atrás", bestWeight: "76 kg", lastWeight: "70 kg" },
-  { id: "agachamento-livre", name: "Agachamento livre", group: "Pernas", groupId: "pernas", notes: "Base de força para lower body.", lastPerformed: "2 dias atrás", bestWeight: "120 kg", lastWeight: "110 kg" },
-  { id: "leg-press", name: "Leg press", group: "Pernas", groupId: "pernas", notes: "Volume com apoio e estabilidade.", lastPerformed: "1 semana atrás", bestWeight: "240 kg", lastWeight: "220 kg" },
-  { id: "desenvolvimento", name: "Desenvolvimento militar", group: "Ombros", groupId: "ombros", notes: "Press vertical principal.", lastPerformed: "4 dias atrás", bestWeight: "46 kg", lastWeight: "42 kg" },
-  { id: "elevacao-lateral", name: "Elevação lateral", group: "Ombros", groupId: "ombros", notes: "Ênfase em deltoide médio.", lastPerformed: "Hoje", bestWeight: "16 kg", lastWeight: "14 kg" },
-  { id: "rosca-direta", name: "Rosca direta", group: "Braços", groupId: "bracos", notes: "Progressão de bíceps.", lastPerformed: "Ontem", bestWeight: "38 kg", lastWeight: "34 kg" },
-  { id: "triceps-corda", name: "Tríceps corda", group: "Braços", groupId: "bracos", notes: "Extensão controlada na polia.", lastPerformed: "3 dias atrás", bestWeight: "42 kg", lastWeight: "36 kg" },
-  { id: "abdominal-cabo", name: "Abdominal no cabo", group: "Core", groupId: "core", notes: "Flexão com sobrecarga.", lastPerformed: "Hoje", bestWeight: "52 kg", lastWeight: "48 kg" },
-  { id: "prancha", name: "Prancha", group: "Core", groupId: "core", notes: "Estabilidade de tronco.", lastPerformed: "2 dias atrás", bestWeight: "2m 10s", lastWeight: "1m 45s" },
-];
-
-export const GROUP_ORDER = ["Peito", "Costas", "Pernas", "Ombros", "Braços", "Core"] as const;
+export const GROUP_ORDER = ["Peito", "Costas", "Pernas", "Glúteos", "Ombros", "Braços", "Core", "Trapézio"] as const;
 
 export const MUSCLE_GROUPS: MuscleGroupOption[] = [
   {
@@ -41,6 +25,13 @@ export const MUSCLE_GROUPS: MuscleGroupOption[] = [
     glow: "rgba(34,197,94,0.2)",
   },
   {
+    id: "gluteos",
+    label: "Glúteos",
+    description: "Movimentos focados em extensão de quadril e cadeia posterior.",
+    accent: "#14B8A6",
+    glow: "rgba(20,184,166,0.2)",
+  },
+  {
     id: "ombros",
     label: "Ombros",
     description: "Desenvolvimento e elevações com estabilidade.",
@@ -61,50 +52,11 @@ export const MUSCLE_GROUPS: MuscleGroupOption[] = [
     accent: "#EF4444",
     glow: "rgba(239,68,68,0.2)",
   },
-];
-
-export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
   {
-    id: "upper-a",
-    name: "Upper A",
-    groups: ["Peito", "Costas", "Ombros"],
-    duration: "55 min",
-    exercises: 6,
-    exerciseIds: [
-      "supino-reto",
-      "supino-inclinado",
-      "puxada-frontal",
-      "remada-curvada",
-      "desenvolvimento",
-      "elevacao-lateral",
-    ],
-  },
-  {
-    id: "push",
-    name: "Push Clássico",
-    groups: ["Peito", "Ombros", "Braços"],
-    duration: "48 min",
-    exercises: 6,
-    exerciseIds: [
-      "supino-reto",
-      "supino-inclinado",
-      "desenvolvimento",
-      "elevacao-lateral",
-      "triceps-corda",
-      "rosca-direta",
-    ],
-  },
-  {
-    id: "legs",
-    name: "Leg Day",
-    groups: ["Pernas", "Core"],
-    duration: "1h 05min",
-    exercises: 4,
-    exerciseIds: [
-      "agachamento-livre",
-      "leg-press",
-      "abdominal-cabo",
-      "prancha",
-    ],
+    id: "trapezio",
+    label: "Trapézio",
+    description: "Exercícios de elevação e estabilidade da cintura escapular.",
+    accent: "#8B5CF6",
+    glow: "rgba(139,92,246,0.2)",
   },
 ];

@@ -10,6 +10,9 @@ import { apiClient } from "./apiClient";
 
 interface BackendPage<T> {
   content?: T[];
+  last?: boolean;
+  number?: number;
+  totalPages?: number;
 }
 
 interface BackendCatalogExercise {
@@ -88,8 +91,8 @@ const GROUP_ID_BY_BACKEND: Record<string, string> = {
   TRAPS: "trapezio",
 };
 
-let catalogCache: ExerciseCatalogItem[] = workoutDataSource.getExercises();
-let templatesCache: WorkoutTemplate[] = workoutDataSource.getTemplates();
+let catalogCache: ExerciseCatalogItem[] = [];
+let templatesCache: WorkoutTemplate[] = [];
 
 function extractList<T>(response: T[] | BackendPage<T>) {
   if (Array.isArray(response)) return response;
@@ -113,7 +116,9 @@ function getGroupLabel(groupId: string) {
 }
 
 function normalizeCatalogExercise(exercise: BackendCatalogExercise): ExerciseCatalogItem {
-  const groupId = normalizeGroupId(exercise.primaryMuscleGroupsList?.[0]);
+  const groupId = normalizeGroupId(
+    exercise.primaryMuscleGroupsList?.[0] ?? exercise.secondaryMuscleGroupsList?.[0],
+  );
 
   return {
     id: exercise.id,
@@ -173,6 +178,7 @@ function toFinishPayload(draft: WorkoutCompletionDraft) {
     exercises: draft.exercises.map((exercise, exerciseIndex) => ({
       sessionExerciseId: exercise.sessionExerciseId ?? null,
       catalogExerciseId: exercise.catalogId,
+      catalogExerciseName: exercise.name,
       order: exerciseIndex + 1,
       sets: exercise.sets.map((set, setIndex) => ({
         id: set.backendId ?? null,
@@ -198,19 +204,42 @@ function normalizeWorkoutResult(response: BackendWorkoutSession): WorkoutComplet
   };
 }
 
-// Camada intermediária mínima para centralizar o ponto de troca entre mocks locais
-// e a futura integração com a API de treino.
+// O catálogo de exercícios e os templates devem vir exclusivamente da API.
+// Apenas a taxonomia visual dos grupos permanece local.
 export const workoutService = {
   getCatalog() {
     return catalogCache;
   },
 
+  hasCatalogLoaded() {
+    return catalogCache.length > 0;
+  },
+
   async loadCatalog() {
-    const response = await apiClient.get<BackendCatalogExercise[] | BackendPage<BackendCatalogExercise>>(
-      "/api/exercises?size=200",
-      { auth: true },
-    );
-    catalogCache = extractList(response).map(normalizeCatalogExercise);
+    const exercises: BackendCatalogExercise[] = [];
+    let page = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await apiClient.get<BackendCatalogExercise[] | BackendPage<BackendCatalogExercise>>(
+        `/api/exercises?size=200&page=${page}`,
+        { auth: true },
+      );
+
+      exercises.push(...extractList(response));
+
+      if (Array.isArray(response)) {
+        hasMore = false;
+        continue;
+      }
+
+      const currentPage = response.number ?? page;
+      const totalPages = response.totalPages ?? currentPage + 1;
+      hasMore = response.last === false || currentPage + 1 < totalPages;
+      page = currentPage + 1;
+    }
+
+    catalogCache = exercises.map(normalizeCatalogExercise);
     return catalogCache;
   },
 
@@ -257,12 +286,13 @@ export const workoutService = {
   },
 
   getGroupedCatalog() {
-    const groupOrder = workoutDataSource.getGroupOrder();
+    const groups = workoutDataSource.getMuscleGroups();
     const exercises = catalogCache;
 
-    return groupOrder.map((group) => ({
-      group,
-      items: exercises.filter((exercise) => exercise.group === group),
+    return groups.map((group) => ({
+      groupId: group.id,
+      group: group.label,
+      items: exercises.filter((exercise) => exercise.groupId === group.id),
     }));
   },
 

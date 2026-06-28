@@ -58,6 +58,7 @@ export function WorkoutStartScreen({
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [workoutTemplates, setWorkoutTemplates] = useState(() => workoutService.getTemplates());
+  const [catalogRevision, setCatalogRevision] = useState(0);
   const [startError, setStartError] = useState("");
   const [isStartingWorkout, setIsStartingWorkout] = useState(false);
   const [activeWorkoutConfig, setActiveWorkoutConfig] = useState<{
@@ -116,6 +117,7 @@ export function WorkoutStartScreen({
     async function loadWorkoutData() {
       try {
         await workoutService.loadCatalog();
+        if (active) setCatalogRevision(Date.now());
         const templates = await workoutService.loadTemplates();
         if (active) setWorkoutTemplates(templates);
       } catch {
@@ -167,6 +169,10 @@ export function WorkoutStartScreen({
 
   async function handleStartWorkout() {
     if (!canStartWorkout) return;
+    if (workoutService.getCatalog().length === 0) {
+      setStartError("O catálogo de exercícios ainda não foi carregado. Aguarde e tente novamente.");
+      return;
+    }
     setIsStartingWorkout(true);
     setStartError("");
 
@@ -229,6 +235,7 @@ export function WorkoutStartScreen({
         initialExercises={activeWorkoutConfig.initialExerciseIds
           .map((exerciseId) => workoutService.getCatalogItemById(exerciseId))
           .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null)}
+        catalogRevision={catalogRevision}
         initialSessionExercises={activeWorkoutConfig.initialSessionExercises}
         initialFinishPhotoFile={activeWorkoutConfig.initialFinishPhotoFile}
         ghostModeEnabled={ghostModeEnabled}

@@ -2,6 +2,7 @@ import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } fro
 
 export interface ActiveWorkoutScreenProps {
   workoutId?: string | null;
+  catalogRevision?: number;
   startedAt?: number | null;
   title: string;
   subtitle: string;

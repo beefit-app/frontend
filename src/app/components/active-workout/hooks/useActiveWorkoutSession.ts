@@ -10,6 +10,7 @@ import {
 } from "../utils";
 
 export function useActiveWorkoutSession({
+  catalogRevision = 0,
   workoutId = null,
   startedAt = null,
   selectedGroups,
@@ -24,6 +25,7 @@ export function useActiveWorkoutSession({
 }: Pick<
   ActiveWorkoutScreenProps,
   | "selectedGroups"
+  | "catalogRevision"
   | "workoutId"
   | "startedAt"
   | "initialExercises"
@@ -42,6 +44,7 @@ export function useActiveWorkoutSession({
   const [catalogDetailExerciseId, setCatalogDetailExerciseId] = useState<string | null>(null);
   const [detailViewSource, setDetailViewSource] = useState<DetailViewSource>("catalog");
   const [isWorkoutMenuOpen, setIsWorkoutMenuOpen] = useState(false);
+  const [activeExerciseMenuId, setActiveExerciseMenuId] = useState<string | null>(null);
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() =>
     initialSessionExercises && initialSessionExercises.length > 0
       ? initialSessionExercises
@@ -55,20 +58,23 @@ export function useActiveWorkoutSession({
   const [finishValidationError, setFinishValidationError] = useState("");
   const [pendingExerciseFocusId, setPendingExerciseFocusId] = useState<string | null>(null);
   const [pendingSetFocusExerciseId, setPendingSetFocusExerciseId] = useState<string | null>(null);
+  const [catalogItems, setCatalogItems] = useState<ExerciseCatalogItem[]>(() => workoutService.getCatalog());
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const exerciseSlideRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const seriesContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const finishPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  const catalog = useMemo(() => workoutService.getCatalog(), []);
-  const groupedExercises = useMemo(() => workoutService.getGroupedCatalog(), []);
+  const catalog = catalogItems;
+  const groupedExercises = useMemo(() => workoutService.getGroupedCatalog(), [catalogItems]);
   const groupOrder = useMemo(() => workoutService.getGroupOrder(), []);
   const activeCatalogExercise = useMemo(
     () => workoutService.getCatalogItemById(catalogDetailExerciseId),
-    [catalogDetailExerciseId],
+    [catalogDetailExerciseId, catalogItems],
   );
   const visibleCatalogItems = useMemo(
     () => workoutService.getCatalogByGroupId(activeCatalogGroupId),
-    [activeCatalogGroupId],
+    [activeCatalogGroupId, catalogItems],
   );
   const sessionGroups = useMemo(
     () => workoutService.getSessionGroups(selectedGroups, exercises),
@@ -84,6 +90,53 @@ export function useActiveWorkoutSession({
     () => calculateEstimatedCalories(elapsedSeconds, bodyWeightKg ?? 75),
     [bodyWeightKg, elapsedSeconds],
   );
+
+  useEffect(() => {
+    setCatalogItems(workoutService.getCatalog());
+  }, [catalogRevision]);
+
+  useEffect(() => {
+    if (!isCatalogOpen) return;
+    if (workoutService.hasCatalogLoaded()) {
+      setCatalogItems(workoutService.getCatalog());
+      setCatalogError(null);
+      return;
+    }
+
+    let active = true;
+    setIsLoadingCatalog(true);
+    setCatalogError(null);
+
+    void workoutService
+      .loadCatalog()
+      .then((catalogResponse) => {
+        if (!active) return;
+        setCatalogItems(catalogResponse);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setCatalogError(error instanceof Error ? error.message : "Não foi possível carregar os exercícios.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setIsLoadingCatalog(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isCatalogOpen]);
+
+  useEffect(() => {
+    if (catalogItems.length === 0) return;
+    const currentGroupHasItems = catalogItems.some((exercise) => exercise.groupId === activeCatalogGroupId);
+    if (currentGroupHasItems) return;
+
+    const firstAvailableGroupId = groupedExercises.find((group) => group.items.length > 0)?.groupId;
+    if (firstAvailableGroupId) {
+      setActiveCatalogGroupId(firstAvailableGroupId);
+    }
+  }, [activeCatalogGroupId, catalogItems, groupedExercises]);
 
   useEffect(() => {
     const updateElapsed = () => {
@@ -155,12 +208,26 @@ export function useActiveWorkoutSession({
 
   function addExercise(exercise: ExerciseCatalogItem) {
     const newExercise = createExerciseCard(exercise);
+    const shouldSyncMuscleGroup =
+      Boolean(workoutId) &&
+      !sessionGroups.includes(exercise.group);
 
     setExercises((current) => [...current, newExercise]);
+    setActiveExerciseMenuId(null);
     setPendingExerciseFocusId(newExercise.id);
     setCatalogDetailExerciseId(null);
     setDetailViewSource("catalog");
     setIsCatalogOpen(false);
+
+    if (shouldSyncMuscleGroup && workoutId) {
+      void workoutService.addMuscleGroup(workoutId, exercise.groupId).catch(() => undefined);
+    }
+  }
+
+  function removeExercise(exerciseId: string) {
+    setExercises((current) => current.filter((exercise) => exercise.id !== exerciseId));
+    setActiveExerciseMenuId(null);
+    setFinishValidationError("");
   }
 
   function addSet(exerciseId: string) {
@@ -246,6 +313,7 @@ export function useActiveWorkoutSession({
     catalogDetailExerciseId,
     detailViewSource,
     isWorkoutMenuOpen,
+    activeExerciseMenuId,
     exercises,
     finishTitle,
     finishPhotoUrl,
@@ -266,12 +334,15 @@ export function useActiveWorkoutSession({
     sessionGroups,
     defaultFinishTitle,
     selectedCatalogIds,
+    isLoadingCatalog,
+    catalogError,
     setIsCatalogOpen,
     setIsFinishingWorkout,
     setActiveCatalogGroupId,
     setCatalogDetailExerciseId,
     setDetailViewSource,
     setIsWorkoutMenuOpen,
+    setActiveExerciseMenuId,
     setFinishTitle,
     setFinishPhotoUrl,
     setFinishPhotoFile,
@@ -279,6 +350,7 @@ export function useActiveWorkoutSession({
     setFinishTitleError,
     setFinishValidationError,
     addExercise,
+    removeExercise,
     addSet,
     updateSet,
     openFinishWorkout,

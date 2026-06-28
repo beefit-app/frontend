@@ -10,14 +10,18 @@ export function WorkoutCatalogView({
   activeCatalogGroupId,
   visibleCatalogItems,
   selectedCatalogIds,
+  isLoadingCatalog,
+  catalogError,
   onBack,
   onSelectGroup,
   onOpenExercise,
 }: {
-  groupedExercises: { group: string; items: ExerciseCatalogItem[] }[];
+  groupedExercises: { groupId: string; group: string; items: ExerciseCatalogItem[] }[];
   activeCatalogGroupId: string;
   visibleCatalogItems: ExerciseCatalogItem[];
   selectedCatalogIds: Set<string>;
+  isLoadingCatalog: boolean;
+  catalogError: string | null;
   onBack: () => void;
   onSelectGroup: (groupId: string) => void;
   onOpenExercise: (exerciseId: string) => void;
@@ -73,8 +77,7 @@ export function WorkoutCatalogView({
                 backdropFilter: "blur(10px)",
               }}
             >
-              {groupedExercises.map(({ group, items }) => {
-                const groupId = items[0]?.groupId;
+              {groupedExercises.map(({ groupId, group, items }) => {
                 const active = groupId === activeCatalogGroupId;
                 const style = muscleStyle(group);
 
@@ -82,7 +85,7 @@ export function WorkoutCatalogView({
                   <button
                     key={group}
                     type="button"
-                    onClick={() => groupId && onSelectGroup(groupId)}
+                    onClick={() => onSelectGroup(groupId)}
                     style={{
                       border: "none",
                       background: active ? "rgba(255,255,255,0.05)" : "transparent",
@@ -101,6 +104,7 @@ export function WorkoutCatalogView({
                     }}
                   >
                     <span>{group}</span>
+                    <span style={{ marginLeft: 6, color: active ? "#FFFFFF" : "#666666" }}>({items.length})</span>
                     {active && (
                       <span
                         style={{
@@ -120,7 +124,25 @@ export function WorkoutCatalogView({
             </div>
 
             <div style={{ display: "grid", gap: 12 }}>
-              {visibleCatalogItems.map((exercise) => {
+              {isLoadingCatalog && (
+                <div style={{ color: "#B5B5B5", fontFamily: "var(--font-inter)", fontSize: 14 }}>
+                  Carregando exercícios...
+                </div>
+              )}
+
+              {!isLoadingCatalog && catalogError && (
+                <div style={{ color: "#FCA5A5", fontFamily: "var(--font-inter)", fontSize: 14 }}>
+                  {catalogError}
+                </div>
+              )}
+
+              {!isLoadingCatalog && !catalogError && visibleCatalogItems.length === 0 && (
+                <div style={{ color: "#B5B5B5", fontFamily: "var(--font-inter)", fontSize: 14 }}>
+                  Nenhum exercício disponível nesta aba.
+                </div>
+              )}
+
+              {!isLoadingCatalog && !catalogError && visibleCatalogItems.map((exercise) => {
                 const alreadyAdded = selectedCatalogIds.has(exercise.id);
                 const style = muscleStyle(exercise.group);
 
