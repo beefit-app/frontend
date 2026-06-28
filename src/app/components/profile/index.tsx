@@ -23,6 +23,7 @@ export function ProfileScreen({
     loadError,
     saveError,
     accountSettingsError,
+    postsLoadError,
     recentPosts,
     trainedDays,
     goToView,
@@ -34,6 +35,7 @@ export function ProfileScreen({
     clearLoadError,
     clearSaveError,
     clearAccountSettingsError,
+    clearPostsLoadError,
   } = useProfileScreenState({
     authUser: user,
     accountSettings,
@@ -76,11 +78,13 @@ export function ProfileScreen({
       profile={profile}
       isLoading={isLoading}
       loadError={loadError}
+      postsLoadError={postsLoadError}
       trainedDays={trainedDays}
       recentPosts={recentPosts}
       onEdit={goToEdit}
       onManageAccount={goToAccount}
       onDismissError={clearLoadError}
+      onDismissPostsError={clearPostsLoadError}
       onLogout={() => {
         void logout();
       }}

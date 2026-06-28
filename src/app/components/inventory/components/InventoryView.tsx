@@ -295,8 +295,8 @@ function EmptyState({
 }
 
 function InventoryCardTile({ card }: { card: InventoryCard }) {
-  const rarity = RARITY_META[card.rarity];
-  const muscle = MUSCLE_GROUP_META[card.muscleGroup];
+  const rarity = RARITY_META[card.rarity] ?? RARITY_META.COMMON;
+  const muscle = MUSCLE_GROUP_META[card.muscleGroup] ?? MUSCLE_GROUP_META.CORE;
 
   return (
     <article
@@ -617,21 +617,6 @@ export function InventoryView({
 
                 {!error && hasMore && <div ref={sentinelRef} style={{ padding: "8px 0", textAlign: "center", fontFamily: "var(--font-inter)", fontSize: 12, color: "#737373" }}>{isLoadingMore ? "Buscando mais cartas..." : ""}</div>}
 
-                {!isLoading && !error && !hasMore && cards.length > 0 && (
-                  <div
-                    style={{
-                      borderRadius: 20,
-                      border: "1px dashed rgba(255,215,0,0.22)",
-                      padding: "16px 18px",
-                      textAlign: "center",
-                      fontFamily: "var(--font-inter)",
-                      fontSize: 13,
-                      color: "#B8A65A",
-                    }}
-                  >
-                    Você chegou ao fim das cartas disponíveis com os filtros atuais.
-                  </div>
-                )}
               </section>
             </div>
           </IonCol>

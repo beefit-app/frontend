@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { Component, useRef, useState, type ReactNode } from "react";
 import {
   setupIonicReact,
   IonApp,
@@ -54,30 +54,63 @@ const TAB_ITEMS: {
   { id: "profile", label: "Perfil", implemented: true, Icon: ({ size }) => <User size={size} /> },
 ];
 
+class ScreenErrorBoundary extends Component<
+  { children: ReactNode; resetKey: string },
+  { error: Error | null }
+> {
+  state = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidUpdate(previousProps: { resetKey: string }) {
+    if (previousProps.resetKey !== this.props.resetKey && this.state.error) {
+      this.setState({ error: null });
+    }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex min-h-full items-center justify-center px-6 text-center">
+          <div className="max-w-[320px] rounded-[22px] border border-[rgba(248,113,113,0.32)] bg-[#141414] px-5 py-6">
+            <p className="font-montserrat text-[15px] font-bold text-[#FCA5A5]">
+              Não foi possível renderizar esta tela.
+            </p>
+            <p className="mt-2 font-inter text-[13px] leading-5 text-[#A3A3A3]">
+              {this.state.error.message || "Erro inesperado de interface."}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const { isAuthenticated, isBootstrapping, user } = useAuth();
   const contentRef = useRef<HTMLIonContentElement | null>(null);
   const { authScreen, screen, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
-  const { streak, isStreakFedToday, feedStreak, clearPendingFeed, scheduleFeed } = useStreakState(
+  const { streak, isStreakFedToday, refreshStreak } = useStreakState(
     isAuthenticated ? (user ?? null) : null,
   );
   const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
+  const [feedRefreshToken, setFeedRefreshToken] = useState(0);
+  const [profileRefreshToken, setProfileRefreshToken] = useState(0);
 
-  function handleWorkoutCompleted(draft: WorkoutCompletionDraft) {
-    clearPendingFeed();
+  function handleWorkoutCompleted(_draft: WorkoutCompletionDraft) {
     completeWorkout();
     setScreen("feed");
-
-    if (!draft.shouldPostWorkout) {
-      feedStreak();
-      return;
-    }
-
+    setFeedRefreshToken((current) => current + 1);
+    setProfileRefreshToken((current) => current + 1);
+    void refreshStreak(true);
     window.setTimeout(() => {
       void contentRef.current?.scrollToTop(320);
-      scheduleFeed(420);
     }, 40);
   }
 
@@ -141,46 +174,54 @@ export default function App() {
             </div>
           )}
 
-          {!isBootstrapping && !isAuthenticated && authScreen === "login" && (
-            <LoginScreen
-              onNavigateToRegister={() => setAuthScreen("register")}
-            />
-          )}
-          {!isBootstrapping && !isAuthenticated && authScreen === "register" && (
-            <RegisterScreen
-              onNavigateToLogin={() => setAuthScreen("login")}
-            />
-          )}
-          {!isBootstrapping && isAuthenticated && (
-            <>
-              <div style={{ display: screen === "feed" ? "block" : "none" }}>
-                <SocialFeedScreen
-                  streakCount={streak.count}
-                  isStreakFedToday={isStreakFedToday}
-                  streakBurstToken={streak.burstToken}
+          {!isBootstrapping && (
+            <ScreenErrorBoundary
+              resetKey={`${isAuthenticated}:${authScreen}:${screen}:${feedRefreshToken}:${workoutScreenInstance}:${profileRefreshToken}`}
+            >
+              {!isAuthenticated && authScreen === "login" && (
+                <LoginScreen
+                  onNavigateToRegister={() => setAuthScreen("register")}
                 />
-              </div>
-              <div style={{ display: screen === "social" ? "block" : "none" }}>
-                <SocialScreen isActive={screen === "social"} />
-              </div>
-              <div style={{ display: screen === "workout" ? "block" : "none" }}>
-                <WorkoutStartScreen
-                  key={workoutScreenInstance}
-                  ghostModeEnabled={accountSettings.ghostModeEnabled}
-                  onActiveWorkoutChange={setActiveWorkout}
-                  onWorkoutCompleted={handleWorkoutCompleted}
+              )}
+              {!isAuthenticated && authScreen === "register" && (
+                <RegisterScreen
+                  onNavigateToLogin={() => setAuthScreen("login")}
                 />
-              </div>
-              <div style={{ display: screen === "inventory" ? "block" : "none" }}>
-                <InventoryScreen />
-              </div>
-              <div style={{ display: screen === "profile" ? "block" : "none" }}>
-                <ProfileScreen
-                  accountSettings={accountSettings}
-                  onAccountSettingsChange={setAccountSettings}
-                />
-              </div>
-            </>
+              )}
+              {isAuthenticated && (
+                <>
+                  <div style={{ display: screen === "feed" ? "block" : "none" }}>
+                    <SocialFeedScreen
+                      key={feedRefreshToken}
+                      streakCount={streak.count}
+                      isStreakFedToday={isStreakFedToday}
+                      streakBurstToken={streak.burstToken}
+                    />
+                  </div>
+                  <div style={{ display: screen === "social" ? "block" : "none" }}>
+                    <SocialScreen isActive={screen === "social"} />
+                  </div>
+                  <div style={{ display: screen === "workout" ? "block" : "none" }}>
+                    <WorkoutStartScreen
+                      key={workoutScreenInstance}
+                      ghostModeEnabled={accountSettings.ghostModeEnabled}
+                      onActiveWorkoutChange={setActiveWorkout}
+                      onWorkoutCompleted={handleWorkoutCompleted}
+                    />
+                  </div>
+                  <div style={{ display: screen === "inventory" ? "block" : "none" }}>
+                    <InventoryScreen />
+                  </div>
+                  <div style={{ display: screen === "profile" ? "block" : "none" }}>
+                    <ProfileScreen
+                      key={profileRefreshToken}
+                      accountSettings={accountSettings}
+                      onAccountSettingsChange={setAccountSettings}
+                    />
+                  </div>
+                </>
+              )}
+            </ScreenErrorBoundary>
           )}
 
         </IonContent>

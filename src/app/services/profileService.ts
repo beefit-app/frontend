@@ -3,6 +3,7 @@ import { sessionStorage } from "../storage/sessionStorage";
 import type { AuthUser } from "../types/auth";
 import type { UserProfile, UserProfileUpdate } from "../types/user";
 import { apiClient } from "./apiClient";
+import { normalizeMuscleGroupLabels } from "./muscleGroups";
 
 const LEGACY_PROFILE_STORAGE_KEY = "beefit.profile.current";
 
@@ -23,6 +24,29 @@ interface UpdateProfileRequest {
   biography: string;
   bodyWeight: number | null;
   profilePicture: string | null;
+}
+
+interface BackendProfilePost {
+  postId: string;
+  title?: string;
+  publishedAt: string;
+  totalLikes?: number;
+  likedByCurrentUser?: boolean;
+  photoUrl?: string | null;
+  durationSeconds?: number | null;
+  bodyHeatMap?: string[] | null;
+  exercises?: Array<{
+    exerciseName: string;
+    sets?: Array<{ weightKg: number; reps: number }> | null;
+  }> | null;
+}
+
+interface BackendProfilePostsPage {
+  content?: BackendProfilePost[];
+}
+
+function usernameKey(username: string | null | undefined) {
+  return username?.replace(/^@/, "").trim().toLowerCase() ?? "";
 }
 
 function hasBrowserStorage() {
@@ -113,6 +137,32 @@ function buildUpdatePayload(currentProfile: UserProfile, update: UserProfileUpda
   };
 }
 
+function normalizeProfilePost(post: BackendProfilePost): WorkoutPost {
+  const durationSeconds = post.durationSeconds ?? 0;
+
+  return {
+    id: post.postId,
+    title: post.title || "Treino concluído",
+    date: new Date(post.publishedAt).toLocaleDateString("pt-BR"),
+    duration: `${Math.floor(durationSeconds / 60)} min`,
+    rarity: "comum",
+    muscles: normalizeMuscleGroupLabels(post.bodyHeatMap),
+    emoji: "💪",
+    photoUrl: post.photoUrl ?? null,
+    exerciseDetails: (post.exercises ?? []).map((exercise) => ({
+      name: exercise.exerciseName,
+      sets: (exercise.sets ?? []).map((set) => ({
+        weight: set.weightKg,
+        reps: set.reps,
+      })),
+    })),
+    likes: post.totalLikes ?? 0,
+    liked: Boolean(post.likedByCurrentUser),
+    templateSaved: false,
+    comments: [],
+  };
+}
+
 async function persistAuthUserUpdate(authUser: AuthUser | null, nextProfile: UserProfile) {
   if (!authUser) return;
 
@@ -182,9 +232,18 @@ export const profileService = {
     const response = await apiClient.post<{ url: string }>("/api/media/profile-photo", formData, { auth: true });
     return response.url;
   },
-  async getRecentPosts(): Promise<WorkoutPost[]> {
-    const response = await apiClient.get<{ content?: Array<{ postId: string; title?: string; publishedAt: string; totalLikes: number; likedByCurrentUser: boolean; photoUrl?: string | null; durationSeconds: number; bodyHeatMap: string[]; exercises: Array<{ exerciseName: string; sets: Array<{ weightKg: number; reps: number }> }> }> }>("/api/profile/me/posts?size=10", { auth: true });
-    return (response.content ?? []).map((post) => ({ id: post.postId, title: post.title || "Treino concluído", date: new Date(post.publishedAt).toLocaleDateString("pt-BR"), duration: `${Math.floor(post.durationSeconds / 60)} min`, rarity: "comum", muscles: post.bodyHeatMap, emoji: "💪", photoUrl: post.photoUrl ?? null, exerciseDetails: post.exercises.map((exercise) => ({ name: exercise.exerciseName, sets: exercise.sets.map((set) => ({ weight: set.weightKg, reps: set.reps })) })), likes: post.totalLikes, liked: post.likedByCurrentUser, templateSaved: false, comments: [] }));
+  async getRecentPosts(username?: string | null): Promise<WorkoutPost[]> {
+    const response = await apiClient.get<BackendProfilePostsPage | BackendProfilePost[]>("/api/profile/me/posts?size=30", { auth: true });
+    const posts = Array.isArray(response) ? response : response.content ?? [];
+    if (posts.length > 0 || !usernameKey(username)) return posts.map(normalizeProfilePost);
+
+    const feedResponse = await apiClient.get<BackendProfilePostsPage | BackendProfilePost[]>("/api/posts/feed?page=0&size=30", { auth: true });
+    const feedPosts = Array.isArray(feedResponse) ? feedResponse : feedResponse.content ?? [];
+    const currentUsername = usernameKey(username);
+
+    return feedPosts
+      .filter((post) => usernameKey((post as BackendProfilePost & { username?: string | null }).username) === currentUsername)
+      .map(normalizeProfilePost);
   },
   async getTrainedDays(month = new Date()) {
     const monthValue = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}`;

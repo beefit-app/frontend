@@ -26,7 +26,7 @@ export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile:
       templateSaved={templateSaved}
       onToggleLike={toggleLike}
       onToggleTemplate={() => setTemplateSaved((current) => !current)}
-      muscleVariant="neutral"
+      muscleVariant="accent"
     />
   );
 }

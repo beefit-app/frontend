@@ -10,7 +10,8 @@ export function SocialFeedScreen({
   isStreakFedToday: boolean;
   streakBurstToken: number;
 }) {
-  const { posts, liveFriends, toggleLike, saveTemplate, isLoading, isLoadingMore, hasMore, error, loadMore, retry } = useSocialFeedState();
+  const { posts, liveFriends, toggleLike, saveTemplate, isLoading, isLoadingMore, hasMore, error, loadMore, retry } =
+    useSocialFeedState();
 
   return (
     <SocialFeedView

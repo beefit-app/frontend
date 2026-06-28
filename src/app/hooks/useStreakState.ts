@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { AuthUser } from "../types/auth";
 import { apiClient } from "../services/apiClient";
 
@@ -51,7 +51,6 @@ function persistStreak(streak: PersistedStreakState) {
 }
 
 export function useStreakState(user: AuthUser | null) {
-  const pendingStreakTimeoutRef = useRef<number | null>(null);
   const [streak, setStreak] = useState<StreakState>(() => {
     const persisted = readPersistedStreak();
     return {
@@ -62,11 +61,7 @@ export function useStreakState(user: AuthUser | null) {
   });
 
   useEffect(() => {
-    return () => {
-      if (pendingStreakTimeoutRef.current !== null) {
-        window.clearTimeout(pendingStreakTimeoutRef.current);
-      }
-    };
+    return () => undefined;
   }, []);
 
   useEffect(() => {
@@ -82,65 +77,45 @@ export function useStreakState(user: AuthUser | null) {
       return;
     }
 
-    const persisted = readPersistedStreak();
     let cancelled = false;
-
-    void apiClient
-      .get<BackendProfileResponse>("/api/profile/me", { auth: true })
-      .then((response) => {
-        if (cancelled) return;
-        const remoteCount = typeof response.offensiveHoneys === "number" ? response.offensiveHoneys : 0;
-        const persistedCount = persisted?.lastFedDate === getTodayKey() ? persisted.count : 0;
-
-        setStreak((current) => ({
-          ...current,
-          count: Math.max(remoteCount, persistedCount),
-          lastFedDate: persisted?.lastFedDate ?? null,
-        }));
-      })
-      .catch(() => {
-        if (cancelled || !persisted) return;
-        setStreak((current) => ({
-          ...current,
-          count: persisted.count,
-          lastFedDate: persisted.lastFedDate,
-        }));
-      });
+    void syncWithBackend(false, () => cancelled);
 
     return () => {
       cancelled = true;
     };
   }, [user]);
 
-  function feedStreak() {
-    const todayKey = getTodayKey();
+  async function syncWithBackend(burstOnIncrease: boolean, isCancelled?: () => boolean) {
+    const persisted = readPersistedStreak();
 
-    setStreak((current) => ({
-      count: current.lastFedDate === todayKey ? current.count : current.count + 1,
-      lastFedDate: todayKey,
-      burstToken: current.burstToken + 1,
-    }));
-  }
+    try {
+      const response = await apiClient.get<BackendProfileResponse>("/api/profile/me", { auth: true });
+      if (isCancelled?.()) return;
 
-  function clearPendingFeed() {
-    if (pendingStreakTimeoutRef.current !== null) {
-      window.clearTimeout(pendingStreakTimeoutRef.current);
-      pendingStreakTimeoutRef.current = null;
+      const remoteCount = typeof response.offensiveHoneys === "number" ? response.offensiveHoneys : 0;
+      const todayKey = getTodayKey();
+
+      setStreak((current) => {
+        const increased = remoteCount > current.count;
+        return {
+          count: remoteCount,
+          lastFedDate: increased ? todayKey : persisted?.lastFedDate ?? current.lastFedDate,
+          burstToken: increased && burstOnIncrease ? current.burstToken + 1 : current.burstToken,
+        };
+      });
+    } catch {
+      if (isCancelled?.() || !persisted) return;
+      setStreak((current) => ({
+        ...current,
+        count: persisted.count,
+        lastFedDate: persisted.lastFedDate,
+      }));
     }
-  }
-
-  function scheduleFeed(delayMs: number) {
-    pendingStreakTimeoutRef.current = window.setTimeout(() => {
-      feedStreak();
-      pendingStreakTimeoutRef.current = null;
-    }, delayMs);
   }
 
   return {
     streak,
     isStreakFedToday: streak.lastFedDate === getTodayKey(),
-    feedStreak,
-    clearPendingFeed,
-    scheduleFeed,
+    refreshStreak: (burstOnIncrease = false) => syncWithBackend(burstOnIncrease),
   };
 }

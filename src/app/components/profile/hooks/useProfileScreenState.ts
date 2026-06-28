@@ -26,6 +26,7 @@ export function useProfileScreenState({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [accountSettingsError, setAccountSettingsError] = useState<string | null>(null);
+  const [postsLoadError, setPostsLoadError] = useState<string | null>(null);
   const [recentPosts, setRecentPosts] = useState<WorkoutPost[]>([]);
   const [trainedDays, setTrainedDays] = useState<number[]>([]);
 
@@ -35,6 +36,9 @@ export function useProfileScreenState({
     setLoadError(null);
     setSaveError(null);
     setAccountSettingsError(null);
+    setPostsLoadError(null);
+    setRecentPosts([]);
+    setTrainedDays([]);
 
     if (!authUser) {
       setIsLoading(false);
@@ -68,9 +72,25 @@ export function useProfileScreenState({
         setIsLoading(false);
       });
 
-    void Promise.all([profileService.getRecentPosts(), profileService.getTrainedDays()])
-      .then(([posts, days]) => { if (!cancelled) { setRecentPosts(posts); setTrainedDays(days); } })
-      .catch(() => { if (!cancelled) { setRecentPosts([]); setTrainedDays([]); } });
+    void profileService
+      .getRecentPosts(authUser.username)
+      .then((posts) => {
+        if (!cancelled) setRecentPosts(posts);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setRecentPosts([]);
+        setPostsLoadError(error instanceof Error && error.message ? error.message : "Não foi possível carregar os posts do perfil.");
+      });
+
+    void profileService
+      .getTrainedDays()
+      .then((days) => {
+        if (!cancelled) setTrainedDays(days);
+      })
+      .catch(() => {
+        if (!cancelled) setTrainedDays([]);
+      });
 
     return () => {
       cancelled = true;
@@ -138,6 +158,7 @@ export function useProfileScreenState({
     loadError,
     saveError,
     accountSettingsError,
+    postsLoadError,
     recentPosts,
     trainedDays,
     goToView: () => setScreenMode("view"),
@@ -149,5 +170,6 @@ export function useProfileScreenState({
     clearLoadError: () => setLoadError(null),
     clearSaveError: () => setSaveError(null),
     clearAccountSettingsError: () => setAccountSettingsError(null),
+    clearPostsLoadError: () => setPostsLoadError(null),
   };
 }

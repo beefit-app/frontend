@@ -1,7 +1,6 @@
 import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import { Dumbbell, Radio } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { HexagonPattern } from "../../HexagonPattern";
 import logoImg from "../../../../imports/logo.png";
 import type { LiveFriend, SocialFeedPost } from "../types";
 import { LiveFriendCard } from "./LiveFriendCard";
@@ -46,7 +45,6 @@ export function SocialFeedView({
   }, [error, hasMore, isLoading, isLoadingMore, onLoadMore]);
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0A0A0A] pb-8">
-      <HexagonPattern />
       <div
         style={{
           position: "absolute",
@@ -130,7 +128,6 @@ export function SocialFeedView({
                 ))}
                 {error && <div className="rounded-2xl border border-[rgba(248,113,113,0.28)] px-4 py-4 text-center font-inter text-sm text-[#FCA5A5]">{error}<button type="button" onClick={onRetry} className="ml-2 font-bold underline">Tentar novamente</button></div>}
                 {!error && hasMore && <div ref={sentinelRef} className="py-4 text-center font-inter text-xs text-[#737373]">{isLoadingMore ? "Buscando mais treinos..." : ""}</div>}
-                {!isLoading && !hasMore && posts.length > 0 && <div className="rounded-2xl border border-dashed border-[rgba(255,215,0,0.25)] px-4 py-5 text-center font-inter text-sm text-[#B8A65A]">Você chegou ao fim da colmeia por enquanto 🐝 Volte depois para ver novos treinos.</div>}
               </section>
             </div>
           </IonCol>

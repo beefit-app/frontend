@@ -2,10 +2,10 @@ import { ApiError, apiClient } from "./apiClient";
 import type {
   InventoryCard,
   InventoryFilters,
-  InventoryMuscleGroup,
   InventoryPageResult,
   InventoryRarity,
 } from "../types/inventory";
+import { normalizeMuscleGroupEnum } from "./muscleGroups";
 
 interface BackendInventoryCard {
   id: string;
@@ -31,10 +31,6 @@ function normalizeRarity(value: string): InventoryRarity {
   return value.toUpperCase() as InventoryRarity;
 }
 
-function normalizeMuscleGroup(value: string): InventoryMuscleGroup {
-  return value.toUpperCase() as InventoryMuscleGroup;
-}
-
 function normalizeCard(card: BackendInventoryCard): InventoryCard {
   return {
     id: card.id,
@@ -42,7 +38,7 @@ function normalizeCard(card: BackendInventoryCard): InventoryCard {
     attackPower: typeof card.attackPower === "number" ? card.attackPower : 0,
     rarity: normalizeRarity(card.rarity),
     rarityLabel: card.rarityLabel,
-    muscleGroup: normalizeMuscleGroup(card.muscleGroup),
+    muscleGroup: normalizeMuscleGroupEnum(card.muscleGroup) ?? "CORE",
     isPersonalRecord: Boolean(card.isPersonalRecord),
     bodyWeightAtGeneration:
       typeof card.bodyWeightAtGeneration === "number" ? card.bodyWeightAtGeneration : null,
