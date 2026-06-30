@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
 import type { LiveFriend, SocialFeedPost } from "../types";
 import { subscribeSocialEvents, type WorkoutPresenceEvent } from "../../../services/socialEventsService";
+import { socialFeedStorage } from "../../../storage/socialFeedStorage";
 
 const PRESENCE_GROUP_LABELS: Record<string, string> = {
   peito: "Peito",
@@ -41,7 +42,7 @@ function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
 
 export function useSocialFeedState() {
   const [posts, setPosts] = useState<SocialFeedPost[]>([]);
-  const [liveFriends, setLiveFriends] = useState<LiveFriend[]>([]);
+  const [liveFriends, setLiveFriends] = useState<LiveFriend[]>(() => socialFeedStorage.getLiveFriends());
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,6 +87,15 @@ export function useSocialFeedState() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    const list = liveFriends.filter((item) => item.id !== "__self__");
+    if (list.length > 0) {
+      socialFeedStorage.setLiveFriends(list);
+    } else {
+      socialFeedStorage.clearLiveFriends();
+    }
+  }, [liveFriends]);
 
   useEffect(() => {
     const controller = new AbortController();

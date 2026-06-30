@@ -7,6 +7,7 @@ const clearLiveFriends = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../services/socialFeedService", () => ({ socialFeedService: {
   load: vi.fn().mockResolvedValue({ posts: [{ id: "p-1", likes: 2, liked: false }], last: true }),
+  loadLive: vi.fn().mockResolvedValue([]),
   toggleLike: vi.fn().mockResolvedValue({ liked: true, likes_count: 3 }), importTemplate: vi.fn().mockResolvedValue({}),
 } }));
 vi.mock("../../../services/socialEventsService", () => ({ subscribeSocialEvents: vi.fn().mockResolvedValue(undefined) }));
