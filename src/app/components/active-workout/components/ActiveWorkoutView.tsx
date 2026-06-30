@@ -1,5 +1,6 @@
+import { useState, useRef, useEffect } from "react";
 import { IonCol, IonGrid, IonInput, IonRow } from "@ionic/react";
-import { Clock3, Ellipsis, Plus } from "lucide-react";
+import { Clock3, Ellipsis, Plus, ChevronRight, ChevronLeft } from "lucide-react";
 import { BeeButton } from "../../BeeButton";
 import { PageBackground } from "../../PageBackground";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
@@ -61,6 +62,51 @@ export function ActiveWorkoutView({
   onOpenCatalog: () => void;
   onOpenFinish: () => void;
 }) {
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    setShowLeftArrow(container.scrollLeft > 20);
+
+    const isCloseToEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 20;
+    setShowRightArrow(!isCloseToEnd);
+  };
+
+  const handleScrollLeft = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const scrollAmount = container.clientWidth + 16;
+    container.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+  };
+
+  const handleScrollRight = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const scrollAmount = container.clientWidth + 16;
+    container.scrollBy({ left: scrollAmount, behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (exercises.length > 0) {
+      setShowLeftArrow(false);
+      setShowRightArrow(true);
+    } else {
+      setShowLeftArrow(false);
+      setShowRightArrow(false);
+    }
+
+    const timer = window.setTimeout(() => {
+      handleScroll();
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [exercises]);
+
   return (
     <PageBackground>
       <IonGrid fixed style={{ maxWidth: 393, padding: "24px 12px 0", position: "relative", zIndex: 1 }}>
@@ -178,8 +224,10 @@ export function ActiveWorkoutView({
         </IonRow>
 
         <IonRow className="mt-4">
-          <IonCol size="12">
+          <IonCol size="12" style={{ position: "relative" }}>
             <div
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
               style={{
                 display: "flex",
                 alignItems: "stretch",
@@ -422,6 +470,84 @@ export function ActiveWorkoutView({
                 </button>
               </div>
             </div>
+
+            {exercises.length > 0 && showLeftArrow && (
+              <button
+                type="button"
+                onClick={handleScrollLeft}
+                aria-label="Ver exercício anterior"
+                style={{
+                  position: "absolute",
+                  left: 8,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  background: "rgba(20, 20, 20, 0.4)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "rgba(255, 255, 255, 0.55)",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+                  zIndex: 10,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.75)";
+                  e.currentTarget.style.color = "#FFFFFF";
+                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.4)";
+                  e.currentTarget.style.color = "rgba(255, 255, 255, 0.55)";
+                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
+                }}
+              >
+                <ChevronLeft size={20} />
+              </button>
+            )}
+
+            {exercises.length > 0 && showRightArrow && (
+              <button
+                type="button"
+                onClick={handleScrollRight}
+                aria-label="Ver próximo exercício"
+                style={{
+                  position: "absolute",
+                  right: 8,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  background: "rgba(20, 20, 20, 0.4)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "rgba(255, 255, 255, 0.55)",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+                  zIndex: 10,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.75)";
+                  e.currentTarget.style.color = "#FFFFFF";
+                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.4)";
+                  e.currentTarget.style.color = "rgba(255, 255, 255, 0.55)";
+                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
+                }}
+              >
+                <ChevronRight size={20} />
+              </button>
+            )}
           </IonCol>
         </IonRow>
 
