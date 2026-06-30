@@ -291,7 +291,9 @@ export const profileService = {
   },
   async getTrainedDays(month = new Date()) {
     const monthValue = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}`;
-    return apiClient.get<number[]>(`/api/profile/me/training-days?month=${monthValue}`, { auth: true });
+    const response = await apiClient.get<number[]>(`/api/profile/me/training-days?month=${monthValue}`, { auth: true });
+    console.log(">>> getTrainedDays response for month", monthValue, ":", response);
+    return response;
   },
   async getPublicTrainedDays(username: string, month = new Date()) {
     const normalizedUsername = username.replace(/^@/, "").trim();

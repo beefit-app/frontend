@@ -90,7 +90,7 @@ export function StatCard({
 }
 
 export function TrainingCalendar({ trainedDays }: { trainedDays: number[] }) {
-  const today = new Date(2026, 4, 15);
+  const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();
   const todayDate = today.getDate();
