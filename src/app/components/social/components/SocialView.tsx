@@ -589,7 +589,11 @@ function HivesPanel({ state, onOpenProfile }: { state: SocialState; onOpenProfil
           <SheetHeader className="px-0 text-left">
             <SheetTitle className="font-montserrat text-[18px] font-bold text-white">Sair da Colmeia?</SheetTitle>
             <SheetDescription className="font-inter text-[13px] text-[#737373]">
-              Sua posicao deixara de aparecer neste ranking.
+              {state.selectedHive?.creatorId === state.user?.id
+                ? (state.selectedHive?.members.length ?? 0) <= 1
+                  ? "Como você é o criador e único membro, a Colmeia será excluída permanentemente."
+                  : "Como você é o criador, a posse da Colmeia será transferida para o primeiro colocado do ranking."
+                : "Sua posição deixará de aparecer neste ranking."}
             </SheetDescription>
           </SheetHeader>
           <div className="flex flex-col gap-2.5">
@@ -601,7 +605,7 @@ function HivesPanel({ state, onOpenProfile }: { state: SocialState; onOpenProfil
                 setLeaveConfirmationOpen(false);
               }}
             >
-              Confirmar saida
+              Confirmar saída
             </BeeButton>
             <BeeButton variant="dark" fullWidth onClick={() => setLeaveConfirmationOpen(false)}>
               Cancelar

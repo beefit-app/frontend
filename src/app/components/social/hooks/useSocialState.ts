@@ -217,7 +217,7 @@ export function useSocialState(isActive = false) {
   }
 
   return {
-    activeSection, friends, friendRequests, sentRequests, searchTerm, searchResults, hives, selectedHive, feedback, error, isHiveLimitReached,
+    activeSection, friends, friendRequests, sentRequests, searchTerm, searchResults, hives, selectedHive, feedback, error, isHiveLimitReached, user,
     setActiveSection, setSearchTerm, setSelectedHiveId,
     refreshFriendships,
     acceptFriendRequest: (id: string) => void action(async () => {
