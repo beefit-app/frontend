@@ -129,6 +129,7 @@ export function useActiveWorkoutSession({
 
   useEffect(() => {
     if (catalogItems.length === 0) return;
+    if (activeCatalogGroupId === "todos") return;
     const currentGroupHasItems = catalogItems.some((exercise) => exercise.groupId === activeCatalogGroupId);
     if (currentGroupHasItems) return;
 

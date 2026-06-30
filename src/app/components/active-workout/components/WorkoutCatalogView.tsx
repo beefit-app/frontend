@@ -1,9 +1,11 @@
+import { useState, useMemo } from "react";
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { PageBackground } from "../../PageBackground";
 import type { ExerciseCatalogItem } from "../../../types/workout";
 import { muscleStyle } from "../utils";
 import { MuscleTag } from "./shared";
+import { BeeInput } from "../../BeeInput";
 
 export function WorkoutCatalogView({
   groupedExercises,
@@ -26,6 +28,61 @@ export function WorkoutCatalogView({
   onSelectGroup: (groupId: string) => void;
   onOpenExercise: (exerciseId: string) => void;
 }) {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const allExercises = useMemo(() => {
+    return groupedExercises.flatMap((group) => group.items);
+  }, [groupedExercises]);
+
+  const filteredExercisesBySearch = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) {
+      return allExercises;
+    }
+    return allExercises.filter((exercise) =>
+      exercise.name.toLowerCase().includes(term)
+    );
+  }, [searchTerm, allExercises]);
+
+  const filterTabs = useMemo(() => {
+    return [
+      {
+        groupId: "todos",
+        group: "Todos",
+        count: filteredExercisesBySearch.length,
+      },
+      ...groupedExercises.map((g) => {
+        const term = searchTerm.toLowerCase().trim();
+        const count = term
+          ? g.items.filter((item) => item.name.toLowerCase().includes(term)).length
+          : g.items.length;
+        return {
+          groupId: g.groupId,
+          group: g.group,
+          count,
+        };
+      }),
+    ];
+  }, [groupedExercises, filteredExercisesBySearch, searchTerm]);
+
+  const visibleItems = useMemo(() => {
+    if (activeCatalogGroupId === "todos") {
+      return allExercises;
+    }
+    const activeGroup = groupedExercises.find((g) => g.groupId === activeCatalogGroupId);
+    return activeGroup ? activeGroup.items : [];
+  }, [activeCatalogGroupId, groupedExercises, allExercises]);
+
+  const filteredItems = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) {
+      return visibleItems;
+    }
+    return visibleItems.filter((exercise) =>
+      exercise.name.toLowerCase().includes(term)
+    );
+  }, [searchTerm, visibleItems]);
+
   return (
     <PageBackground>
       <IonGrid fixed style={{ maxWidth: 393, padding: "32px 12px 0", position: "relative", zIndex: 1 }}>
@@ -64,6 +121,15 @@ export function WorkoutCatalogView({
 
         <IonRow className="mt-5">
           <IonCol size="12">
+            <div className="mb-4">
+              <BeeInput
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                icon={<Search size={17} />}
+                placeholder="Buscar exercício pelo nome..."
+              />
+            </div>
+
             <div
               style={{
                 display: "flex",
@@ -77,13 +143,13 @@ export function WorkoutCatalogView({
                 backdropFilter: "blur(10px)",
               }}
             >
-              {groupedExercises.map(({ groupId, group, items }) => {
+              {filterTabs.map(({ groupId, group, count }) => {
                 const active = groupId === activeCatalogGroupId;
                 const style = muscleStyle(group);
 
                 return (
                   <button
-                    key={group}
+                    key={groupId}
                     type="button"
                     onClick={() => onSelectGroup(groupId)}
                     style={{
@@ -104,7 +170,7 @@ export function WorkoutCatalogView({
                     }}
                   >
                     <span>{group}</span>
-                    <span style={{ marginLeft: 6, color: active ? "#FFFFFF" : "#666666" }}>({items.length})</span>
+                    <span style={{ marginLeft: 6, color: active ? "#FFFFFF" : "#666666" }}>({count})</span>
                     {active && (
                       <span
                         style={{
@@ -136,13 +202,15 @@ export function WorkoutCatalogView({
                 </div>
               )}
 
-              {!isLoadingCatalog && !catalogError && visibleCatalogItems.length === 0 && (
+              {!isLoadingCatalog && !catalogError && filteredItems.length === 0 && (
                 <div style={{ color: "#B5B5B5", fontFamily: "var(--font-inter)", fontSize: 14 }}>
-                  Nenhum exercício disponível nesta aba.
+                  {searchTerm.trim()
+                    ? "Nenhum exercício encontrado com este nome."
+                    : "Nenhum exercício disponível nesta aba."}
                 </div>
               )}
 
-              {!isLoadingCatalog && !catalogError && visibleCatalogItems.map((exercise) => {
+              {!isLoadingCatalog && !catalogError && filteredItems.map((exercise) => {
                 const alreadyAdded = selectedCatalogIds.has(exercise.id);
                 const style = muscleStyle(exercise.group);
 
