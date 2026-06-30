@@ -228,6 +228,7 @@ export function WorkoutStartScreen({
     return (
       <ActiveWorkoutScreen
         workoutId={activeWorkoutConfig.workoutId}
+        startedAt={activeWorkoutConfig.startedAt}
         title={activeWorkoutConfig.title}
         subtitle={activeWorkoutConfig.subtitle}
         selectedGroups={activeWorkoutConfig.selectedGroups}
