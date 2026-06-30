@@ -1,5 +1,5 @@
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
-import { Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-react";
+import { Camera, ChevronLeft, Flame, ImageIcon, Weight, AlertTriangle } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { CameraSource } from "@capacitor/camera";
 import { BeeButton } from "../../BeeButton";
@@ -17,6 +17,7 @@ export function FinishWorkoutView({
   estimatedCalories,
   shouldPostWorkout,
   ghostModeEnabled,
+  elapsedSeconds,
   onBack,
   onPhotoChange,
   onTitleChange,
@@ -31,6 +32,7 @@ export function FinishWorkoutView({
   estimatedCalories: number;
   shouldPostWorkout: boolean;
   ghostModeEnabled: boolean;
+  elapsedSeconds: number;
   onBack: () => void;
   onPhotoChange: (file: File | null) => void;
   onTitleChange: (value: string) => void;
@@ -313,6 +315,44 @@ export function FinishWorkoutView({
         <IonRow className="mt-6">
           <IonCol size="12">
             <div style={{ display: "grid", gap: 12 }}>
+              {elapsedSeconds < 1800 && (
+                <div
+                  style={{
+                    borderRadius: 18,
+                    border: "1px solid rgba(239, 68, 68, 0.28)",
+                    background: "rgba(239, 68, 68, 0.08)",
+                    padding: "14px 16px",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 12,
+                    marginBottom: 4,
+                  }}
+                >
+                  <AlertTriangle size={18} color="#F87171" style={{ marginTop: 2, flexShrink: 0 }} />
+                  <div style={{ display: "grid", gap: 3 }}>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-montserrat)",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: "#F87171",
+                      }}
+                    >
+                      Aviso de Ofensiva
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-inter)",
+                        fontSize: 12,
+                        lineHeight: 1.5,
+                        color: "#D4D4D4",
+                      }}
+                    >
+                      Treinos com menos de 30 minutos de duração não contabilizam para manter ou aumentar sua ofensiva de <strong>honeys</strong>.
+                    </span>
+                  </div>
+                </div>
+              )}
               <BeeButton variant="primary" size="lg" fullWidth onClick={onFinish}>
                 Finalizar treino
               </BeeButton>
