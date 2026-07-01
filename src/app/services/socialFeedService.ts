@@ -46,5 +46,8 @@ export const socialFeedService = {
     }
   },
   async toggleLike(postId: string | number) { return apiClient.post<{ liked: boolean; likes_count: number }>(`/api/posts/${postId}/like`, undefined, { auth: true }); },
-  async importTemplate(postId: string | number) { return apiClient.post(`/api/templates/import/${postId}`, undefined, { auth: true }); },
+  async importTemplate(postId: string | number, name?: string) {
+    const url = name ? `/api/templates/import/${postId}?name=${encodeURIComponent(name)}` : `/api/templates/import/${postId}`;
+    return apiClient.post(url, undefined, { auth: true });
+  },
 };
