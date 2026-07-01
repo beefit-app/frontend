@@ -1,6 +1,14 @@
 import { sessionStorage } from "../storage/sessionStorage";
 
 export interface WorkoutPresenceEvent { workoutId: string; userId: string; username: string; fullName: string; status: string; occurredAt: string; muscleGroups: string[] }
+export interface CardGeneratedEvent {
+  workoutId: string;
+  cardId: string;
+  attackPower: number;
+  rarity: string;
+  muscleGroup: string;
+  isPersonalRecord: boolean;
+}
 export interface FriendRequestPendingEvent {
   friendshipId: string;
   requesterId: string;
@@ -38,6 +46,7 @@ export interface TemplateImportedEvent {
 
 type SocialEventPayload =
   | WorkoutPresenceEvent
+  | CardGeneratedEvent
   | FriendRequestPendingEvent
   | FriendRequestAcceptedEvent
   | FriendRemovedEvent

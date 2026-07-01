@@ -6,9 +6,10 @@ import { BeeButton } from "./BeeButton";
 import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { workoutService } from "../services/workoutService";
+import { subscribeSocialEvents, type CardGeneratedEvent } from "../services/socialEventsService";
 import { workoutDraftStorage } from "../storage/workoutDraftStorage";
 import { persistWorkoutPhoto, removePersistedWorkoutPhoto, restoreWorkoutPhoto } from "../platform/workoutPhoto";
-import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } from "../types/workout";
+import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutCompletionResult, WorkoutExercise } from "../types/workout";
 
 const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
@@ -72,6 +73,8 @@ export function WorkoutStartScreen({
     initialFinishPhotoFile?: File | null;
   } | null>(null);
   const isClosingWorkoutRef = useRef(false);
+  const generatedCardEventRef = useRef<CardGeneratedEvent | null>(null);
+  const generatedCardResolverRef = useRef<((event: CardGeneratedEvent) => void) | null>(null);
 
   // Esta tela depende só da interface do service; quando a API entrar,
   // a troca deve acontecer na implementação do service, não aqui.
@@ -88,6 +91,8 @@ export function WorkoutStartScreen({
     setSelectedGroups([]);
     setSelectedTemplateId(null);
     setActiveWorkoutConfig(null);
+    generatedCardEventRef.current = null;
+    generatedCardResolverRef.current = null;
   }
 
   async function closeActiveWorkout() {
@@ -167,6 +172,58 @@ export function WorkoutStartScreen({
     return () => { active = false; };
   }, [onActiveWorkoutChange]);
 
+  useEffect(() => {
+    const workoutId = activeWorkoutConfig?.workoutId;
+    if (!workoutId) return;
+
+    const controller = new AbortController();
+    void subscribeSocialEvents((type, data) => {
+      if (type !== "CARD_GENERATED" || !isCardGeneratedEvent(data) || data.workoutId !== workoutId) return;
+
+      generatedCardEventRef.current = data;
+      generatedCardResolverRef.current?.(data);
+      generatedCardResolverRef.current = null;
+    }, controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [activeWorkoutConfig?.workoutId]);
+
+  function waitForGeneratedCardEvent(workoutId: string | null | undefined) {
+    if (!workoutId) return Promise.resolve<CardGeneratedEvent | null>(null);
+    if (generatedCardEventRef.current?.workoutId === workoutId) {
+      return Promise.resolve(generatedCardEventRef.current);
+    }
+
+    return new Promise<CardGeneratedEvent | null>((resolve) => {
+      let active = true;
+      const timeout = window.setTimeout(() => {
+        active = false;
+        generatedCardResolverRef.current = null;
+        resolve(null);
+      }, 1200);
+
+      generatedCardResolverRef.current = (event) => {
+        if (!active) return;
+        active = false;
+        window.clearTimeout(timeout);
+        generatedCardResolverRef.current = null;
+        resolve(event);
+      };
+    });
+  }
+
+  function showGeneratedCardMessage(event: CardGeneratedEvent | null, result: WorkoutCompletionResult | null) {
+    const card = event ?? result?.card;
+    if (!card) return;
+
+    const rarity = formatCardRarity(card.rarity);
+    const attackPower = Math.round(card.attackPower);
+    const recordMessage = card.isPersonalRecord ? " Novo recorde pessoal." : "";
+    window.alert(`Carta gerada: ${rarity} - ${attackPower} de poder.${recordMessage}`);
+  }
+
   async function handleStartWorkout() {
     if (!canStartWorkout) return;
     if (workoutService.getCatalog().length === 0) {
@@ -243,9 +300,11 @@ export function WorkoutStartScreen({
         onWorkoutComplete={(draft) => {
           void (async () => {
             try {
-              await workoutService.finishWorkout(draft);
+              const result = await workoutService.finishWorkout(draft);
+              const cardEvent = await waitForGeneratedCardEvent(draft.workoutId);
               await closeActiveWorkout();
               onWorkoutCompleted?.(draft);
+              showGeneratedCardMessage(cardEvent, result);
             } catch (error) {
               const photoFileName = draft.photoFile ? await persistWorkoutPhoto(draft.photoFile) : null;
               await workoutDraftStorage.set({
@@ -611,4 +670,28 @@ export function WorkoutStartScreen({
       </IonGrid>
     </PageBackground>
   );
+}
+
+function isCardGeneratedEvent(data: unknown): data is CardGeneratedEvent {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "workoutId" in data &&
+    "cardId" in data &&
+    "attackPower" in data &&
+    "rarity" in data &&
+    "muscleGroup" in data &&
+    "isPersonalRecord" in data
+  );
+}
+
+function formatCardRarity(value: string) {
+  const labels: Record<string, string> = {
+    COMMON: "Comum",
+    RARE: "Rara",
+    EPIC: "Epica",
+    LEGENDARY: "Lendaria",
+  };
+
+  return labels[value] ?? value;
 }

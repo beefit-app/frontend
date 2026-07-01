@@ -45,9 +45,8 @@ export function AccountSettingsScreen({
     if (isChangingPassword) {
       if (!currentPassword) nextErrors.currentPassword = "Digite sua senha atual";
       if (!newPassword) nextErrors.newPassword = "Digite a nova senha";
-      else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(newPassword)) {
-        nextErrors.newPassword =
-          "Use ao menos 8 caracteres com maiúscula, minúscula, número e símbolo";
+      else if (newPassword.length < 6) {
+        nextErrors.newPassword = "Mínimo de 6 caracteres";
       }
       if (!confirmPassword) nextErrors.confirmPassword = "Confirme a nova senha";
       else if (confirmPassword !== newPassword) nextErrors.confirmPassword = "As senhas não coincidem";

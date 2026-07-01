@@ -1,4 +1,4 @@
-import { Component, useRef, useState, type ReactNode } from "react";
+import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   setupIonicReact,
   IonApp,
@@ -14,6 +14,7 @@ import { SocialFeedScreen } from "./components/SocialFeedScreen";
 import { SocialScreen } from "./components/SocialScreen";
 import { InventoryScreen } from "./components/InventoryScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
+import { AdminScreen } from "./components/admin/AdminScreen";
 import { useAuth } from "./auth/AuthContext";
 import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
 import { useStreakState } from "./hooks/useStreakState";
@@ -93,6 +94,7 @@ class ScreenErrorBoundary extends Component<
 export default function App() {
   const { isAuthenticated, isBootstrapping, user } = useAuth();
   const contentRef = useRef<HTMLIonContentElement | null>(null);
+  const [pathname, setPathname] = useState(() => window.location.pathname);
   const { authScreen, screen, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
@@ -104,6 +106,19 @@ export default function App() {
   const [profileRefreshToken, setProfileRefreshToken] = useState(0);
   const [socialProfileUsername, setSocialProfileUsername] = useState<string | null>(null);
   const [socialProfileReturnScreen, setSocialProfileReturnScreen] = useState<"feed" | "social">("social");
+  const isAdminRoute = pathname.startsWith("/admin");
+
+  useEffect(() => {
+    function handleLocationChange() {
+      setPathname(window.location.pathname);
+    }
+
+    window.addEventListener("popstate", handleLocationChange);
+
+    return () => {
+      window.removeEventListener("popstate", handleLocationChange);
+    };
+  }, []);
 
   function handleWorkoutCompleted(_draft: WorkoutCompletionDraft) {
     completeWorkout();
@@ -126,6 +141,51 @@ export default function App() {
   }
 
   const activeWorkoutLabel = activeWorkout?.selectedGroups.join(" · ");
+
+  if (isAdminRoute) {
+    return (
+      <IonApp>
+        <IonPage>
+          <IonContent
+            fullscreen
+            scrollY
+            style={
+              {
+                "--background": "#0A0A0A",
+                "--color": "#ffffff",
+              } as React.CSSProperties
+            }
+          >
+            {isBootstrapping && (
+              <div className="flex min-h-full items-center justify-center px-6 text-center">
+                <div className="max-w-[280px]">
+                  <span className="block font-montserrat text-[14px] font-bold uppercase tracking-[0.12em] text-[#B8A65A]">
+                    BeeFit Admin
+                  </span>
+                  <span className="mt-3 block font-inter text-[15px] text-[#D4D4D4]">
+                    Restaurando sua sessão...
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!isBootstrapping && (
+              <ScreenErrorBoundary resetKey={`admin:${isAuthenticated}:${authScreen}`}>
+                {!isAuthenticated && authScreen === "login" && (
+                  <LoginScreen onNavigateToRegister={() => setAuthScreen("register")} />
+                )}
+                {!isAuthenticated && authScreen === "register" && (
+                  <RegisterScreen onNavigateToLogin={() => setAuthScreen("login")} />
+                )}
+                {isAuthenticated && <AdminScreen />}
+              </ScreenErrorBoundary>
+            )}
+          </IonContent>
+        </IonPage>
+      </IonApp>
+    );
+  }
+
   return (
     <IonApp>
       <IonPage>
