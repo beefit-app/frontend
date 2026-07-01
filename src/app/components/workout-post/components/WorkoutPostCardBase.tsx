@@ -8,7 +8,6 @@ import {
   Dumbbell,
   Heart,
   ImageIcon,
-  MessageCircle,
 } from "lucide-react";
 import { HEX_CLIP, RARITY_STYLE } from "../constants";
 import type { WorkoutPost, WorkoutPostAuthor } from "../types";
@@ -39,8 +38,6 @@ export function WorkoutPostCardBase({
   muscleVariant = "accent",
 }: WorkoutPostCardBaseProps) {
   const [showExercises, setShowExercises] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const commentsScrollable = post.comments.length > 5;
   const touchStartX = useRef(0);
   const computedPostRarity = workoutRarity(post.exerciseDetails, bodyWeight);
   const rarityStyle = RARITY_STYLE[computedPostRarity];
@@ -412,22 +409,6 @@ export function WorkoutPostCardBase({
           </Motion.button>
           <Motion.button
             type="button"
-            onClick={() => setShowComments((current) => !current)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            aria-label={showComments ? "Ocultar comentários" : "Ver comentários"}
-            className="flex h-10 w-10 items-center justify-center rounded-full border"
-            style={{
-              borderColor: showComments ? "#FFD700" : "#404040",
-              background: showComments ? "rgba(255,215,0,0.12)" : "#1A1A1A",
-              color: showComments ? "#FFD700" : "#A3A3A3",
-            }}
-          >
-            <MessageCircle size={18} fill={showComments ? "rgba(255,215,0,0.18)" : "none"} />
-          </Motion.button>
-          <Motion.button
-            type="button"
             onClick={onToggleTemplate}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
@@ -446,49 +427,8 @@ export function WorkoutPostCardBase({
 
         <div className="flex items-center gap-3 font-inter text-[11px] font-semibold text-[#737373]">
           <span>{likes} curtidas</span>
-          <button
-            type="button"
-            onClick={() => setShowComments((current) => !current)}
-            className="font-inter text-[11px] font-semibold text-[#A3A3A3]"
-          >
-            {post.comments.length} comentários
-          </button>
         </div>
       </div>
-
-      {showComments && (
-        <Motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.18 }}
-          className="border-t border-[#2D2D2D] bg-[#101010] px-4 py-3"
-        >
-          <div
-            className="flex flex-col gap-3"
-            style={{
-              maxHeight: commentsScrollable ? 260 : undefined,
-              overflowY: commentsScrollable ? "auto" : undefined,
-              paddingRight: commentsScrollable ? 4 : undefined,
-            }}
-          >
-            {post.comments.map((comment) => (
-              <div key={comment.id} className="flex items-start gap-2">
-                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#404040] bg-[#1A1A1A] font-montserrat text-[10px] font-bold text-[#FFD700]">
-                  {comment.author.slice(0, 1)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-inter text-[12px] leading-snug text-[#D4D4D4]">
-                    <span className="font-semibold text-white">{comment.author}</span>{" "}
-                    {comment.text}
-                  </p>
-                  <p className="mt-1 font-inter text-[10px] font-medium text-[#737373]">{comment.timeAgo}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Motion.div>
-      )}
     </Motion.article>
   );
 }
