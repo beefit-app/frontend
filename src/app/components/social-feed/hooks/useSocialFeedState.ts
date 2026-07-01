@@ -126,6 +126,8 @@ export function useSocialFeedState() {
   async function saveTemplate(id: string | number) {
     const post = posts.find((p) => p.id === id);
     const templateName = post?.title || (post ? `Treino de ${post.author}` : "Meu Treino Importado");
+    const confirmCopy = window.confirm(`Deseja copiar o template "${templateName}" para o seu inventário?`);
+    if (!confirmCopy) return;
     try {
       await socialFeedService.importTemplate(id, templateName);
       setPosts((current) => current.map((post) => post.id === id ? { ...post, templateSaved: true } : post));
