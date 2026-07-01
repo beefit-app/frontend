@@ -244,12 +244,31 @@ export function useActiveWorkoutSession({
   }
 
   function updateSet(exerciseId: string, setId: string, field: "weight" | "reps", value: string) {
+    let sanitizedValue = value;
+    if (field === "weight") {
+      sanitizedValue = value.replace(/[^0-9.,]/g, "");
+      if (sanitizedValue.trim().length > 0) {
+        const numValue = Number(sanitizedValue.replace(",", "."));
+        if (!isNaN(numValue) && numValue > 1000) {
+          sanitizedValue = "1000";
+        }
+      }
+    } else if (field === "reps") {
+      sanitizedValue = value.replace(/[^0-9]/g, "");
+      if (sanitizedValue.trim().length > 0) {
+        const numValue = parseInt(sanitizedValue, 10);
+        if (!isNaN(numValue) && numValue > 100) {
+          sanitizedValue = "100";
+        }
+      }
+    }
+
     setExercises((current) =>
       current.map((exercise) =>
         exercise.id === exerciseId
           ? {
               ...exercise,
-              sets: exercise.sets.map((set) => (set.id === setId ? { ...set, [field]: value } : set)),
+              sets: exercise.sets.map((set) => (set.id === setId ? { ...set, [field]: sanitizedValue } : set)),
             }
           : exercise,
       ),
