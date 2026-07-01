@@ -125,20 +125,13 @@ export function useSocialFeedState() {
   async function toggleLike(id: string | number) { const result = await socialFeedService.toggleLike(id); setPosts((current) => current.map((post) => post.id === id ? { ...post, liked: result.liked, likes: result.likes_count } : post)); }
   async function saveTemplate(id: string | number) {
     const post = posts.find((p) => p.id === id);
-    const defaultName = post ? `Treino de ${post.author}` : "Meu Treino Importado";
-    const name = window.prompt("Escolha o nome para o template do treino:", defaultName);
-    if (name === null) return;
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      alert("O nome do template não pode ser vazio.");
-      return;
-    }
+    const templateName = post?.title || (post ? `Treino de ${post.author}` : "Meu Treino Importado");
     try {
-      await socialFeedService.importTemplate(id, trimmedName);
+      await socialFeedService.importTemplate(id, templateName);
       setPosts((current) => current.map((post) => post.id === id ? { ...post, templateSaved: true } : post));
     } catch (err) {
       console.error(err);
-      alert("Não foi possível salvar o template.");
+      alert("Não foi possível copiar o treino.");
     }
   }
   return { posts, liveFriends, isLoading, isLoadingMore, hasMore, error, loadMore, retry, toggleLike: (id: string | number) => void toggleLike(id), saveTemplate: (id: string | number) => void saveTemplate(id) };
