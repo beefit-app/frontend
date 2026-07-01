@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { inventoryService } from "../../../services/inventoryService";
 import { workoutService } from "../../../services/workoutService";
+import { subscribeSocialEvents } from "../../../services/socialEventsService";
 import type { ExerciseCatalogItem, WorkoutTemplate } from "../../../types/workout";
 import { DEFAULT_INVENTORY_FILTERS } from "../constants";
 import type { InventoryCard, InventoryFilters } from "../types";
@@ -86,6 +87,23 @@ export function useInventoryScreenState() {
   useEffect(() => {
     void loadTemplates();
   }, [loadTemplates]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void subscribeSocialEvents(async (type, _data) => {
+      if (type === "TEMPLATE_IMPORTED") {
+        try {
+          const loadedTemplates = await workoutService.loadTemplates();
+          setTemplates(loadedTemplates);
+        } catch (err) {
+          console.error("Failed to auto-reload templates via SSE", err);
+        }
+      }
+    }, controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   const updateFilters = useCallback((nextFilters: Partial<InventoryFilters>) => {
     setCards([]);

@@ -25,12 +25,23 @@ export interface FriendRemovedEvent {
   friendProfilePicture?: string | null;
   removedAt: string;
 }
+export interface TemplateImportedEvent {
+  id: string;
+  name: string;
+  muscleGroups: string[];
+  exercises: {
+    catalogExerciseId: string;
+    catalogExerciseName: string;
+    order: number;
+  }[];
+}
 
 type SocialEventPayload =
   | WorkoutPresenceEvent
   | FriendRequestPendingEvent
   | FriendRequestAcceptedEvent
   | FriendRemovedEvent
+  | TemplateImportedEvent
   | Record<string, unknown>;
 
 type SocialEventListener = (type: string, data: SocialEventPayload) => void;
