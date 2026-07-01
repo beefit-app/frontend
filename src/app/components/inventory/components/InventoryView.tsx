@@ -1,8 +1,23 @@
 import { IonCol, IonGrid, IonRow } from "@ionic/react";
-import { Filter, Package2, RefreshCcw, Star, X } from "lucide-react";
+import {
+  Check,
+  Filter,
+  FolderKanban,
+  MoreVertical,
+  Package2,
+  Plus,
+  RefreshCcw,
+  Search,
+  Star,
+  X,
+} from "lucide-react";
+import { AnimatePresence, motion as Motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { useState } from "react";
-import { HexagonPattern } from "../../HexagonPattern";
+import type { ExerciseCatalogItem, WorkoutTemplate } from "../../../types/workout";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
+import { BeeButton } from "../../BeeButton";
+import { PageBackground } from "../../PageBackground";
 import {
   HEX_CLIP,
   MUSCLE_GROUP_FILTER_OPTIONS,
@@ -11,6 +26,8 @@ import {
   RARITY_META,
 } from "../constants";
 import type { InventoryCard, InventoryFilters, InventoryMuscleGroup, InventoryRarity } from "../types";
+
+type InventoryTab = "cards" | "templates";
 
 function formatAttackPower(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -448,6 +465,445 @@ function InventoryCardTile({ card }: { card: InventoryCard }) {
   );
 }
 
+function TemplateSkeletonList() {
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} style={{ borderRadius: 18, border: "1px solid #2D2D2D", background: "#141414", padding: 16 }}>
+          <div style={{ width: "58%", height: 20, borderRadius: 8, background: "#232323" }} />
+          <div style={{ marginTop: 12, width: "74%", height: 14, borderRadius: 8, background: "#1C1C1C" }} />
+          <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+            <div style={{ width: 72, height: 24, borderRadius: 999, background: "#232323" }} />
+            <div style={{ width: 88, height: 24, borderRadius: 999, background: "#232323" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function getTemplateExercises(template: WorkoutTemplate, catalog: ExerciseCatalogItem[]) {
+  return template.exerciseIds
+    .map((exerciseId) => catalog.find((exercise) => exercise.id === exerciseId) ?? null)
+    .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null);
+}
+
+function normalizeTemplateGroupLabel(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function exerciseMatchesMuscleGroup(exercise: ExerciseCatalogItem, muscleGroup: InventoryMuscleGroup | null) {
+  if (!muscleGroup) return true;
+  return normalizeTemplateGroupLabel(exercise.group) === normalizeTemplateGroupLabel(MUSCLE_GROUP_META[muscleGroup].label);
+}
+
+function TemplateCard({
+  template,
+  catalog,
+  onOpenMenu,
+}: {
+  template: WorkoutTemplate;
+  catalog: ExerciseCatalogItem[];
+  onOpenMenu: () => void;
+}) {
+  const exercises = getTemplateExercises(template, catalog);
+  const uniqueGroups = Array.from(new Set(template.groups));
+  const groupSummary = uniqueGroups.length > 0 ? uniqueGroups.join(", ") : "Sem grupo definido";
+
+  return (
+    <article
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: 18,
+        border: "1px solid #2D2D2D",
+        background: "#171717",
+        padding: 14,
+        display: "grid",
+        gap: 13,
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: -38,
+          right: -28,
+          width: 96,
+          height: 110,
+          clipPath: HEX_CLIP,
+          background: "rgba(255,215,0,0.05)",
+        }}
+      />
+
+      <div style={{ position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 36,
+                height: 41,
+                clipPath: HEX_CLIP,
+                background: "rgba(255,215,0,0.12)",
+                border: "1px solid rgba(255,215,0,0.24)",
+                color: "#FFD700",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <FolderKanban size={16} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontFamily: "var(--font-montserrat)",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: "#FFFFFF",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {template.name}
+              </h2>
+              <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 7, fontFamily: "var(--font-inter)", fontSize: 11, color: "#737373" }}>
+                <span>{template.exerciseIds.length} exercícios</span>
+                <span style={{ width: 4, height: 4, borderRadius: 999, background: "#525252" }} />
+                <span>{uniqueGroups.length} grupos</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onOpenMenu}
+          aria-label={`Gerenciar template ${template.name}`}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            border: "1px solid #2D2D2D",
+            background: "#181818",
+            color: "#A3A3A3",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <MoreVertical size={18} />
+        </button>
+      </div>
+
+      <div
+        style={{
+          position: "relative",
+          borderRadius: 14,
+          border: "1px solid #2D2D2D",
+          background: "#141414",
+          padding: "10px 12px",
+          minWidth: 0,
+        }}
+      >
+        <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 10, fontWeight: 800, color: "#737373", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          Grupos musculares
+        </div>
+        <div style={{ marginTop: 4, fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 700, color: "#FFD700", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {groupSummary}
+        </div>
+      </div>
+
+      <div style={{ position: "relative", display: "grid", gap: 9, borderTop: "1px solid #2D2D2D", paddingTop: 14 }}>
+        <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 10, fontWeight: 800, color: "#737373", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          Exercícios
+        </div>
+        {exercises.map((exercise) => (
+          <div key={exercise.id} style={{ display: "flex", alignItems: "center", gap: 8, color: "#D4D4D4" }}>
+            <span style={{ width: 7, height: 8, clipPath: HEX_CLIP, background: "#FFD700", flexShrink: 0 }} />
+            <span style={{ fontFamily: "var(--font-inter)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {exercise.name}
+            </span>
+          </div>
+        ))}
+        {exercises.length === 0 && (
+          <div style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#737373" }}>
+            Exercícios indisponíveis no catálogo carregado.
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function TemplateActionSheet({
+  template,
+  open,
+  onOpenChange,
+  onEdit,
+  onDelete,
+  isSaving,
+}: {
+  template: WorkoutTemplate | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  isSaving: boolean;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+        <SheetHeader className="px-0 pb-3 pt-3 text-left">
+          <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
+            {template?.name ?? "Opções do template"}
+          </SheetTitle>
+          <SheetDescription className="font-inter text-[13px] text-[#737373]">
+            Escolha uma ação para este template.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex flex-col gap-2.5">
+          <BeeButton
+            variant="dark"
+            fullWidth
+            onClick={onEdit}
+            disabled={!template || isSaving}
+          >
+            Editar template
+          </BeeButton>
+          <BeeButton
+            variant="red"
+            fullWidth
+            onClick={onDelete}
+            disabled={!template || isSaving}
+          >
+            Excluir template
+          </BeeButton>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function TemplateFormSheet({
+  mode,
+  open,
+  catalog,
+  template,
+  isSaving,
+  onOpenChange,
+  onSubmit,
+}: {
+  mode: "create" | "edit";
+  open: boolean;
+  catalog: ExerciseCatalogItem[];
+  template: WorkoutTemplate | null;
+  isSaving: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (input: { name: string; exerciseIds: string[] }) => Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [exerciseIds, setExerciseIds] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
+  const [catalogMuscleGroupFilter, setCatalogMuscleGroupFilter] = useState<InventoryMuscleGroup | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(mode === "edit" ? template?.name ?? "" : "");
+    setExerciseIds(mode === "edit" ? template?.exerciseIds ?? [] : []);
+    setQuery("");
+    setCatalogMuscleGroupFilter(null);
+    setFormError(null);
+  }, [mode, open, template]);
+
+  const selectedExercises = exerciseIds
+    .map((exerciseId) => catalog.find((exercise) => exercise.id === exerciseId) ?? null)
+    .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredCatalog = catalog
+    .filter((exercise) => !exerciseIds.includes(exercise.id))
+    .filter((exercise) => exerciseMatchesMuscleGroup(exercise, catalogMuscleGroupFilter))
+    .filter((exercise) => {
+      if (!normalizedQuery) return true;
+      return `${exercise.name} ${exercise.group}`.toLowerCase().includes(normalizedQuery);
+    })
+    .slice(0, 24);
+  const canSubmit = name.trim().length > 0 && exerciseIds.length > 0 && !isSaving;
+
+  async function handleSubmit() {
+    if (!name.trim()) {
+      setFormError("Nomeie o template antes de salvar.");
+      return;
+    }
+    if (exerciseIds.length === 0) {
+      setFormError("Adicione ao menos um exercício.");
+      return;
+    }
+
+    try {
+      await onSubmit({ name: name.trim(), exerciseIds });
+      onOpenChange(false);
+    } catch (cause) {
+      setFormError(cause instanceof Error ? cause.message : "Não foi possível salvar o template.");
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="mx-auto flex max-h-[92vh] max-w-[820px] gap-0 overflow-hidden rounded-t-[24px] border border-b-0 border-[#2D2D2D] bg-[#141414] p-0 text-white">
+        <SheetHeader className="border-b border-[#2D2D2D] px-5 py-5 text-left">
+          <SheetTitle className="font-montserrat text-[18px] font-bold text-white">
+            {mode === "edit" ? "Editar template" : "Novo template"}
+          </SheetTitle>
+          <SheetDescription className="font-inter text-[13px] text-[#737373]">
+            Nomeie o treino e adicione os exercícios na ordem desejada.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:items-start">
+            <div className="grid gap-5">
+              <label className="grid gap-2">
+                <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#737373]">Nome</span>
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Ex.: Upper pesado"
+                  className="h-12 rounded-2xl border border-[#2D2D2D] bg-[#101010] px-4 font-inter text-[14px] text-white outline-none focus:border-[#FFD700]"
+                />
+              </label>
+
+              <section className="grid gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#737373]">
+                    Exercícios adicionados
+                  </span>
+                  <span className="font-inter text-[12px] font-semibold text-[#FFD700]">{exerciseIds.length}</span>
+                </div>
+                {selectedExercises.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-[#2D2D2D] bg-[#101010] px-4 py-5 text-center font-inter text-[13px] text-[#737373]">
+                    Adicione exercícios pelo catálogo abaixo.
+                  </div>
+                ) : (
+                  <div className="grid max-h-[34vh] gap-2 overflow-y-auto pr-1 lg:max-h-[46vh]">
+                    {selectedExercises.map((exercise, index) => (
+                      <div key={`${exercise.id}-${index}`} className="flex items-center gap-3 rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-3 py-3">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[rgba(255,215,0,0.12)] font-montserrat text-[11px] font-bold text-[#FFD700]">
+                          {index + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-inter text-[13px] font-semibold text-white">{exercise.name}</div>
+                          <div className="font-inter text-[11px] text-[#737373]">{exercise.group}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setExerciseIds((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                          aria-label={`Remover ${exercise.name}`}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#2D2D2D] text-[#A3A3A3]"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+
+            <section className="grid gap-3">
+              <label className="grid gap-2">
+                <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#737373]">Catálogo</span>
+                <div className="flex h-12 items-center gap-2 rounded-2xl border border-[#2D2D2D] bg-[#101010] px-4 text-[#737373] focus-within:border-[#FFD700]">
+                  <Search size={16} />
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Buscar exercício"
+                    className="min-w-0 flex-1 bg-transparent font-inter text-[14px] text-white outline-none placeholder:text-[#737373]"
+                  />
+                </div>
+              </label>
+
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#737373]">
+                    Grupo muscular
+                  </span>
+                  {catalogMuscleGroupFilter && (
+                    <button
+                      type="button"
+                      onClick={() => setCatalogMuscleGroupFilter(null)}
+                      className="font-inter text-[12px] font-bold text-[#FFD700]"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {MUSCLE_GROUP_FILTER_OPTIONS.map((option) => (
+                    <FilterPill<InventoryMuscleGroup | null>
+                      key={option.label}
+                      active={catalogMuscleGroupFilter === option.value}
+                      label={option.label}
+                      onClick={() => setCatalogMuscleGroupFilter(option.value)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid max-h-[44vh] gap-2 overflow-y-auto pr-1 lg:max-h-[58vh]">
+                {filteredCatalog.map((exercise) => (
+                  <button
+                    key={exercise.id}
+                    type="button"
+                    onClick={() => setExerciseIds((current) => [...current, exercise.id])}
+                    className="flex w-full items-center gap-3 rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-3 py-3 text-left transition-colors hover:border-[#404040] hover:bg-[#202020]"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[rgba(96,165,250,0.24)] bg-[rgba(96,165,250,0.1)] text-[#60A5FA]">
+                      <Plus size={16} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-inter text-[13px] font-semibold text-white">{exercise.name}</span>
+                      <span className="block font-inter text-[11px] text-[#737373]">{exercise.group}</span>
+                    </span>
+                  </button>
+                ))}
+                {filteredCatalog.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-[#2D2D2D] bg-[#101010] px-4 py-5 text-center font-inter text-[13px] text-[#737373]">
+                    Nenhum exercício disponível.
+                  </div>
+                )}
+              </div>
+            </section>
+            {formError && <div className="font-inter text-[13px] text-[#FCA5A5] lg:col-span-2">{formError}</div>}
+          </div>
+        </div>
+
+        <div className="shrink-0 border-t border-[#2D2D2D] bg-[#141414] px-4 py-4">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[#FFD700] bg-[#FFD700] font-montserrat text-[12px] font-bold uppercase tracking-[0.04em] text-[#0A0A0A] disabled:border-[#2D2D2D] disabled:bg-[#1A1A1A] disabled:text-[#737373]"
+          >
+            <Check size={16} />
+            {isSaving ? "Salvando..." : "Salvar template"}
+          </button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function InventorySkeletonList() {
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -477,32 +933,55 @@ function getActiveFilterLabels(filters: InventoryFilters) {
 
 export function InventoryView({
   cards,
+  templates,
+  catalog,
   filters,
   totalElements,
   isLoading,
   isLoadingMore,
+  isLoadingTemplates,
+  isSavingTemplate,
   hasMore,
   error,
+  templatesError,
   onLoadMore,
   onRetry,
+  onRetryTemplates,
   onResetFilters,
   onRarityChange,
   onMuscleGroupChange,
+  onCreateTemplate,
+  onUpdateTemplate,
+  onDeleteTemplate,
 }: {
   cards: InventoryCard[];
+  templates: WorkoutTemplate[];
+  catalog: ExerciseCatalogItem[];
   filters: InventoryFilters;
   totalElements: number;
   isLoading: boolean;
   isLoadingMore: boolean;
+  isLoadingTemplates: boolean;
+  isSavingTemplate: boolean;
   hasMore: boolean;
   error: string | null;
+  templatesError: string | null;
   onLoadMore: () => void;
   onRetry: () => void;
+  onRetryTemplates: () => void;
   onResetFilters: () => void;
   onRarityChange: (rarity: InventoryRarity | null) => void;
   onMuscleGroupChange: (muscleGroup: InventoryMuscleGroup | null) => void;
+  onCreateTemplate: (input: { name: string; exerciseIds: string[] }) => Promise<WorkoutTemplate>;
+  onUpdateTemplate: (templateId: string, input: { name: string; exerciseIds: string[] }) => Promise<WorkoutTemplate>;
+  onDeleteTemplate: (templateId: string) => Promise<void>;
 }) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [activeTab, setActiveTab] = useState<InventoryTab>("cards");
+  const [selectedTemplate, setSelectedTemplate] = useState<WorkoutTemplate | null>(null);
+  const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
+  const [templateFormOpen, setTemplateFormOpen] = useState(false);
+  const [templateFormMode, setTemplateFormMode] = useState<"create" | "edit">("create");
   const hasActiveFilters = filters.rarity !== null || filters.muscleGroup !== null;
 
   useEffect(() => {
@@ -517,111 +996,289 @@ export function InventoryView({
     return () => observer.disconnect();
   }, [error, hasMore, isLoading, isLoadingMore, onLoadMore]);
 
+  function openCreateTemplate() {
+    setSelectedTemplate(null);
+    setTemplateFormMode("create");
+    setTemplateFormOpen(true);
+  }
+
+  function openEditTemplate() {
+    if (!selectedTemplate) return;
+    setTemplateMenuOpen(false);
+    setTemplateFormMode("edit");
+    setTemplateFormOpen(true);
+  }
+
+  async function deleteSelectedTemplate() {
+    if (!selectedTemplate) return;
+    if (!window.confirm(`Excluir o template "${selectedTemplate.name}"?`)) return;
+
+    try {
+      await onDeleteTemplate(selectedTemplate.id);
+      setTemplateMenuOpen(false);
+      setSelectedTemplate(null);
+    } catch (cause) {
+      window.alert(cause instanceof Error ? cause.message : "Não foi possível excluir o template.");
+    }
+  }
+
+  async function submitTemplate(input: { name: string; exerciseIds: string[] }) {
+    if (templateFormMode === "edit" && selectedTemplate) {
+      await onUpdateTemplate(selectedTemplate.id, input);
+      return;
+    }
+
+    await onCreateTemplate(input);
+  }
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0A0A0A] pb-8">
-      <HexagonPattern />
-      <div
-        style={{
-          position: "absolute",
-          top: -180,
-          left: 0,
-          right: 0,
-          height: 540,
-          background: "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%)",
-          pointerEvents: "none",
-        }}
-      />
-      <IonGrid fixed className="relative z-10 px-3 py-5">
+    <PageBackground>
+      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-5" style={{ maxWidth: 393 }}>
         <IonRow className="ion-justify-content-center">
-          <IonCol size="12" style={{ maxWidth: 393 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-              <header style={{ paddingTop: 0 }}>
-                <div>
+          <IonCol size="12">
+            <div>
+              <header className="relative mb-6">
+                <div className="pr-[58px]">
                   <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
-                    Inventário
-                    <span style={{ color: "#FFD700" }}>.</span>
+                    Inventário<span className="text-[#FFD700]">.</span>
                   </h1>
-                  <p style={{ marginTop: 8, fontFamily: "var(--font-inter)", fontSize: 14, lineHeight: 1.45, color: "#A3A3A3" }}>
-                    Acompanhe suas cartas conquistadas e refine a coleção por raridade e grupo muscular.
-                  </p>
                 </div>
+                <p className="mt-2 max-w-[320px] font-inter text-[14px] leading-[1.45] text-[#A3A3A3]">
+                  Acompanhe suas cartas e organize templates para começar o treino mais rápido.
+                </p>
               </header>
 
-              <FilterSection
-                filters={filters}
-                onResetFilters={onResetFilters}
-                onRarityChange={onRarityChange}
-                onMuscleGroupChange={onMuscleGroupChange}
-              />
+              <nav
+                className="mb-6 grid grid-cols-2 rounded-[18px] border border-[#2D2D2D] bg-[#141414] p-1.5"
+                role="tablist"
+                aria-label="Seções do inventário"
+              >
+                {[
+                  { id: "cards" as const, label: "Cartas", icon: <Package2 size={15} /> },
+                  { id: "templates" as const, label: "Templates", icon: <FolderKanban size={15} /> },
+                ].map((tab) => {
+                  const selected = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`relative flex items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
+                        selected ? "text-[#0A0A0A]" : "text-[#737373]"
+                      }`}
+                    >
+                      {selected && (
+                        <Motion.span
+                          layoutId="inventory-tab-highlight"
+                          className="absolute inset-0 rounded-[13px] bg-[#FFD700]"
+                          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                        />
+                      )}
+                      <span className="relative z-10 flex items-center gap-2">
+                        {tab.icon}
+                        {tab.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
 
-              <section style={{ display: "grid", gap: 16 }}>
-                {isLoading && <InventorySkeletonList />}
+              <AnimatePresence initial={false}>
+                <Motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, x: activeTab === "cards" ? -12 : 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: activeTab === "cards" ? -12 : 12 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                >
+                  {activeTab === "cards" && (
+                    <>
+                  <FilterSection
+                    filters={filters}
+                    onResetFilters={onResetFilters}
+                    onRarityChange={onRarityChange}
+                    onMuscleGroupChange={onMuscleGroupChange}
+                  />
 
-                {!isLoading && error && (
-                  <div
-                    style={{
-                      borderRadius: 20,
-                      border: "1px solid rgba(248,113,113,0.24)",
-                      background: "rgba(38,16,16,0.5)",
-                      padding: 18,
-                      textAlign: "center",
-                    }}
-                  >
-                    <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>
-                      Falha ao carregar o inventário
+                  <section className="mt-5 grid gap-4">
+                    {isLoading && <InventorySkeletonList />}
+
+                    {!isLoading && error && (
+                      <div
+                        style={{
+                          borderRadius: 20,
+                          border: "1px solid rgba(248,113,113,0.24)",
+                          background: "rgba(38,16,16,0.5)",
+                          padding: 18,
+                          textAlign: "center",
+                        }}
+                      >
+                        <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>
+                          Falha ao carregar o inventário
+                        </div>
+                        <div style={{ marginTop: 8, fontFamily: "var(--font-inter)", fontSize: 14, color: "#FCA5A5" }}>{error}</div>
+                        <button
+                          type="button"
+                          onClick={onRetry}
+                          style={{
+                            marginTop: 14,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            borderRadius: 999,
+                            border: "1px solid rgba(255,215,0,0.28)",
+                            background: "transparent",
+                            color: "#FFD700",
+                            padding: "10px 16px",
+                            fontFamily: "var(--font-montserrat)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.04em",
+                          }}
+                        >
+                          <RefreshCcw size={14} />
+                          Tentar novamente
+                        </button>
+                      </div>
+                    )}
+
+                    {!isLoading && !error && cards.length === 0 && !hasActiveFilters && (
+                      <EmptyState
+                        title="Seu inventário ainda está vazio"
+                        description="Finalize treinos para gerar cartas e começar a montar sua coleção."
+                      />
+                    )}
+
+                    {!isLoading && !error && cards.length === 0 && hasActiveFilters && (
+                      <EmptyState
+                        title="Nenhuma carta encontrada"
+                        description="Os filtros atuais não retornaram cartas. Ajuste a raridade ou o grupo muscular."
+                        actionLabel="Limpar filtros"
+                        onAction={onResetFilters}
+                      />
+                    )}
+
+                    {!isLoading && !error && cards.length > 0 && cards.map((card) => <InventoryCardTile key={card.id} card={card} />)}
+
+                    {!error && hasMore && <div ref={sentinelRef} style={{ padding: "8px 0", textAlign: "center", fontFamily: "var(--font-inter)", fontSize: 12, color: "#737373" }}>{isLoadingMore ? "Buscando mais cartas..." : ""}</div>}
+                  </section>
+                    </>
+                  )}
+
+                  {activeTab === "templates" && (
+                <section className="grid gap-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <FolderKanban size={14} color="#FFD700" />
+                      <h2 className="font-montserrat text-[11px] font-bold uppercase tracking-[0.1em] text-[#737373]">
+                        Templates salvos
+                      </h2>
+                      <span className="font-montserrat text-[14px] font-bold text-[#FFD700]">{templates.length}</span>
                     </div>
-                    <div style={{ marginTop: 8, fontFamily: "var(--font-inter)", fontSize: 14, color: "#FCA5A5" }}>{error}</div>
                     <button
                       type="button"
-                      onClick={onRetry}
-                      style={{
-                        marginTop: 14,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 8,
-                        borderRadius: 999,
-                        border: "1px solid rgba(255,215,0,0.28)",
-                        background: "transparent",
-                        color: "#FFD700",
-                        padding: "10px 16px",
-                        fontFamily: "var(--font-montserrat)",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.04em",
-                      }}
+                      onClick={openCreateTemplate}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] border border-[rgba(255,215,0,0.32)] bg-[rgba(255,215,0,0.1)] text-[#FFD700] transition-colors"
+                      aria-label="Criar novo template"
                     >
-                      <RefreshCcw size={14} />
-                      Tentar novamente
+                      <Plus size={18} />
                     </button>
                   </div>
-                )}
 
-                {!isLoading && !error && cards.length === 0 && !hasActiveFilters && (
-                  <EmptyState
-                    title="Seu inventário ainda está vazio"
-                    description="Finalize treinos para gerar cartas e começar a montar sua coleção."
-                  />
-                )}
+                  {isLoadingTemplates && <TemplateSkeletonList />}
 
-                {!isLoading && !error && cards.length === 0 && hasActiveFilters && (
-                  <EmptyState
-                    title="Nenhuma carta encontrada"
-                    description="Os filtros atuais não retornaram cartas. Ajuste a raridade ou o grupo muscular."
-                    actionLabel="Limpar filtros"
-                    onAction={onResetFilters}
-                  />
-                )}
+                  {!isLoadingTemplates && templatesError && (
+                    <div
+                      style={{
+                        borderRadius: 20,
+                        border: "1px solid rgba(248,113,113,0.24)",
+                        background: "rgba(38,16,16,0.5)",
+                        padding: 18,
+                        textAlign: "center",
+                      }}
+                    >
+                      <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>
+                        Falha ao carregar templates
+                      </div>
+                      <div style={{ marginTop: 8, fontFamily: "var(--font-inter)", fontSize: 14, color: "#FCA5A5" }}>{templatesError}</div>
+                      <button
+                        type="button"
+                        onClick={onRetryTemplates}
+                        style={{
+                          marginTop: 14,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          borderRadius: 999,
+                          border: "1px solid rgba(255,215,0,0.28)",
+                          background: "transparent",
+                          color: "#FFD700",
+                          padding: "10px 16px",
+                          fontFamily: "var(--font-montserrat)",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.04em",
+                        }}
+                      >
+                        <RefreshCcw size={14} />
+                        Tentar novamente
+                      </button>
+                    </div>
+                  )}
 
-                {!isLoading && !error && cards.length > 0 && cards.map((card) => <InventoryCardTile key={card.id} card={card} />)}
+                  {!isLoadingTemplates && !templatesError && templates.length === 0 && (
+                    <EmptyState
+                      title="Nenhum template salvo"
+                      description="Crie um treino pronto com qualquer quantidade de exercícios para usar no início do treino."
+                      actionLabel="Novo template"
+                      onAction={openCreateTemplate}
+                    />
+                  )}
 
-                {!error && hasMore && <div ref={sentinelRef} style={{ padding: "8px 0", textAlign: "center", fontFamily: "var(--font-inter)", fontSize: 12, color: "#737373" }}>{isLoadingMore ? "Buscando mais cartas..." : ""}</div>}
-
-              </section>
+                  {!isLoadingTemplates && !templatesError && templates.length > 0 && (
+                    <div className="flex flex-col gap-2.5">
+                      {templates.map((template) => (
+                        <TemplateCard
+                          key={template.id}
+                          template={template}
+                          catalog={catalog}
+                          onOpenMenu={() => {
+                            setSelectedTemplate(template);
+                            setTemplateMenuOpen(true);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+                  )}
+                </Motion.div>
+              </AnimatePresence>
             </div>
           </IonCol>
         </IonRow>
       </IonGrid>
-    </div>
+      <TemplateActionSheet
+        template={selectedTemplate}
+        open={templateMenuOpen}
+        onOpenChange={setTemplateMenuOpen}
+        onEdit={openEditTemplate}
+        onDelete={() => { void deleteSelectedTemplate(); }}
+        isSaving={isSavingTemplate}
+      />
+      <TemplateFormSheet
+        mode={templateFormMode}
+        open={templateFormOpen}
+        catalog={catalog}
+        template={selectedTemplate}
+        isSaving={isSavingTemplate}
+        onOpenChange={setTemplateFormOpen}
+        onSubmit={submitTemplate}
+      />
+    </PageBackground>
   );
 }

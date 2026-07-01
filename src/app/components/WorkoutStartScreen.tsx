@@ -561,7 +561,7 @@ export function WorkoutStartScreen({
                             fontSize: 12,
                           }}
                         >
-                          {template.exercises} exercícios · {template.duration}
+                          {template.duration ? `${template.exercises} exercícios · ${template.duration}` : `${template.exercises} exercícios`}
                         </div>
                       </div>
                       <div

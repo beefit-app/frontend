@@ -396,6 +396,26 @@ export const workoutService = {
     return template;
   },
 
+  async updateTemplate(templateId: string, input: { name: string; groups: string[]; exerciseIds: string[] }) {
+    const response = await apiClient.put<BackendTemplate>(
+      `/api/templates/${templateId}`,
+      {
+        name: input.name,
+        muscleGroups: input.groups.map(toApiMuscleGroup),
+        exercises: input.exerciseIds.map((catalogExerciseId, index) => ({ catalogExerciseId, order: index + 1 })),
+      },
+      { auth: true },
+    );
+    const template = normalizeTemplate(response);
+    templatesCache = templatesCache.map((item) => (item.id === template.id ? template : item));
+    return template;
+  },
+
+  async deleteTemplate(templateId: string) {
+    await apiClient.delete(`/api/templates/${templateId}`, undefined, { auth: true });
+    templatesCache = templatesCache.filter((item) => item.id !== templateId);
+  },
+
   async uploadWorkoutPhoto(file: File) {
     const formData = new FormData();
     formData.append("file", file, file.name || "workout-photo.jpg");

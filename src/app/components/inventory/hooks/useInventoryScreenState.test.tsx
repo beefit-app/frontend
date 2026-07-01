@@ -5,9 +5,39 @@ const { loadPage } = vi.hoisted(() => ({
   loadPage: vi.fn(),
 }));
 
+const {
+  getCatalog,
+  getTemplates,
+  loadCatalog,
+  loadTemplates,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
+} = vi.hoisted(() => ({
+  getCatalog: vi.fn(),
+  getTemplates: vi.fn(),
+  loadCatalog: vi.fn(),
+  loadTemplates: vi.fn(),
+  createTemplate: vi.fn(),
+  updateTemplate: vi.fn(),
+  deleteTemplate: vi.fn(),
+}));
+
 vi.mock("../../../services/inventoryService", () => ({
   inventoryService: {
     loadPage,
+  },
+}));
+
+vi.mock("../../../services/workoutService", () => ({
+  workoutService: {
+    getCatalog,
+    getTemplates,
+    loadCatalog,
+    loadTemplates,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate,
   },
 }));
 
@@ -16,6 +46,17 @@ import { useInventoryScreenState } from "./useInventoryScreenState";
 describe("useInventoryScreenState", () => {
   beforeEach(() => {
     loadPage.mockReset();
+    getCatalog.mockReset();
+    getTemplates.mockReset();
+    loadCatalog.mockReset();
+    loadTemplates.mockReset();
+    createTemplate.mockReset();
+    updateTemplate.mockReset();
+    deleteTemplate.mockReset();
+    getCatalog.mockReturnValue([]);
+    getTemplates.mockReturnValue([]);
+    loadCatalog.mockResolvedValue([]);
+    loadTemplates.mockResolvedValue([]);
     loadPage.mockResolvedValue({
       cards: [],
       page: 0,
