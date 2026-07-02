@@ -53,6 +53,11 @@ export const accountSettingsService = {
   },
 
   async deleteAccount(password: string) {
-    await apiClient.delete("/api/profile/me", { password }, { auth: true });
+    await apiClient.delete("/api/profile/me", undefined, {
+      auth: true,
+      headers: {
+        "X-Confirm-Password": password,
+      },
+    });
   },
 };
