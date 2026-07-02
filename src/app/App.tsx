@@ -1,77 +1,387 @@
-import { useState } from "react";
+import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   setupIonicReact,
   IonApp,
   IonPage,
   IonContent,
   IonFooter,
-  IonTabBar,
-  IonTabButton,
-  IonLabel,
 } from "@ionic/react";
-import { LayoutGrid, LogIn, UserPlus } from "lucide-react";
+import { ChevronRight, Dumbbell, Newspaper, Package2, Users, User } from "lucide-react";
 import { LoginScreen } from "./components/LoginScreen";
 import { RegisterScreen } from "./components/RegisterScreen";
-import { ComponentsShowcase } from "./components/ComponentsShowcase";
+import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } from "./components/ProfileScreen";
+import { SocialFeedScreen } from "./components/SocialFeedScreen";
+import { SocialScreen } from "./components/SocialScreen";
+import { InventoryScreen } from "./components/InventoryScreen";
+import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
+import { AdminScreen } from "./components/admin/AdminScreen";
+import { useAuth } from "./auth/AuthContext";
+import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
+import { useStreakState } from "./hooks/useStreakState";
+import { useWorkoutSessionState } from "./hooks/useWorkoutSessionState";
+import type { WorkoutCompletionDraft } from "./types/workout";
 
 setupIonicReact({ mode: "md" });
 
-type Screen = "login" | "register" | "components";
-
-const TAB_ITEMS: { id: Screen; label: string; Icon: React.FC<{ size: number }> }[] = [
-  { id: "components", label: "Componentes", Icon: ({ size }) => <LayoutGrid size={size} /> },
-  { id: "login", label: "Login", Icon: ({ size }) => <LogIn size={size} /> },
-  { id: "register", label: "Cadastro", Icon: ({ size }) => <UserPlus size={size} /> },
+const TAB_ITEMS: {
+  id: TabId;
+  label: string;
+  implemented: boolean;
+  Icon: React.FC<{ size: number; active: boolean }>;
+}[] = [
+  { id: "feed", label: "Feed", implemented: true, Icon: ({ size }) => <Newspaper size={size} /> },
+  { id: "social", label: "Social", implemented: true, Icon: ({ size }) => <Users size={size} /> },
+  {
+    id: "workout",
+    label: "Treino",
+    implemented: true,
+    Icon: ({ size }) => (
+      <span
+        className="flex items-center justify-center"
+        style={{
+          width: 34,
+          height: 38,
+          clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+          background: "#FFD700",
+          color: "#0A0A0A",
+          boxShadow: "0 4px 20px rgba(255,215,0,0.3)",
+        }}
+      >
+        <Dumbbell size={size} />
+      </span>
+    ),
+  },
+  { id: "inventory", label: "Inventário", implemented: true, Icon: ({ size }) => <Package2 size={size} /> },
+  { id: "profile", label: "Perfil", implemented: true, Icon: ({ size }) => <User size={size} /> },
 ];
 
+class ScreenErrorBoundary extends Component<
+  { children: ReactNode; resetKey: string },
+  { error: Error | null }
+> {
+  state = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidUpdate(previousProps: { resetKey: string }) {
+    if (previousProps.resetKey !== this.props.resetKey && this.state.error) {
+      this.setState({ error: null });
+    }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex min-h-full items-center justify-center px-6 text-center">
+          <div className="max-w-[320px] rounded-[22px] border border-[rgba(248,113,113,0.32)] bg-[#141414] px-5 py-6">
+            <p className="font-montserrat text-[15px] font-bold text-[#FCA5A5]">
+              Não foi possível renderizar esta tela.
+            </p>
+            <p className="mt-2 font-inter text-[13px] leading-5 text-[#A3A3A3]">
+              {this.state.error.message || "Erro inesperado de interface."}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("components");
+  const { isAuthenticated, isBootstrapping, user } = useAuth();
+  const contentRef = useRef<HTMLIonContentElement | null>(null);
+  const [pathname, setPathname] = useState(() => window.location.pathname);
+  const { authScreen, screen, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
+  const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
+    useWorkoutSessionState();
+  const { streak, isStreakFedToday, refreshStreak } = useStreakState(
+    isAuthenticated ? (user ?? null) : null,
+  );
+  const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
+  const [feedRefreshToken, setFeedRefreshToken] = useState(0);
+  const [profileRefreshToken, setProfileRefreshToken] = useState(0);
+  const [socialProfileUsername, setSocialProfileUsername] = useState<string | null>(null);
+  const [socialProfileReturnScreen, setSocialProfileReturnScreen] = useState<"feed" | "social">("social");
+  const isAdminRoute = pathname.startsWith("/admin");
+
+  useEffect(() => {
+    function handleLocationChange() {
+      setPathname(window.location.pathname);
+    }
+
+    window.addEventListener("popstate", handleLocationChange);
+
+    return () => {
+      window.removeEventListener("popstate", handleLocationChange);
+    };
+  }, []);
+
+  function handleWorkoutCompleted(_draft: WorkoutCompletionDraft) {
+    completeWorkout();
+    setScreen("feed");
+    setFeedRefreshToken((current) => current + 1);
+    setProfileRefreshToken((current) => current + 1);
+    void refreshStreak(true);
+    window.setTimeout(() => {
+      void contentRef.current?.scrollToTop(320);
+    }, 40);
+  }
+
+  function openSocialProfile(username: string) {
+    setSocialProfileReturnScreen(screen === "feed" ? "feed" : "social");
+    setSocialProfileUsername(username);
+    setScreen("social");
+    window.setTimeout(() => {
+      void contentRef.current?.scrollToTop(0);
+    }, 40);
+  }
+
+  const activeWorkoutLabel = activeWorkout?.selectedGroups.join(" · ");
+
+  if (isAdminRoute) {
+    return (
+      <IonApp>
+        <IonPage>
+          <IonContent
+            fullscreen
+            scrollY
+            style={
+              {
+                "--background": "#0A0A0A",
+                "--color": "#ffffff",
+              } as React.CSSProperties
+            }
+          >
+            {isBootstrapping && (
+              <div className="flex min-h-full items-center justify-center px-6 text-center">
+                <div className="max-w-[280px]">
+                  <span className="block font-montserrat text-[14px] font-bold uppercase tracking-[0.12em] text-[#B8A65A]">
+                    BeeFit Admin
+                  </span>
+                  <span className="mt-3 block font-inter text-[15px] text-[#D4D4D4]">
+                    Restaurando sua sessão...
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!isBootstrapping && (
+              <ScreenErrorBoundary resetKey={`admin:${isAuthenticated}:${authScreen}`}>
+                {!isAuthenticated && authScreen === "login" && (
+                  <LoginScreen onNavigateToRegister={() => setAuthScreen("register")} />
+                )}
+                {!isAuthenticated && authScreen === "register" && (
+                  <RegisterScreen onNavigateToLogin={() => setAuthScreen("login")} />
+                )}
+                {isAuthenticated && <AdminScreen />}
+              </ScreenErrorBoundary>
+            )}
+          </IonContent>
+        </IonPage>
+      </IonApp>
+    );
+  }
 
   return (
     <IonApp>
       <IonPage>
-        <IonContent fullscreen scrollY>
-          {screen === "components" && <ComponentsShowcase />}
-          {screen === "login" && (
-            <LoginScreen onNavigateToRegister={() => setScreen("register")} />
+        <IonContent
+          ref={contentRef}
+          fullscreen
+          scrollY
+          forceOverscroll
+          style={
+            {
+              "--background":
+                "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%) center var(--beefit-page-gradient-top) / 100% var(--beefit-page-gradient-height) no-repeat, #0A0A0A",
+              "--color": "#ffffff",
+            } as React.CSSProperties
+          }
+        >
+          {isBootstrapping && (
+            <div className="flex min-h-full items-center justify-center px-6 text-center">
+              <div className="max-w-[280px]">
+                <span className="block font-montserrat text-[14px] font-bold uppercase tracking-[0.12em] text-[#B8A65A]">
+                  BeeFit
+                </span>
+                <span className="mt-3 block font-inter text-[15px] text-[#D4D4D4]">
+                  Restaurando sua sessão...
+                </span>
+              </div>
+            </div>
           )}
-          {screen === "register" && (
-            <RegisterScreen onNavigateToLogin={() => setScreen("login")} />
+
+          {!isBootstrapping && isAuthenticated && activeWorkout && screen !== "workout" && (
+            <div className="px-3 pt-3">
+              <button
+                type="button"
+                onClick={() => setScreen("workout")}
+                className="mx-auto flex w-full max-w-[393px] items-center justify-between gap-3 rounded-[20px] border border-[rgba(255,215,0,0.28)] bg-[linear-gradient(135deg,rgba(255,215,0,0.14)_0%,rgba(20,20,20,0.98)_34%,rgba(20,20,20,0.98)_100%)] px-4 py-3 text-left shadow-[0_12px_30px_rgba(0,0,0,0.24)]"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(255,215,0,0.24)] bg-[rgba(255,215,0,0.12)] text-[#FFD700]">
+                    <Dumbbell size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block font-montserrat text-[11px] font-bold uppercase tracking-[0.12em] text-[#B8A65A]">
+                      Treino ativo
+                    </span>
+                    <span className="block truncate font-montserrat text-[14px] font-bold text-white">
+                      {activeWorkoutLabel}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="font-montserrat text-[16px] font-bold text-[#FFD700]">
+                    {formatElapsedTime(elapsedSeconds)}
+                  </span>
+                  <ChevronRight size={16} color="#FFD700" />
+                </div>
+              </button>
+            </div>
           )}
+
+          {!isBootstrapping && (
+            <ScreenErrorBoundary
+              resetKey={`${isAuthenticated}:${authScreen}:${screen}:${feedRefreshToken}:${workoutScreenInstance}:${profileRefreshToken}`}
+            >
+              {!isAuthenticated && authScreen === "login" && (
+                <LoginScreen
+                  onNavigateToRegister={() => setAuthScreen("register")}
+                />
+              )}
+              {!isAuthenticated && authScreen === "register" && (
+                <RegisterScreen
+                  onNavigateToLogin={() => setAuthScreen("login")}
+                />
+              )}
+              {isAuthenticated && (
+                <>
+                  <div style={{ display: screen === "feed" ? "block" : "none" }}>
+                    <SocialFeedScreen
+                      key={feedRefreshToken}
+                      streakCount={streak.count}
+                      isStreakFedToday={isStreakFedToday}
+                      streakBurstToken={streak.burstToken}
+                      onOpenUserProfile={openSocialProfile}
+                    />
+                  </div>
+                  <div style={{ display: screen === "social" ? "block" : "none" }}>
+                    <SocialScreen
+                      isActive={screen === "social"}
+                      profileUsername={socialProfileUsername}
+                      onOpenProfileFromSocial={() => setSocialProfileReturnScreen("social")}
+                      onProfileClosed={() => {
+                        setSocialProfileUsername(null);
+                        if (socialProfileReturnScreen !== "social") {
+                          setScreen(socialProfileReturnScreen);
+                        }
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: screen === "workout" ? "block" : "none" }}>
+                    <WorkoutStartScreen
+                      key={workoutScreenInstance}
+                      ghostModeEnabled={accountSettings.ghostModeEnabled}
+                      onActiveWorkoutChange={setActiveWorkout}
+                      onWorkoutCompleted={handleWorkoutCompleted}
+                    />
+                  </div>
+                  <div style={{ display: screen === "inventory" ? "block" : "none" }}>
+                    <InventoryScreen />
+                  </div>
+                  <div style={{ display: screen === "profile" ? "block" : "none" }}>
+                    <ProfileScreen
+                      key={profileRefreshToken}
+                      accountSettings={accountSettings}
+                      onAccountSettingsChange={setAccountSettings}
+                    />
+                  </div>
+                </>
+              )}
+            </ScreenErrorBoundary>
+          )}
+
         </IonContent>
 
-        <IonFooter className="ion-no-border">
-          <IonTabBar
-            style={
-              {
-                "--background": "#0A0A0A",
-                "--border": "1px solid #2D2D2D",
-                "--color": "#737373",
-                "--color-selected": "#FFD700",
-                height: "60px",
-              } as React.CSSProperties
-            }
+        {!isBootstrapping && isAuthenticated && (
+          <IonFooter
+            className="ion-no-border"
+            data-testid="bottom-navigation"
+            style={{
+              background: "#0A0A0A",
+              paddingBottom: "env(safe-area-inset-bottom)",
+            }}
           >
-            {TAB_ITEMS.map(({ id, label, Icon }) => (
-              <IonTabButton
-                key={id}
-                tab={id}
-                selected={screen === id}
-                onClick={() => setScreen(id)}
-                style={
-                  {
-                    "--color": screen === id ? "#FFD700" : "#737373",
-                    "--color-selected": "#FFD700",
-                    "--background": "#0A0A0A",
-                  } as React.CSSProperties
-                }
-              >
-                <Icon size={22} />
-                <IonLabel>{label}</IonLabel>
-              </IonTabButton>
-            ))}
-          </IonTabBar>
-        </IonFooter>
+            <nav
+              aria-label="Navegação principal"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                width: "100%",
+                maxWidth: 393,
+                height: 68,
+                margin: "0 auto",
+                background: "#0A0A0A",
+                borderTop: "2px solid #FFD700",
+                borderLeft: "1px solid #2D2D2D",
+                borderRight: "1px solid #2D2D2D",
+                borderTopLeftRadius: 22,
+                borderTopRightRadius: 22,
+                boxShadow: "0 -12px 32px rgba(0,0,0,0.42)",
+                overflow: "hidden",
+              }}
+            >
+              {TAB_ITEMS.map(({ id, label, implemented, Icon }) => {
+                const active = screen === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => handleTabChange(id, implemented)}
+                    style={{
+                      minWidth: 0,
+                      border: "none",
+                      background: "transparent",
+                      color: active ? "#FFD700" : "#737373",
+                      opacity: implemented || id === "workout" ? 1 : 0.72,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4,
+                      padding: "6px 4px",
+                      fontFamily: "var(--font-montserrat)",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Icon size={id === "workout" ? 18 : 22} active={active} />
+                    <span
+                      style={{
+                        display: "block",
+                        maxWidth: "100%",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          </IonFooter>
+        )}
       </IonPage>
     </IonApp>
   );

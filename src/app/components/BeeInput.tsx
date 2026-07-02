@@ -105,6 +105,7 @@ export function BeeInput({
           min={min as string}
           max={max as string}
           step={step as string}
+          onIonInput={handleIonChange}
           onIonChange={handleIonChange}
           onIonFocus={() => setFocused(true)}
           onIonBlur={() => setFocused(false)}

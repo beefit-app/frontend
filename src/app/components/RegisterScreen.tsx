@@ -1,8 +1,10 @@
 import { useState } from "react";
-import logoImg from "../../imports/BeeFit_Logo_-_2000_x_2000.png";
-import { HexagonPattern } from "./HexagonPattern";
+import { IonCard, IonCardContent, IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
+import logoImg from "../../imports/logo.png";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
+import { PageBackground } from "./PageBackground";
+import { useAuth } from "../auth/AuthContext";
 
 interface RegisterScreenProps {
   onNavigateToLogin: () => void;
@@ -19,15 +21,18 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { authError, clearAuthError, isSubmitting, register } = useAuth();
 
   function setField(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+    if (authError) clearAuthError();
   }
 
   function validate() {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = "Nome completo é obrigatório";
+    if (!form.username.trim()) e.username = "Nome de usuário é obrigatório";
     if (!form.email) e.email = "E-mail é obrigatório";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "E-mail inválido";
     if (!form.password) e.password = "Senha é obrigatória";
@@ -36,20 +41,37 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
     else if (isNaN(Number(form.weeklyGoal)) || Number(form.weeklyGoal) < 1)
       e.weeklyGoal = "Meta inválida (mínimo 1 dia)";
     if (!form.weight) e.weight = "Peso é obrigatório";
-    else if (isNaN(Number(form.weight)) || Number(form.weight) <= 0)
-      e.weight = "Peso inválido";
+    else if (isNaN(Number(form.weight)) || Number(form.weight) <= 0 || Number(form.weight) > 300)
+      e.weight = "O peso deve ser de até 300 kg";
     return e;
   }
 
-  function handleSubmit(ev: React.FormEvent) {
-    ev.preventDefault();
+  async function submitRegistration() {
     const e = validate();
     if (Object.keys(e).length) {
       setErrors(e);
       return;
     }
+
     setErrors({});
-    alert("Conta criada! (demo)");
+
+    try {
+      await register({
+        name: form.name.trim(),
+        username: form.username.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        weeklyGoal: Number(form.weeklyGoal),
+        weight: Number(form.weight),
+      });
+    } catch {
+      // O estado de erro já é tratado pelo AuthProvider.
+    }
+  }
+
+  function handleSubmit(ev: React.FormEvent) {
+    ev.preventDefault();
+    void submitRegistration();
   }
 
   const PersonIcon = () => (
@@ -105,178 +127,230 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
   );
 
   return (
-    <div
-      className="w-full bg-[#0A0A0A] flex items-center justify-center relative overflow-hidden"
-      style={{ minHeight: "100%" }}
-    >
-      <HexagonPattern />
-
-      <div className="relative z-10 w-full max-w-[430px] mx-auto flex flex-col items-center justify-center px-6 py-12">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <img
-            src={logoImg}
-            alt="BeeFit Logo"
-            className="w-20 h-20 object-contain mb-3 rounded-lg"
-          />
-          <h1
-            className="text-white leading-none"
-            style={{
-              fontFamily: "var(--font-montserrat)",
-              fontSize: 32,
-              fontWeight: 800,
-              letterSpacing: -1,
-            }}
-          >
-            <span style={{ color: "#FFD700" }}>Bee</span>Fit
-          </h1>
-        </div>
-
-        {/* Form card */}
-        <div className="relative w-full bg-[#1A1A1A] border border-[#2D2D2D] rounded-2xl p-8 overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-          <div
-            className="pointer-events-none absolute -top-5 -right-5 opacity-[0.06]"
-            style={{
-              width: 70,
-              height: 80,
-              background: "#FFD700",
-              clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
-            }}
-          />
-
-          <h2
-            className="text-white mb-1"
-            style={{ fontFamily: "var(--font-montserrat)", fontSize: 24, fontWeight: 700 }}
-          >
-            Criar Conta
-          </h2>
-          <p
-            className="mb-8"
-            style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#737373" }}
-          >
-            Comece sua jornada fitness hoje
-          </p>
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <BeeInput
-              label="Nome Completo"
-              type="text"
-              placeholder="Seu nome completo"
-              value={form.name}
-              onChange={(e) => setField("name", e.target.value)}
-              error={errors.name}
-              icon={<PersonIcon />}
-            />
-
-            <BeeInput
-              label="Nome de Usuário"
-              type="text"
-              placeholder="Seu username"
-              value={form.username}
-              onChange={(e) => setField("username", e.target.value)}
-              icon={<PersonIcon />}
-            />
-
-            <BeeInput
-              label="Endereço de E-mail"
-              type="email"
-              placeholder="seu@email.com"
-              value={form.email}
-              onChange={(e) => setField("email", e.target.value)}
-              error={errors.email}
-              icon={<EmailIcon />}
-            />
-
-            <BeeInput
-              label="Senha"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              value={form.password}
-              onChange={(e) => setField("password", e.target.value)}
-              error={errors.password}
-              icon={<LockIcon />}
-              rightElement={
-                <span onClick={() => setShowPassword(!showPassword)}>
-                  <EyeIcon />
-                </span>
-              }
-            />
-
-            <BeeInput
-              label="Meta de Exercício Semanal"
-              type="number"
-              placeholder="Ex: 4 (dias por semana)"
-              value={form.weeklyGoal}
-              onChange={(e) => setField("weeklyGoal", e.target.value)}
-              error={errors.weeklyGoal}
-              icon={<TargetIcon />}
-              min="1"
-              max="7"
-            />
-
-            <div>
-              <BeeInput
-                label="Peso Corporal (kg)"
-                type="number"
-                placeholder="Ex: 75.5"
-                value={form.weight}
-                onChange={(e) => setField("weight", e.target.value)}
-                error={errors.weight}
-                icon={<WeightIcon />}
-                step="0.1"
-                min="1"
+    <PageBackground>
+      <IonGrid fixed className="relative z-10 min-h-full px-3 py-5">
+        <IonRow className="ion-justify-content-center ion-align-items-center">
+          <IonCol size="12" style={{ maxWidth: 393 }}>
+            <div className="mb-7 flex flex-col items-center">
+              <img
+                src={logoImg}
+                alt="BeeFit Logo"
+                className="mb-3 h-20 w-20 rounded-2xl object-contain"
               />
-              <div className="mt-2 flex items-start gap-2 px-1">
-                <div
-                  className="mt-0.5 flex-shrink-0"
-                  style={{
-                    width: 8,
-                    height: 9,
-                    background: "#FFD700",
-                    clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
-                  }}
-                />
-                <p style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#737373", lineHeight: 1.4 }}>
-                  Seu peso é fundamental para o{" "}
-                  <span style={{ color: "#FFD700", fontWeight: 600 }}>
-                    sistema de raridade das cartas
-                  </span>
-                  . Quanto mais peso você levanta em relação ao seu corpo, mais rara fica sua carta de recorde!
-                </p>
-              </div>
+              <h1
+                className="leading-none text-white"
+                style={{
+                  fontFamily: "var(--font-montserrat)",
+                  fontSize: 30,
+                  fontWeight: 800,
+                  letterSpacing: -1,
+                }}
+              >
+                <span style={{ color: "#FFD700" }}>Bee</span>Fit
+              </h1>
             </div>
 
-            <div className="mt-2">
-              <BeeButton type="submit" variant="primary" fullWidth>
-                Criar Conta
-              </BeeButton>
-            </div>
-          </form>
-
-          <div className="mt-6 flex items-center gap-4">
-            <div className="flex-1 h-px bg-[#2D2D2D]" />
-            <span
-              style={{
-                fontFamily: "var(--font-inter)",
-                fontSize: 12,
-                color: "#404040",
-                textTransform: "uppercase",
-                fontWeight: 700,
-                letterSpacing: "0.1em",
-              }}
+            <IonCard
+              style={
+                {
+                  "--background": "#1A1A1A",
+                  "--color": "#FFFFFF",
+                  "--border-radius": "24px",
+                  margin: 0,
+                  border: "1px solid #2D2D2D",
+                  overflow: "hidden",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  position: "relative",
+                } as React.CSSProperties
+              }
             >
-              OU
-            </span>
-            <div className="flex-1 h-px bg-[#2D2D2D]" />
-          </div>
+              <div
+                className="pointer-events-none absolute -top-5 -right-5 opacity-[0.06]"
+                style={{
+                  width: 70,
+                  height: 80,
+                  background: "#FFD700",
+                  clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+                }}
+              />
 
-          <div className="mt-6">
-            <BeeButton type="button" variant="dark" fullWidth onClick={onNavigateToLogin}>
-              Fazer Login
-            </BeeButton>
-          </div>
-        </div>
-      </div>
-    </div>
+              <IonCardContent style={{ padding: 22 }}>
+                <h2
+                  className="mb-1 text-white"
+                  style={{ fontFamily: "var(--font-montserrat)", fontSize: 24, fontWeight: 700 }}
+                >
+                  Criar Conta
+                </h2>
+                <IonText
+                  className="mb-8 block"
+                  style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#737373" }}
+                >
+                  Comece sua jornada fitness hoje
+                </IonText>
+
+                <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                  <BeeInput
+                    label="Nome Completo"
+                    type="text"
+                    placeholder="Seu nome completo"
+                    value={form.name}
+                    onChange={(e) => setField("name", e.target.value)}
+                    error={errors.name}
+                    icon={<PersonIcon />}
+                    disabled={isSubmitting}
+                  />
+
+                  <BeeInput
+                    label="Nome de Usuário"
+                    type="text"
+                    placeholder="Seu username"
+                    value={form.username}
+                    onChange={(e) => setField("username", e.target.value)}
+                    error={errors.username}
+                    icon={<PersonIcon />}
+                    disabled={isSubmitting}
+                  />
+
+                  <BeeInput
+                    label="Endereço de E-mail"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={form.email}
+                    onChange={(e) => setField("email", e.target.value)}
+                    error={errors.email}
+                    icon={<EmailIcon />}
+                    disabled={isSubmitting}
+                  />
+
+                  <BeeInput
+                    label="Senha"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={form.password}
+                    onChange={(e) => setField("password", e.target.value)}
+                    error={errors.password}
+                    icon={<LockIcon />}
+                    disabled={isSubmitting}
+                    rightElement={
+                      <span onClick={() => setShowPassword(!showPassword)}>
+                        <EyeIcon />
+                      </span>
+                    }
+                  />
+
+                  <BeeInput
+                    label="Meta de Exercício Semanal"
+                    type="number"
+                    placeholder="Ex: 4 (dias por semana)"
+                    value={form.weeklyGoal}
+                    onChange={(e) => setField("weeklyGoal", e.target.value)}
+                    error={errors.weeklyGoal}
+                    icon={<TargetIcon />}
+                    min="1"
+                    max="7"
+                    disabled={isSubmitting}
+                  />
+
+                  <div>
+                    <BeeInput
+                      label="Peso Corporal (kg)"
+                      type="number"
+                      placeholder="Ex: 75.5"
+                      value={form.weight}
+                      onChange={(e) => setField("weight", e.target.value)}
+                      error={errors.weight}
+                      icon={<WeightIcon />}
+                      step="0.1"
+                      min="1"
+                      max="300"
+                      disabled={isSubmitting}
+                    />
+                    <div className="mt-2 flex items-start gap-2 px-1">
+                      <div
+                        className="mt-0.5 shrink-0"
+                        style={{
+                          width: 8,
+                          height: 9,
+                          background: "#FFD700",
+                          clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+                        }}
+                      />
+                      <IonText
+                        style={{
+                          fontFamily: "var(--font-inter)",
+                          fontSize: 12,
+                          color: "#737373",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Seu peso é fundamental para o{" "}
+                        <span style={{ color: "#FFD700", fontWeight: 600 }}>
+                          sistema de raridade das cartas
+                        </span>
+                        . Quanto mais peso você levanta em relação ao seu corpo, mais rara fica sua carta de recorde!
+                      </IonText>
+                    </div>
+                  </div>
+
+                  {authError && (
+                    <IonText
+                      style={{
+                        fontFamily: "var(--font-inter)",
+                        fontSize: 13,
+                        color: "#F87171",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {authError}
+                    </IonText>
+                  )}
+
+                  <div className="mt-2">
+                    <BeeButton
+                      type="button"
+                      variant="primary"
+                      fullWidth
+                      disabled={isSubmitting}
+                      onClick={() => void submitRegistration()}
+                    >
+                      {isSubmitting ? "Criando conta..." : "Criar Conta"}
+                    </BeeButton>
+                  </div>
+                </form>
+
+                <div className="mt-6 flex items-center gap-4">
+                  <div className="h-px flex-1 bg-[#2D2D2D]" />
+                  <IonText
+                    style={{
+                      fontFamily: "var(--font-inter)",
+                      fontSize: 12,
+                      color: "#404040",
+                      textTransform: "uppercase",
+                      fontWeight: 700,
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    OU
+                  </IonText>
+                  <div className="h-px flex-1 bg-[#2D2D2D]" />
+                </div>
+
+                <div className="mt-6">
+                  <BeeButton
+                    type="button"
+                    variant="dark"
+                    fullWidth
+                    onClick={onNavigateToLogin}
+                    disabled={isSubmitting}
+                  >
+                    Fazer Login
+                  </BeeButton>
+                </div>
+              </IonCardContent>
+            </IonCard>
+          </IonCol>
+        </IonRow>
+      </IonGrid>
+    </PageBackground>
   );
 }

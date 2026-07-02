@@ -95,8 +95,8 @@ const SIZE_PADDING: Record<BeeButtonSize, React.CSSProperties> = {
   sm: {
     "--padding-start": "16px",
     "--padding-end": "16px",
-    "--padding-top": "8px",
-    "--padding-bottom": "8px",
+    "--padding-top": "10px",
+    "--padding-bottom": "10px",
     fontSize: "14px",
   } as React.CSSProperties,
   md: {
@@ -109,9 +109,9 @@ const SIZE_PADDING: Record<BeeButtonSize, React.CSSProperties> = {
   lg: {
     "--padding-start": "48px",
     "--padding-end": "48px",
-    "--padding-top": "24px",
-    "--padding-bottom": "24px",
-    fontSize: "18px",
+    "--padding-top": "18px",
+    "--padding-bottom": "18px",
+    fontSize: "17px",
   } as React.CSSProperties,
 };
 
@@ -154,11 +154,15 @@ export function BeeButton({
             "--color": v.color,
             "--border-radius": "100px",
             "--border-color": v.border ?? "transparent",
-            "--border-width": v.border ? "2px" : "0",
+            "--border-width": v.border ? "1px" : "0",
             "--border-style": v.border ? "solid" : "none",
             "--box-shadow": v.shadow ?? "none",
             "--ripple-color": "rgba(255,255,255,0.1)",
             margin: 0,
+            minHeight: size === "sm" ? 44 : size === "md" ? 52 : 56,
+            fontFamily: "var(--font-montserrat)",
+            fontWeight: 700,
+            letterSpacing: "0.02em",
             ...SIZE_PADDING[size],
           } as React.CSSProperties
         }

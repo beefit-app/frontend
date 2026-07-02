@@ -4,9 +4,9 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
 
-function figmaAssetResolver() {
+function beefitAssetResolver() {
   return {
-    name: 'figma-asset-resolver',
+    name: 'beefit-asset-resolver',
     resolveId(id) {
       if (id.startsWith('figma:asset/')) {
         const filename = id.replace('figma:asset/', '')
@@ -18,8 +18,8 @@ function figmaAssetResolver() {
 
 export default defineConfig({
   plugins: [
-    figmaAssetResolver(),
-    // The React and Tailwind plugins are both required for Make, even if
+    beefitAssetResolver(),
+    // The React and Tailwind plugins are both required for BeeFit, even if
     // Tailwind is not being actively used – do not remove them
     react(),
     tailwindcss(),
@@ -29,6 +29,18 @@ export default defineConfig({
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  server: {
+    proxy: {
+      "/auth": "http://localhost:8080",
+      "/api": "http://localhost:8080",
+      "/users": "http://localhost:8080",
+    },
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: "./src/test/setup.ts",
   },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.

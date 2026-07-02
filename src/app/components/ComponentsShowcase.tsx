@@ -1,6 +1,5 @@
 import { useState } from "react";
-import logoImg from "../../imports/BeeFit_Logo_-_2000_x_2000.png";
-import { HexagonPattern } from "./HexagonPattern";
+import logoImg from "../../imports/logo.png";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
 import { BeeCard } from "./BeeCard";
@@ -65,7 +64,6 @@ export function ComponentsShowcase() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] relative overflow-hidden">
-      <HexagonPattern />
       <div className="relative z-10 max-w-[430px] mx-auto px-6 py-12">
 
         {/* Header */}
@@ -73,7 +71,7 @@ export function ComponentsShowcase() {
           <img
             src={logoImg}
             alt="BeeFit Logo"
-            className="w-28 h-28 object-contain mb-3 opacity-90"
+            className="w-28 h-28 object-contain rounded-2xl mb-3 opacity-90"
           />
           <h1 className="font-montserrat text-[32px] font-[800] text-white tracking-[-1px]">
             <span className="text-[#FFD700]">Bee</span>Fit
