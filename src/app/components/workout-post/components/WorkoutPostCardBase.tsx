@@ -9,10 +9,10 @@ import {
   Heart,
   ImageIcon,
 } from "lucide-react";
-import { HEX_CLIP, RARITY_STYLE } from "../constants";
+import { HEX_CLIP } from "../constants";
 import type { WorkoutPost, WorkoutPostAuthor } from "../types";
-import { exerciseRarity, getMuscleBadgeStyle, workoutRarity } from "../utils";
-import { HexAvatar, RarityTag } from "./shared";
+import { getMuscleBadgeStyle } from "../utils";
+import { HexAvatar } from "./shared";
 
 interface WorkoutPostCardBaseProps {
   post: WorkoutPost;
@@ -39,8 +39,6 @@ export function WorkoutPostCardBase({
 }: WorkoutPostCardBaseProps) {
   const [showExercises, setShowExercises] = useState(false);
   const touchStartX = useRef(0);
-  const computedPostRarity = workoutRarity(post.exerciseDetails, bodyWeight);
-  const rarityStyle = RARITY_STYLE[computedPostRarity];
 
   const swipeHandlers = {
     onTouchStart: (event: TouchEvent) => {
@@ -69,9 +67,9 @@ export function WorkoutPostCardBase({
       style={{
         borderRadius: 18,
         overflow: "hidden",
-        border: `1px solid ${showExercises ? rarityStyle.border : "#2D2D2D"}`,
+        border: "1px solid #2D2D2D",
         background: "#1A1A1A",
-        boxShadow: showExercises ? `0 4px 20px ${rarityStyle.glow}` : "none",
+        boxShadow: "none",
         position: "relative",
         transition: "border-color 0.3s, box-shadow 0.3s",
       }}
@@ -307,14 +305,10 @@ export function WorkoutPostCardBase({
                   {post.exerciseDetails.length} exercícios · {post.duration}
                 </span>
               </div>
-              <RarityTag rarity={computedPostRarity} />
             </div>
 
             <div style={{ padding: "10px 14px 14px", display: "flex", flexDirection: "column", gap: 0, overflowY: "auto", flex: 1 }}>
               {post.exerciseDetails.map((exercise, index) => {
-                const currentExerciseRarity = exerciseRarity(exercise, bodyWeight);
-                const currentExerciseStyle = currentExerciseRarity ? RARITY_STYLE[currentExerciseRarity] : null;
-
                 return (
                   <div
                     key={exercise.name}
@@ -326,31 +320,13 @@ export function WorkoutPostCardBase({
                           width: 6,
                           height: 7,
                           clipPath: HEX_CLIP,
-                          background: currentExerciseStyle ? currentExerciseStyle.border : rarityStyle.border,
+                          background: "#FFD700",
                           flexShrink: 0,
                         }}
                       />
                       <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 12, fontWeight: 700, color: "#ffffff" }}>
                         {exercise.name}
                       </span>
-                      {currentExerciseRarity && (
-                        <span
-                          style={{
-                            background: currentExerciseStyle.bg,
-                            border: `1px solid ${currentExerciseStyle.border}`,
-                            borderRadius: 999,
-                            color: currentExerciseStyle.text,
-                            fontFamily: "var(--font-inter)",
-                            fontSize: 9,
-                            fontWeight: 700,
-                            letterSpacing: "0.04em",
-                            padding: "2px 7px",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          {RARITY_STYLE[currentExerciseRarity].label}
-                        </span>
-                      )}
                       <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373", marginLeft: "auto", flexShrink: 0 }}>
                         {exercise.sets.length} séries
                       </span>
@@ -360,8 +336,8 @@ export function WorkoutPostCardBase({
                         <div
                           key={setIndex}
                           style={{
-                            background: currentExerciseStyle ? currentExerciseStyle.bg : "#252525",
-                            border: currentExerciseStyle ? `1px solid ${currentExerciseStyle.border}` : "1px solid #333",
+                            background: "rgba(255,215,0,0.12)",
+                            border: "1px solid #FFD700",
                             borderRadius: 7,
                             padding: "4px 9px",
                             display: "flex",
@@ -369,10 +345,10 @@ export function WorkoutPostCardBase({
                             alignItems: "center",
                             gap: 1,
                             minWidth: 48,
-                            boxShadow: currentExerciseStyle ? `0 0 0 1px ${currentExerciseStyle.glow}` : "none",
+                            boxShadow: "0 0 0 1px rgba(255,215,0,0.25)",
                           }}
                         >
-                          <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 12, fontWeight: 800, color: currentExerciseStyle ? currentExerciseStyle.text : rarityStyle.text, lineHeight: 1 }}>
+                          <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 12, fontWeight: 800, color: "#FFE44D", lineHeight: 1 }}>
                             {set.weight > 0 ? `${set.weight}kg` : "PC"}
                           </span>
                           <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373", lineHeight: 1 }}>
