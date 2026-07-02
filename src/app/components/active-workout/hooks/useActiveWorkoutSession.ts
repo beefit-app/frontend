@@ -184,13 +184,24 @@ export function useActiveWorkoutSession({
     return () => window.cancelAnimationFrame(frame);
   }, [exercises, pendingSetFocusExerciseId]);
 
-  useEffect(() => {
-    onSessionGroupsChange?.(sessionGroups);
-  }, [onSessionGroupsChange, sessionGroups]);
+  const onSessionGroupsChangeRef = useRef(onSessionGroupsChange);
+  const onDraftChangeRef = useRef(onDraftChange);
 
   useEffect(() => {
-    onDraftChange?.({ exercises, selectedGroups: sessionGroups });
-  }, [exercises, onDraftChange, sessionGroups]);
+    onSessionGroupsChangeRef.current = onSessionGroupsChange;
+  }, [onSessionGroupsChange]);
+
+  useEffect(() => {
+    onDraftChangeRef.current = onDraftChange;
+  }, [onDraftChange]);
+
+  useEffect(() => {
+    onSessionGroupsChangeRef.current?.(sessionGroups);
+  }, [sessionGroups]);
+
+  useEffect(() => {
+    onDraftChangeRef.current?.({ exercises, selectedGroups: sessionGroups });
+  }, [exercises, sessionGroups]);
 
   useEffect(() => {
     if (!isFinishingWorkout) return;
