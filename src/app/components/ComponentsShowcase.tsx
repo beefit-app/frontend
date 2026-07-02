@@ -1,6 +1,5 @@
 import { useState } from "react";
 import logoImg from "../../imports/logo.png";
-import { HexagonPattern } from "./HexagonPattern";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
 import { BeeCard } from "./BeeCard";
@@ -65,7 +64,6 @@ export function ComponentsShowcase() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] relative overflow-hidden">
-      <HexagonPattern />
       <div className="relative z-10 max-w-[430px] mx-auto px-6 py-12">
 
         {/* Header */}

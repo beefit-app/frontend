@@ -1,9 +1,6 @@
-import { HexagonPattern } from "./HexagonPattern";
-
 export function PageBackground({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative w-full overflow-hidden bg-[#0A0A0A]" style={{ minHeight: "100%" }}>
-      <HexagonPattern />
       <div
         style={{
           position: "absolute",
