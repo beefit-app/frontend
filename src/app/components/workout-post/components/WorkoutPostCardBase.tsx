@@ -133,10 +133,6 @@ export function WorkoutPostCardBase({
               }}
             />
 
-            <div style={{ position: "absolute", top: 12, right: 12 }}>
-              <RarityTag rarity={computedPostRarity} />
-            </div>
-
             <div
               style={{
                 position: "absolute",
