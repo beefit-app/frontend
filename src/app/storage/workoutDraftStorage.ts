@@ -1,52 +1,23 @@
-import type { PersistedWorkoutDraft } from "../types/workout";
-import { Capacitor } from "@capacitor/core";
-import { Preferences } from "@capacitor/preferences";
+import type { WorkoutDraft } from "../types/workout";
+import { appStorage } from "./appStorage";
 
-const DRAFT_KEY = "beefit.workout.active-draft";
-
-function hasStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+export function getWorkoutDraftStorageKey(userId: string, workoutId: string) {
+  return `beefit.workoutDraft.${userId}.${workoutId}`;
 }
 
 export const workoutDraftStorage = {
-  async get(): Promise<PersistedWorkoutDraft | null> {
-    if (Capacitor.isNativePlatform()) {
-      const { value } = await Preferences.get({ key: DRAFT_KEY });
-      if (!value) return null;
-      try {
-        return JSON.parse(value) as PersistedWorkoutDraft;
-      } catch {
-        await Preferences.remove({ key: DRAFT_KEY });
-        return null;
-      }
-    }
-    if (!hasStorage()) return null;
-    const value = window.localStorage.getItem(DRAFT_KEY);
-    if (!value) return null;
-
-    try {
-      return JSON.parse(value) as PersistedWorkoutDraft;
-    } catch {
-      window.localStorage.removeItem(DRAFT_KEY);
-      return null;
-    }
+  async getDraft(userId: string | null | undefined, workoutId: string | null | undefined) {
+    if (!userId || !workoutId) return null;
+    return appStorage.getItem<WorkoutDraft>(getWorkoutDraftStorageKey(userId, workoutId));
   },
 
-  async set(draft: PersistedWorkoutDraft) {
-    if (Capacitor.isNativePlatform()) {
-      await Preferences.set({ key: DRAFT_KEY, value: JSON.stringify(draft) });
-      return;
-    }
-    if (!hasStorage()) return;
-    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  async saveDraft(draft: WorkoutDraft) {
+    if (!draft.userId || !draft.workoutId) return;
+    await appStorage.setItem(getWorkoutDraftStorageKey(draft.userId, draft.workoutId), draft);
   },
 
-  async clear() {
-    if (Capacitor.isNativePlatform()) {
-      await Preferences.remove({ key: DRAFT_KEY });
-      return;
-    }
-    if (!hasStorage()) return;
-    window.localStorage.removeItem(DRAFT_KEY);
+  async removeDraft(userId: string | null | undefined, workoutId: string | null | undefined) {
+    if (!userId || !workoutId) return;
+    await appStorage.removeItem(getWorkoutDraftStorageKey(userId, workoutId));
   },
 };

@@ -32,36 +32,28 @@ export interface WorkoutCompletionDraft {
   photoUrl: string | null;
   photoFile?: File | null;
   shouldPostWorkout: boolean;
+  shouldSaveTemplate: boolean;
   selectedGroups: string[];
   elapsedSeconds: number;
   exercises: WorkoutExercise[];
 }
 
-export interface PersistedWorkoutDraft {
+export interface WorkoutDraft {
+  userId: string;
   workoutId: string;
-  startedAt: number;
+  title: string;
   selectedGroups: string[];
   exercises: WorkoutExercise[];
-  title: string;
   shouldPostWorkout: boolean;
-  photoUrl: string | null;
-  photoFileName: string | null;
-  pendingFinish: boolean;
-  updatedAt: number;
+  shouldSaveTemplate: boolean;
+  updatedAt: string;
 }
 
-export interface WorkoutCompletionResult {
-  id: string;
-  durationSeconds: number | null;
-  estimatedCalories: number | null;
-  totalVolume: number | null;
-  card: {
-    id: string;
-    attackPower: number;
-    rarity: string;
-    muscleGroup: string;
-    isPersonalRecord: boolean;
-  } | null;
+export interface WorkoutCompletionSummary {
+  workoutId: string;
+  durationSeconds: number;
+  estimatedCalories: number;
+  totalVolume: number;
 }
 
 export interface MuscleGroupOption {

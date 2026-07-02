@@ -3,6 +3,7 @@ import type {
   WorkoutCompletionDraft,
   WorkoutCompletionResult,
   WorkoutExercise,
+  WorkoutCompletionSummary,
   WorkoutTemplate,
 } from "../types/workout";
 import { workoutDataSource } from "./workoutDataSource";
@@ -73,22 +74,27 @@ const GROUP_LABEL_BY_ID: Record<string, string> = {
   peito: "Peito",
   costas: "Costas",
   pernas: "Pernas",
-  gluteos: "Glúteos",
   ombros: "Ombros",
   bracos: "Braços",
   core: "Core",
-  trapezio: "Trapézio",
 };
 
 const GROUP_ID_BY_BACKEND: Record<string, string> = {
   CHEST: "peito",
   BACK: "costas",
   LEGS: "pernas",
-  GLUTES: "gluteos",
   SHOULDERS: "ombros",
   ARMS: "bracos",
   CORE: "core",
-  TRAPS: "trapezio",
+};
+
+const BACKEND_GROUP_BY_ID: Record<string, string> = {
+  peito: "CHEST",
+  costas: "BACK",
+  pernas: "LEGS",
+  ombros: "SHOULDERS",
+  bracos: "ARMS",
+  core: "CORE",
 };
 
 let catalogCache: ExerciseCatalogItem[] = [];
@@ -113,6 +119,11 @@ function normalizeGroupId(value: string | null | undefined) {
 
 function getGroupLabel(groupId: string) {
   return GROUP_LABEL_BY_ID[groupId] ?? groupId;
+}
+
+function toBackendGroup(value: string) {
+  const groupId = normalizeGroupId(value);
+  return BACKEND_GROUP_BY_ID[groupId] ?? value;
 }
 
 function normalizeCatalogExercise(exercise: BackendCatalogExercise): ExerciseCatalogItem {
@@ -169,12 +180,30 @@ function normalizeSessionExercise(exercise: BackendSessionExercise): WorkoutExer
   };
 }
 
+function normalizeStartedSession(response: BackendWorkoutSession) {
+  return {
+    id: response.id,
+    startedAt: new Date(response.startedAt).getTime(),
+    muscleGroups: response.muscleGroups.map((group) => getGroupLabel(normalizeGroupId(group))),
+    exercises: response.exercises.map(normalizeSessionExercise),
+  };
+}
+
+function normalizeCompletionSummary(response: BackendWorkoutSession): WorkoutCompletionSummary {
+  return {
+    workoutId: response.id,
+    durationSeconds: response.durationSeconds ?? 0,
+    estimatedCalories: response.estimatedCalories ?? 0,
+    totalVolume: response.totalVolume ?? 0,
+  };
+}
+
 function toFinishPayload(draft: WorkoutCompletionDraft) {
   return {
     finishedAt: new Date().toISOString(),
-    muscleGroups: draft.selectedGroups.map(toApiMuscleGroup),
     title: draft.title,
     shouldPostWorkout: draft.shouldPostWorkout,
+    muscleGroups: draft.selectedGroups.map(toBackendGroup),
     exercises: draft.exercises.map((exercise, exerciseIndex) => ({
       sessionExerciseId: exercise.sessionExerciseId ?? null,
       catalogExerciseId: exercise.catalogId,
@@ -190,22 +219,19 @@ function toFinishPayload(draft: WorkoutCompletionDraft) {
   };
 }
 
-function toApiMuscleGroup(value: string) {
-  return normalizeGroupId(value);
-}
-
-function normalizeWorkoutResult(response: BackendWorkoutSession): WorkoutCompletionResult {
+function toTemplatePayload(draft: WorkoutCompletionDraft) {
   return {
-    id: response.id,
-    durationSeconds: response.durationSeconds ?? null,
-    estimatedCalories: response.estimatedCalories ?? null,
-    totalVolume: response.totalVolume ?? null,
-    card: response.card ?? null,
+    name: draft.title,
+    muscleGroups: draft.selectedGroups.map(toBackendGroup),
+    exercises: draft.exercises.map((exercise, exerciseIndex) => ({
+      catalogExerciseId: exercise.catalogId,
+      order: exerciseIndex + 1,
+    })),
   };
 }
 
-// O catálogo de exercícios e os templates devem vir exclusivamente da API.
-// Apenas a taxonomia visual dos grupos permanece local.
+// Camada intermediária mínima para centralizar o ponto de troca entre mocks locais
+// e a futura integração com a API de treino.
 export const workoutService = {
   getCatalog() {
     return catalogCache;
@@ -216,30 +242,11 @@ export const workoutService = {
   },
 
   async loadCatalog() {
-    const exercises: BackendCatalogExercise[] = [];
-    let page = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      const response = await apiClient.get<BackendCatalogExercise[] | BackendPage<BackendCatalogExercise>>(
-        `/api/exercises?size=200&page=${page}`,
-        { auth: true },
-      );
-
-      exercises.push(...extractList(response));
-
-      if (Array.isArray(response)) {
-        hasMore = false;
-        continue;
-      }
-
-      const currentPage = response.number ?? page;
-      const totalPages = response.totalPages ?? currentPage + 1;
-      hasMore = response.last === false || currentPage + 1 < totalPages;
-      page = currentPage + 1;
-    }
-
-    catalogCache = exercises.map(normalizeCatalogExercise);
+    const response = await apiClient.get<BackendCatalogExercise[] | BackendPage<BackendCatalogExercise>>(
+      "/api/exercises?size=1000",
+      { auth: true, suppressUnauthorizedEvent: true },
+    );
+    catalogCache = extractList(response).map(normalizeCatalogExercise);
     return catalogCache;
   },
 
@@ -256,7 +263,15 @@ export const workoutService = {
   },
 
   async loadTemplates() {
-    const response = await apiClient.get<BackendTemplate[]>("/api/templates", { auth: true });
+    const response = await apiClient.get<BackendTemplate[] | null>("/api/templates", {
+      auth: true,
+      suppressUnauthorizedEvent: true,
+    });
+    if (!response) {
+      templatesCache = [];
+      return templatesCache;
+    }
+
     templatesCache = response.map(normalizeTemplate);
     return templatesCache;
   },
@@ -285,9 +300,8 @@ export const workoutService = {
       .map((group) => group.label);
   },
 
-  getGroupedCatalog() {
-    const groups = workoutDataSource.getMuscleGroups();
-    const exercises = catalogCache;
+  getGroupedCatalog(exercises: ExerciseCatalogItem[] = catalogCache) {
+    const groupOrder = workoutDataSource.getGroupOrder();
 
     return groups.map((group) => ({
       groupId: group.id,
@@ -296,13 +310,13 @@ export const workoutService = {
     }));
   },
 
-  getCatalogByGroupId(groupId: string) {
-    return catalogCache.filter((exercise) => exercise.groupId === groupId);
+  getCatalogByGroupId(groupId: string, exercises: ExerciseCatalogItem[] = catalogCache) {
+    return exercises.filter((exercise) => exercise.groupId === groupId);
   },
 
-  getCatalogItemById(exerciseId: string | null) {
+  getCatalogItemById(exerciseId: string | null, exercises: ExerciseCatalogItem[] = catalogCache) {
     if (!exerciseId) return null;
-    return catalogCache.find((exercise) => exercise.id === exerciseId) ?? null;
+    return exercises.find((exercise) => exercise.id === exerciseId) ?? null;
   },
 
   getSessionGroups(selectedGroups: string[], exercises: WorkoutExercise[]) {
@@ -324,7 +338,7 @@ export const workoutService = {
     const response = await apiClient.post<BackendWorkoutSession>(
       "/api/workout/start",
       {
-        muscleGroups: input.selectedGroups.map(toApiMuscleGroup),
+        muscleGroups: input.selectedGroups.map(toBackendGroup),
         isPrivate: input.isPrivate,
         templateId: input.templateId ?? null,
         exercises: [],
@@ -332,22 +346,21 @@ export const workoutService = {
       { auth: true },
     );
 
-    return {
-      id: response.id,
-      startedAt: new Date(response.startedAt).getTime(),
-      muscleGroups: response.muscleGroups.map((group) => getGroupLabel(normalizeGroupId(group))),
-      exercises: response.exercises.map(normalizeSessionExercise),
-    };
+    return normalizeStartedSession(response);
+  },
+
+  async getActiveWorkout() {
+    const response = await apiClient.get<BackendWorkoutSession | null>("/api/workout/active", {
+      auth: true,
+      suppressUnauthorizedEvent: true,
+    });
+    if (!response) return null;
+    return normalizeStartedSession(response);
   },
 
   async finishWorkout(draft: WorkoutCompletionDraft) {
     if (!draft.workoutId) {
       throw new Error("Sessão de treino sem ID do backend.");
-    }
-
-    let photoMediaId: string | null = null;
-    if (draft.photoFile && draft.shouldPostWorkout) {
-      photoMediaId = await this.uploadWorkoutPhoto(draft.photoFile);
     }
 
     const response = await apiClient.post<BackendWorkoutSession>(
@@ -379,6 +392,21 @@ export const workoutService = {
       undefined,
       { auth: true },
     );
+
+    if (draft.shouldSaveTemplate) {
+      const createdTemplate = await apiClient.post<BackendTemplate>("/api/templates", toTemplatePayload(draft), { auth: true });
+      templatesCache = [normalizeTemplate(createdTemplate), ...templatesCache.filter((template) => template.id !== createdTemplate.id)];
+    }
+
+    return normalizeCompletionSummary(response);
+  },
+
+  async cancelWorkout(workoutId: string | null | undefined) {
+    if (!workoutId) {
+      throw new Error("Sessão de treino sem ID do backend.");
+    }
+
+    await apiClient.post(`/api/workout/${workoutId}/cancel`, undefined, { auth: true });
   },
 
   async createTemplate(input: { name: string; groups: string[]; exerciseIds: string[] }) {

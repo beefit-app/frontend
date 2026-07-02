@@ -1,15 +1,15 @@
-import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } from "../../types/workout";
+import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutDraft, WorkoutExercise } from "../../types/workout";
 
 export interface ActiveWorkoutScreenProps {
   workoutId?: string | null;
-  catalogRevision?: number;
+  userId?: string | null;
   startedAt?: number | null;
   title: string;
   subtitle: string;
   selectedGroups: string[];
   initialExercises?: ExerciseCatalogItem[];
   initialSessionExercises?: WorkoutExercise[];
-  initialFinishPhotoFile?: File | null;
+  initialDraft?: WorkoutDraft | null;
   bodyWeightKg?: number | null;
   ghostModeEnabled?: boolean;
   onBack: () => void;
@@ -34,6 +34,7 @@ export interface ActiveWorkoutSessionState {
   finishTitle: string;
   finishPhotoUrl: string | null;
   shouldPostWorkout: boolean;
+  shouldSaveTemplate: boolean;
   finishTitleError: string;
   finishValidationError: string;
   totalVolumeKg: number;

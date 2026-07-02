@@ -233,6 +233,7 @@ export function AccountSettingsScreen({
                       onClick={() => setGhostModeEnabled((current) => !current)}
                       aria-pressed={ghostModeEnabled}
                       disabled={isSubmitting}
+                      aria-label="Alternar modo fantasma"
                       style={{
                         width: 56,
                         height: 32,
@@ -240,23 +241,25 @@ export function AccountSettingsScreen({
                         border: "1px solid",
                         borderColor: ghostModeEnabled ? "#FFD700" : "#404040",
                         background: ghostModeEnabled ? "rgba(255,215,0,0.18)" : "#101010",
-                        padding: 3,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: ghostModeEnabled ? "flex-end" : "flex-start",
+                        padding: 0,
+                        position: "relative",
                         cursor: "pointer",
-                        transition: "all 0.2s ease",
+                        transition: "background 0.2s ease, border-color 0.2s ease",
                         flexShrink: 0,
                       }}
                     >
                       <span
                         style={{
+                          position: "absolute",
+                          top: 3,
+                          left: 3,
                           width: 24,
                           height: 24,
                           borderRadius: "50%",
                           background: ghostModeEnabled ? "#FFD700" : "#737373",
                           boxShadow: ghostModeEnabled ? "0 0 12px rgba(255,215,0,0.35)" : "none",
-                          transition: "all 0.2s ease",
+                          transform: ghostModeEnabled ? "translateX(24px)" : "translateX(0)",
+                          transition: "transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease",
                         }}
                       />
                     </button>
