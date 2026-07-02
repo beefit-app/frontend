@@ -235,10 +235,12 @@ async function request<T>(path: string, options: RequestOptions = {}, hasRetried
       const refreshedAccessToken = await refreshAccessToken();
       if (refreshedAccessToken) {
         return request<T>(path, options, true);
+      } else {
+        window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
       }
     }
 
-    if (response.status === 401 && auth && logoutOnUnauthorized) {
+    if (response.status === 401 && auth && (logoutOnUnauthorized || hasRetriedAfterRefresh)) {
       window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
     }
 
