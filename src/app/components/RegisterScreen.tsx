@@ -41,8 +41,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
     else if (isNaN(Number(form.weeklyGoal)) || Number(form.weeklyGoal) < 1)
       e.weeklyGoal = "Meta inválida (mínimo 1 dia)";
     if (!form.weight) e.weight = "Peso é obrigatório";
-    else if (isNaN(Number(form.weight)) || Number(form.weight) <= 0)
-      e.weight = "Peso inválido";
+    else if (isNaN(Number(form.weight)) || Number(form.weight) <= 0 || Number(form.weight) > 300)
+      e.weight = "O peso deve ser de até 300 kg";
     return e;
   }
 
@@ -262,6 +262,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                       icon={<WeightIcon />}
                       step="0.1"
                       min="1"
+                      max="300"
                       disabled={isSubmitting}
                     />
                     <div className="mt-2 flex items-start gap-2 px-1">
