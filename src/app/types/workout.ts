@@ -35,6 +35,7 @@ export interface WorkoutCompletionDraft {
   selectedGroups: string[];
   elapsedSeconds: number;
   exercises: WorkoutExercise[];
+  idempotencyKey: string;
 }
 
 export interface PersistedWorkoutDraft {
@@ -47,6 +48,7 @@ export interface PersistedWorkoutDraft {
   photoUrl: string | null;
   photoFileName: string | null;
   pendingFinish: boolean;
+  idempotencyKey?: string;
   updatedAt: number;
 }
 

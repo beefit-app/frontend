@@ -232,9 +232,9 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                     icon={<LockIcon />}
                     disabled={isSubmitting}
                     rightElement={
-                      <span onClick={() => setShowPassword(!showPassword)}>
+                      <button type="button" aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)} className="flex items-center bg-transparent p-0 text-inherit">
                         <EyeIcon />
-                      </span>
+                      </button>
                     }
                   />
 

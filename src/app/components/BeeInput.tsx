@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, useState, ReactNode } from "react";
+import { InputHTMLAttributes, useId, useState, ReactNode } from "react";
 import { IonInput, IonItem } from "@ionic/react";
 
 interface BeeInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> {
@@ -24,6 +24,8 @@ export function BeeInput({
   disabled,
 }: BeeInputProps) {
   const [focused, setFocused] = useState(false);
+  const inputId = useId();
+  const errorId = `${inputId}-error`;
 
   const borderColor = error ? "#EF4444" : focused ? "#FFD700" : "#404040";
   const shadowStyle = error
@@ -46,6 +48,7 @@ export function BeeInput({
     <div className="flex flex-col gap-2 w-full">
       {label && (
         <label
+          htmlFor={inputId}
           style={{
             fontFamily: "var(--font-montserrat)",
             fontSize: "14px",
@@ -98,6 +101,7 @@ export function BeeInput({
         )}
 
         <IonInput
+          id={inputId}
           type={type as any}
           value={value as string}
           placeholder={placeholder}
@@ -109,6 +113,8 @@ export function BeeInput({
           onIonChange={handleIonChange}
           onIonFocus={() => setFocused(true)}
           onIonBlur={() => setFocused(false)}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? errorId : undefined}
           style={
             {
               "--color": "#ffffff",
@@ -145,6 +151,8 @@ export function BeeInput({
 
       {error && (
         <span
+          id={errorId}
+          role="alert"
           style={{
             fontFamily: "var(--font-inter)",
             fontSize: "12px",

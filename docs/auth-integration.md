@@ -167,3 +167,17 @@ Os seguintes pontos podem ser removidos quando todos os ambientes estiverem no c
 - fallback de `POST /auth/register` seguido de `POST /auth/login`
 - suporte a resposta `token-only` em `login`
 - suporte ao contrato legado `{ token, userResponseDTO }`
+# Contrato de segurança do cliente mobile
+
+O aplicativo Capacitor usa `Authorization: Bearer <accessToken>` em chamadas à API e
+mantém tokens no armazenamento seguro nativo. A API de produção deve estar em HTTPS.
+
+- `VITE_API_URL` é obrigatória nos builds de homologação e produção.
+- `VITE_DEV_AUTH_BYPASS=true` é exclusivamente para desenvolvimento local; não deve
+  constar em builds distribuídos.
+- `POST /auth/refresh` recebe `refreshToken` e `deviceId` e deve rotacionar ambos os
+  tokens quando a sessão for renovada.
+- `POST /api/workout/{workoutId}/finish` recebe o cabeçalho `Idempotency-Key`. O backend
+  deve guardar a chave por usuário/sessão e devolver a mesma conclusão em reenvios.
+- Uploads de mídia devem validar conteúdo, tamanho, dimensões, autorização e tipo MIME
+  no servidor; a validação do app é apenas uma proteção adicional de UX.

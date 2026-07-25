@@ -71,6 +71,7 @@ export function WorkoutStartScreen({
     initialExerciseIds: string[];
     initialSessionExercises: WorkoutExercise[];
     initialFinishPhotoFile?: File | null;
+    initialFinishIdempotencyKey?: string;
   } | null>(null);
   const isClosingWorkoutRef = useRef(false);
   const generatedCardEventRef = useRef<CardGeneratedEvent | null>(null);
@@ -161,6 +162,7 @@ export function WorkoutStartScreen({
           initialExerciseIds: [],
           initialSessionExercises: exercises,
           initialFinishPhotoFile: restoredPhoto,
+          initialFinishIdempotencyKey: persisted?.idempotencyKey,
         });
         onActiveWorkoutChange?.({ selectedGroups: groups, startedAt });
       } catch (error) {
@@ -296,6 +298,7 @@ export function WorkoutStartScreen({
         catalogRevision={catalogRevision}
         initialSessionExercises={activeWorkoutConfig.initialSessionExercises}
         initialFinishPhotoFile={activeWorkoutConfig.initialFinishPhotoFile}
+        initialFinishIdempotencyKey={activeWorkoutConfig.initialFinishIdempotencyKey}
         ghostModeEnabled={ghostModeEnabled}
         onWorkoutComplete={(draft) => {
           void (async () => {
@@ -317,6 +320,7 @@ export function WorkoutStartScreen({
                 photoUrl: draft.photoUrl,
                 photoFileName,
                 pendingFinish: true,
+                idempotencyKey: draft.idempotencyKey,
                 updatedAt: Date.now(),
               });
               window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o treino.");
@@ -338,6 +342,7 @@ export function WorkoutStartScreen({
             photoUrl: null,
             photoFileName: null,
             pendingFinish: false,
+            idempotencyKey: undefined,
             updatedAt: Date.now(),
           });
         }}

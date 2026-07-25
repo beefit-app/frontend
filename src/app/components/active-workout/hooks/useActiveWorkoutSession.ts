@@ -17,6 +17,7 @@ export function useActiveWorkoutSession({
   initialExercises = [],
   initialSessionExercises,
   initialFinishPhotoFile = null,
+  initialFinishIdempotencyKey = "",
   bodyWeightKg,
   ghostModeEnabled = false,
   onWorkoutComplete,
@@ -31,6 +32,7 @@ export function useActiveWorkoutSession({
   | "initialExercises"
   | "initialSessionExercises"
   | "initialFinishPhotoFile"
+  | "initialFinishIdempotencyKey"
   | "bodyWeightKg"
   | "ghostModeEnabled"
   | "onWorkoutComplete"
@@ -53,6 +55,7 @@ export function useActiveWorkoutSession({
   const [finishTitle, setFinishTitle] = useState(selectedGroups.join(" & "));
   const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(() => initialFinishPhotoFile ? URL.createObjectURL(initialFinishPhotoFile) : null);
   const [finishPhotoFile, setFinishPhotoFile] = useState<File | null>(initialFinishPhotoFile);
+  const [finishIdempotencyKey, setFinishIdempotencyKey] = useState(initialFinishIdempotencyKey);
   const [shouldPostWorkout, setShouldPostWorkout] = useState(!ghostModeEnabled);
   const [finishTitleError, setFinishTitleError] = useState("");
   const [finishValidationError, setFinishValidationError] = useState("");
@@ -151,6 +154,10 @@ export function useActiveWorkoutSession({
     const timer = window.setInterval(updateElapsed, 1000);
     return () => window.clearInterval(timer);
   }, [startedAt]);
+
+  useEffect(() => () => {
+    if (finishPhotoUrl?.startsWith("blob:")) URL.revokeObjectURL(finishPhotoUrl);
+  }, [finishPhotoUrl]);
 
   useEffect(() => {
     if (!pendingExerciseFocusId) return;
@@ -313,6 +320,7 @@ export function useActiveWorkoutSession({
     setFinishTitleError("");
     setFinishValidationError("");
     setShouldPostWorkout(!ghostModeEnabled);
+    setFinishIdempotencyKey(crypto.randomUUID());
     setIsFinishingWorkout(true);
   }
 
@@ -331,6 +339,7 @@ export function useActiveWorkoutSession({
       selectedGroups: sessionGroups,
       elapsedSeconds,
       exercises,
+      idempotencyKey: finishIdempotencyKey || crypto.randomUUID(),
     };
 
     onWorkoutComplete?.(draft);

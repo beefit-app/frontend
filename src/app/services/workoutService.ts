@@ -353,7 +353,7 @@ export const workoutService = {
     const response = await apiClient.post<BackendWorkoutSession>(
       `/api/workout/${draft.workoutId}/finish`,
       { ...toFinishPayload(draft), photoMediaId },
-      { auth: true },
+      { auth: true, headers: { "Idempotency-Key": draft.idempotencyKey } },
     );
     return normalizeWorkoutResult(response);
   },

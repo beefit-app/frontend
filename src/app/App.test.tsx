@@ -114,15 +114,16 @@ describe("App", () => {
     render(<App />);
 
     expect(screen.getByText("social-feed-screen")).toBeInTheDocument();
-    expect(screen.getByText("social-screen")).toBeInTheDocument();
-    expect(screen.getByText("workout-screen")).toBeInTheDocument();
-    expect(screen.getByText("inventory-screen")).toBeInTheDocument();
-    expect(screen.getByText("profile-screen")).toBeInTheDocument();
+    expect(screen.queryByText("social-screen")).not.toBeInTheDocument();
     expect(screen.getByText("Feed")).toBeInTheDocument();
     expect(screen.getByText("Social")).toBeInTheDocument();
     expect(screen.getByText("Treino")).toBeInTheDocument();
     expect(screen.getByText("Inventário")).toBeInTheDocument();
     expect(screen.getByText("Perfil")).toBeInTheDocument();
     expect(screen.getByTestId("bottom-navigation").tagName.toLowerCase()).toBe("ion-footer");
+
+    fireEvent.click(screen.getByRole("button", { name: "Social" }));
+    expect(screen.getByText("social-screen")).toBeInTheDocument();
+    expect(screen.queryByText("social-feed-screen")).not.toBeInTheDocument();
   });
 });

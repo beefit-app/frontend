@@ -139,9 +139,9 @@ export function AccountSettingsScreen({
                     icon={<LockKeyhole size={18} />}
                     disabled={isSubmitting}
                     rightElement={
-                      <span onClick={() => setShowCurrentPassword((current) => !current)}>
+                      <button type="button" aria-label={showCurrentPassword ? "Ocultar senha atual" : "Mostrar senha atual"} aria-pressed={showCurrentPassword} onClick={() => setShowCurrentPassword((current) => !current)} className="flex items-center bg-transparent p-0 text-inherit">
                         <EyeToggleIcon visible={showCurrentPassword} />
-                      </span>
+                      </button>
                     }
                   />
 
@@ -159,9 +159,9 @@ export function AccountSettingsScreen({
                     icon={<LockKeyhole size={18} />}
                     disabled={isSubmitting}
                     rightElement={
-                      <span onClick={() => setShowNewPassword((current) => !current)}>
+                      <button type="button" aria-label={showNewPassword ? "Ocultar nova senha" : "Mostrar nova senha"} aria-pressed={showNewPassword} onClick={() => setShowNewPassword((current) => !current)} className="flex items-center bg-transparent p-0 text-inherit">
                         <EyeToggleIcon visible={showNewPassword} />
-                      </span>
+                      </button>
                     }
                   />
 
@@ -179,9 +179,9 @@ export function AccountSettingsScreen({
                     icon={<LockKeyhole size={18} />}
                     disabled={isSubmitting}
                     rightElement={
-                      <span onClick={() => setShowConfirmPassword((current) => !current)}>
+                      <button type="button" aria-label={showConfirmPassword ? "Ocultar confirmação da senha" : "Mostrar confirmação da senha"} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword((current) => !current)} className="flex items-center bg-transparent p-0 text-inherit">
                         <EyeToggleIcon visible={showConfirmPassword} />
-                      </span>
+                      </button>
                     }
                   />
                 </div>

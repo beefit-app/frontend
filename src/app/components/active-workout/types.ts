@@ -10,6 +10,7 @@ export interface ActiveWorkoutScreenProps {
   initialExercises?: ExerciseCatalogItem[];
   initialSessionExercises?: WorkoutExercise[];
   initialFinishPhotoFile?: File | null;
+  initialFinishIdempotencyKey?: string;
   bodyWeightKg?: number | null;
   ghostModeEnabled?: boolean;
   onBack: () => void;

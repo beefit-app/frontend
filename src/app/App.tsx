@@ -261,7 +261,7 @@ export default function App() {
               )}
               {isAuthenticated && (
                 <>
-                  <div style={{ display: screen === "feed" ? "block" : "none" }}>
+                  {screen === "feed" && (
                     <SocialFeedScreen
                       key={feedRefreshToken}
                       streakCount={streak.count}
@@ -269,8 +269,8 @@ export default function App() {
                       streakBurstToken={streak.burstToken}
                       onOpenUserProfile={openSocialProfile}
                     />
-                  </div>
-                  <div style={{ display: screen === "social" ? "block" : "none" }}>
+                  )}
+                  {screen === "social" && (
                     <SocialScreen
                       isActive={screen === "social"}
                       profileUsername={socialProfileUsername}
@@ -282,25 +282,23 @@ export default function App() {
                         }
                       }}
                     />
-                  </div>
-                  <div style={{ display: screen === "workout" ? "block" : "none" }}>
+                  )}
+                  {screen === "workout" && (
                     <WorkoutStartScreen
                       key={workoutScreenInstance}
                       ghostModeEnabled={accountSettings.ghostModeEnabled}
                       onActiveWorkoutChange={setActiveWorkout}
                       onWorkoutCompleted={handleWorkoutCompleted}
                     />
-                  </div>
-                  <div style={{ display: screen === "inventory" ? "block" : "none" }}>
-                    <InventoryScreen />
-                  </div>
-                  <div style={{ display: screen === "profile" ? "block" : "none" }}>
+                  )}
+                  {screen === "inventory" && <InventoryScreen />}
+                  {screen === "profile" && (
                     <ProfileScreen
                       key={profileRefreshToken}
                       accountSettings={accountSettings}
                       onAccountSettingsChange={setAccountSettings}
                     />
-                  </div>
+                  )}
                 </>
               )}
             </ScreenErrorBoundary>

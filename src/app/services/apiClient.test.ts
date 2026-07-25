@@ -22,17 +22,13 @@ describe("apiClient", () => {
     vi.unstubAllGlobals();
   });
 
-  it("tenta a url relativa quando a chamada direta falha", async () => {
-    vi.mocked(fetch)
-      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
-      .mockResolvedValueOnce(createJsonResponse({ ok: true }));
+  it("não repete uma chamada na origem relativa quando a API falha", async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError("Failed to fetch"));
 
     const { apiClient } = await import("./apiClient");
-    const response = await apiClient.post("/auth/register", { name: "Teste" });
-
-    expect(response).toEqual({ ok: true });
+    await expect(apiClient.post("/auth/register", { name: "Teste" })).rejects.toMatchObject({ status: 0 });
     expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe(`${API_URL}/auth/register`);
-    expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe("/auth/register");
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
   });
 
   it("expõe a mensagem quando a resposta de erro vem como texto", async () => {

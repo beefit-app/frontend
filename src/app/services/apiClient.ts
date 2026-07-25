@@ -21,6 +21,7 @@ interface RequestOptions {
   auth?: boolean;
   logoutOnUnauthorized?: boolean;
   headers?: Record<string, string>;
+  timeoutMs?: number;
 }
 
 interface ParsedResponse {
@@ -29,16 +30,16 @@ interface ParsedResponse {
 }
 
 const API_BASE_URL = import.meta.env?.VITE_API_URL?.replace(/\/$/, "") ?? "";
+const DEFAULT_TIMEOUT_MS = 15_000;
 export const AUTH_UNAUTHORIZED_EVENT = "beefit:auth-unauthorized";
 let refreshRequest: Promise<string | null> | null = null;
 
 function buildUrl(path: string) {
   if (/^https?:\/\//.test(path)) return path;
+  if (!API_BASE_URL) {
+    throw new ApiError("A URL da API não está configurada para este ambiente.", 0, null);
+  }
   return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
-}
-
-function buildFallbackUrl(path: string) {
-  return path.startsWith("/") ? path : `/${path}`;
 }
 
 function getErrorMessage(data: unknown, fallbackMessage: string) {
@@ -100,13 +101,26 @@ async function parseResponseBody(response: Response): Promise<ParsedResponse> {
   return { responseData, rawResponse };
 }
 
-async function performFetch(requestUrl: string, method: HttpMethod, finalHeaders: Record<string, string>, body: unknown) {
+async function performFetch(
+  requestUrl: string,
+  method: HttpMethod,
+  finalHeaders: Record<string, string>,
+  body: unknown,
+  timeoutMs: number,
+) {
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
-  return fetch(requestUrl, {
-    method,
-    headers: finalHeaders,
-    body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(requestUrl, {
+      method,
+      headers: finalHeaders,
+      body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 async function runRefreshRequest(): Promise<string | null> {
@@ -117,46 +131,26 @@ async function runRefreshRequest(): Promise<string | null> {
     return null;
   }
 
-  const requestUrls = [buildUrl("/auth/refresh")];
-  const fallbackUrl = buildFallbackUrl("/auth/refresh");
-  if (requestUrls[0] !== fallbackUrl) {
-    requestUrls.push(fallbackUrl);
+  try {
+    const response = await performFetch(
+      buildUrl("/auth/refresh"),
+      "POST",
+      { Accept: "application/json", "Content-Type": "application/json" },
+      { refreshToken, deviceId },
+      DEFAULT_TIMEOUT_MS,
+    );
+    const { responseData } = await parseResponseBody(response);
+    if (!response.ok || !responseData || typeof responseData !== "object") return null;
+    if (
+      typeof (responseData as RefreshSessionResponse).accessToken !== "string" ||
+      typeof (responseData as RefreshSessionResponse).refreshToken !== "string"
+    ) return null;
+    await sessionStorage.setToken((responseData as RefreshSessionResponse).accessToken);
+    await sessionStorage.setRefreshToken((responseData as RefreshSessionResponse).refreshToken);
+    return (responseData as RefreshSessionResponse).accessToken;
+  } catch {
+    return null;
   }
-
-  for (const requestUrl of requestUrls) {
-    try {
-      const response = await fetch(requestUrl, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken, deviceId }),
-      });
-
-      const { responseData } = await parseResponseBody(response);
-      if (!response.ok) {
-        continue;
-      }
-
-      if (
-        !responseData ||
-        typeof responseData !== "object" ||
-        typeof (responseData as RefreshSessionResponse).accessToken !== "string" ||
-        typeof (responseData as RefreshSessionResponse).refreshToken !== "string"
-      ) {
-        return null;
-      }
-
-      await sessionStorage.setToken((responseData as RefreshSessionResponse).accessToken);
-      await sessionStorage.setRefreshToken((responseData as RefreshSessionResponse).refreshToken);
-      return (responseData as RefreshSessionResponse).accessToken;
-    } catch {
-      // Tenta a URL de fallback antes de desistir.
-    }
-  }
-
-  return null;
 }
 
 async function refreshAccessToken() {
@@ -170,7 +164,7 @@ async function refreshAccessToken() {
 }
 
 async function request<T>(path: string, options: RequestOptions = {}, hasRetriedAfterRefresh = false) {
-  const { method = "GET", body, auth = false, logoutOnUnauthorized = false, headers = {} } = options;
+  const { method = "GET", body, auth = false, logoutOnUnauthorized = false, headers = {}, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
   const finalHeaders: Record<string, string> = {
     Accept: "application/json",
     ...headers,
@@ -190,30 +184,16 @@ async function request<T>(path: string, options: RequestOptions = {}, hasRetried
     }
   }
 
-  const requestUrls = [buildUrl(path)];
-  const fallbackUrl = buildFallbackUrl(path);
-
-  if (requestUrls[0] !== fallbackUrl) {
-    requestUrls.push(fallbackUrl);
-  }
-
-  let response: Response | null = null;
-  let lastError: unknown = null;
-
-  for (const requestUrl of requestUrls) {
-    try {
-      response = await performFetch(requestUrl, method, finalHeaders, body);
-      break;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  if (!response) {
+  let response: Response;
+  try {
+    response = await performFetch(buildUrl(path), method, finalHeaders, body, timeoutMs);
+  } catch (error) {
     throw new ApiError(
-      "Não foi possível conectar ao servidor. Verifique a URL da API, o CORS e se o backend está em execução.",
+      error instanceof DOMException && error.name === "AbortError"
+        ? "A requisição demorou demais. Verifique sua conexão e tente novamente."
+        : "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
       0,
-      lastError,
+      error,
     );
   }
 

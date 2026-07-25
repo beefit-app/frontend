@@ -1,5 +1,5 @@
 import { Scale } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { IonText } from "@ionic/react";
 import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import { BeeButton } from "../../BeeButton";
@@ -9,6 +9,7 @@ import { PageBackground } from "../../PageBackground";
 import type { ProfileData } from "../types";
 import { BeeTextarea, HexAvatar } from "./shared";
 import { profileService } from "../../../services/profileService";
+import { revokeObjectUrl, validateImageFile } from "../../../platform/mediaValidation";
 
 export function ProfileEdit({
   profile,
@@ -31,6 +32,8 @@ export function ProfileEdit({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState(profile.avatarUrl);
+
+  useEffect(() => () => revokeObjectUrl(avatarPreview), [avatarPreview]);
 
   function validate() {
     const nextErrors: Record<string, string> = {};
@@ -75,12 +78,23 @@ export function ProfileEdit({
             <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>
               <div style={{ display: "flex", justifyContent: "center" }}>
                 <label style={{ cursor: "pointer" }}>
-                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={(event) => {
+                  <input type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={(event) => {
                     const file = event.target.files?.[0] ?? null;
-                    setAvatarFile(file); setAvatarPreview(file ? URL.createObjectURL(file) : profile.avatarUrl);
+                    void (async () => {
+                      try {
+                        if (file) await validateImageFile(file);
+                        revokeObjectUrl(avatarPreview);
+                        setAvatarFile(file);
+                        setAvatarPreview(file ? URL.createObjectURL(file) : profile.avatarUrl);
+                        setErrors((current) => ({ ...current, avatar: "" }));
+                      } catch (error) {
+                        setErrors((current) => ({ ...current, avatar: error instanceof Error ? error.message : "Imagem inválida." }));
+                      }
+                    })();
                   }} />
                   <HexAvatar src={avatarPreview} initials={initials} size={96} />
                 </label>
+                {errors.avatar && <span className="sr-only" role="alert">{errors.avatar}</span>}
               </div>
 
               <BeeCard hover={false}>
