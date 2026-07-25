@@ -226,6 +226,10 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
               </IonCardContent>
             </IonCard>
 
+            <p className="mt-5 text-center font-inter text-xs leading-5 text-[#737373]">
+              Ao continuar, você concorda com os <a className="text-[#FFD700]" href="/terms">Termos de Uso</a> e a <a className="text-[#FFD700]" href="/privacy">Política de Privacidade</a>.
+            </p>
+
             <div className="mt-8 text-center">
               <button
                 className="cursor-pointer border-none bg-transparent"

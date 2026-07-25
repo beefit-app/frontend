@@ -159,7 +159,7 @@ export function useInventoryScreenState() {
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : "Não foi possível salvar o template.";
         setTemplatesError(message);
-        throw new Error(message);
+        throw new Error(message, { cause });
       } finally {
         setIsSavingTemplate(false);
       }
@@ -183,7 +183,7 @@ export function useInventoryScreenState() {
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : "Não foi possível atualizar o template.";
         setTemplatesError(message);
-        throw new Error(message);
+        throw new Error(message, { cause });
       } finally {
         setIsSavingTemplate(false);
       }
@@ -201,7 +201,7 @@ export function useInventoryScreenState() {
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "Não foi possível excluir o template.";
       setTemplatesError(message);
-      throw new Error(message);
+      throw new Error(message, { cause });
     } finally {
       setIsSavingTemplate(false);
     }

@@ -1,4 +1,4 @@
-import { Component, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   setupIonicReact,
   IonApp,
@@ -10,11 +10,8 @@ import { ChevronRight, Dumbbell, Newspaper, Package2, Users, User } from "lucide
 import { LoginScreen } from "./components/LoginScreen";
 import { RegisterScreen } from "./components/RegisterScreen";
 import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } from "./components/ProfileScreen";
-import { SocialFeedScreen } from "./components/SocialFeedScreen";
-import { SocialScreen } from "./components/SocialScreen";
-import { InventoryScreen } from "./components/InventoryScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
-import { AdminScreen } from "./components/admin/AdminScreen";
+import { LegalDocuments } from "./components/LegalDocuments";
 import { useAuth } from "./auth/AuthContext";
 import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
 import { useStreakState } from "./hooks/useStreakState";
@@ -22,6 +19,15 @@ import { useWorkoutSessionState } from "./hooks/useWorkoutSessionState";
 import type { WorkoutCompletionDraft } from "./types/workout";
 
 setupIonicReact({ mode: "md" });
+
+const SocialFeedScreen = lazy(() => import("./components/SocialFeedScreen").then(({ SocialFeedScreen }) => ({ default: SocialFeedScreen })));
+const SocialScreen = lazy(() => import("./components/SocialScreen").then(({ SocialScreen }) => ({ default: SocialScreen })));
+const InventoryScreen = lazy(() => import("./components/InventoryScreen").then(({ InventoryScreen }) => ({ default: InventoryScreen })));
+const AdminScreen = lazy(() => import("./components/admin/AdminScreen").then(({ AdminScreen }) => ({ default: AdminScreen })));
+
+function DeferredScreen({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<div className="p-6 text-center font-inter text-sm text-[#A3A3A3]">Carregando…</div>}>{children}</Suspense>;
+}
 
 const TAB_ITEMS: {
   id: TabId;
@@ -107,6 +113,11 @@ export default function App() {
   const [socialProfileUsername, setSocialProfileUsername] = useState<string | null>(null);
   const [socialProfileReturnScreen, setSocialProfileReturnScreen] = useState<"feed" | "social">("social");
   const isAdminRoute = pathname.startsWith("/admin");
+  const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
+
+  if (legalDocument) {
+    return <IonApp><IonPage><IonContent fullscreen><LegalDocuments document={legalDocument} /></IonContent></IonPage></IonApp>;
+  }
 
   useEffect(() => {
     function handleLocationChange() {
@@ -177,7 +188,7 @@ export default function App() {
                 {!isAuthenticated && authScreen === "register" && (
                   <RegisterScreen onNavigateToLogin={() => setAuthScreen("login")} />
                 )}
-                {isAuthenticated && <AdminScreen />}
+                {isAuthenticated && <DeferredScreen><AdminScreen /></DeferredScreen>}
               </ScreenErrorBoundary>
             )}
           </IonContent>
@@ -262,16 +273,16 @@ export default function App() {
               {isAuthenticated && (
                 <>
                   {screen === "feed" && (
-                    <SocialFeedScreen
+                    <DeferredScreen><SocialFeedScreen
                       key={feedRefreshToken}
                       streakCount={streak.count}
                       isStreakFedToday={isStreakFedToday}
                       streakBurstToken={streak.burstToken}
                       onOpenUserProfile={openSocialProfile}
-                    />
+                    /></DeferredScreen>
                   )}
                   {screen === "social" && (
-                    <SocialScreen
+                    <DeferredScreen><SocialScreen
                       isActive={screen === "social"}
                       profileUsername={socialProfileUsername}
                       onOpenProfileFromSocial={() => setSocialProfileReturnScreen("social")}
@@ -281,7 +292,7 @@ export default function App() {
                           setScreen(socialProfileReturnScreen);
                         }
                       }}
-                    />
+                    /></DeferredScreen>
                   )}
                   {screen === "workout" && (
                     <WorkoutStartScreen
@@ -291,7 +302,7 @@ export default function App() {
                       onWorkoutCompleted={handleWorkoutCompleted}
                     />
                   )}
-                  {screen === "inventory" && <InventoryScreen />}
+                  {screen === "inventory" && <DeferredScreen><InventoryScreen /></DeferredScreen>}
                   {screen === "profile" && (
                     <ProfileScreen
                       key={profileRefreshToken}

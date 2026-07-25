@@ -105,7 +105,7 @@ describe("App", () => {
     expect(screen.getByText("login-screen")).toBeInTheDocument();
   });
 
-  it("renderiza a área autenticada quando o usuário já está logado", () => {
+  it("renderiza a área autenticada quando o usuário já está logado", async () => {
     authState.current = {
       isAuthenticated: true,
       isBootstrapping: false,
@@ -123,7 +123,7 @@ describe("App", () => {
     expect(screen.getByTestId("bottom-navigation").tagName.toLowerCase()).toBe("ion-footer");
 
     fireEvent.click(screen.getByRole("button", { name: "Social" }));
-    expect(screen.getByText("social-screen")).toBeInTheDocument();
+    expect(await screen.findByText("social-screen")).toBeInTheDocument();
     expect(screen.queryByText("social-feed-screen")).not.toBeInTheDocument();
   });
 });

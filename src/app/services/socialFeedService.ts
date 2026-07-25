@@ -27,11 +27,11 @@ export const socialFeedService = {
     try {
       const response = await apiClient.get<{ content?: ApiPost[]; last?: boolean }>(`/api/posts/feed?page=${page}&size=10`, { auth: true });
       return { posts: (response.content ?? []).map(toPost), last: response.last ?? true };
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        throw new Error("Não foi possível carregar o feed com a sessão atual.");
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 401) {
+        throw new Error("Não foi possível carregar o feed com a sessão atual.", { cause });
       }
-      throw error;
+      throw cause;
     }
   },
   async loadLive() {

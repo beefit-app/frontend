@@ -53,7 +53,10 @@ export function useSocialFeedState() {
 
   const loadPage = useCallback(async (targetPage: number, replace = false) => {
     if (loadingRef.current || (!replace && !hasMoreRef.current)) return;
-    loadingRef.current = true; replace ? setIsLoading(true) : setIsLoadingMore(true); setError(null);
+    loadingRef.current = true;
+    if (replace) setIsLoading(true);
+    else setIsLoadingMore(true);
+    setError(null);
     try {
       const result = await socialFeedService.load(targetPage);
       setPosts((current) => {

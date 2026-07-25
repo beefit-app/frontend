@@ -81,12 +81,12 @@ export const inventoryService = {
         totalPages: response.totalPages ?? 0,
         last: response.last ?? true,
       };
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        throw new Error("Não foi possível carregar o inventário com a sessão atual.");
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 401) {
+        throw new Error("Não foi possível carregar o inventário com a sessão atual.", { cause });
       }
 
-      throw error;
+      throw cause;
     }
   },
 };
