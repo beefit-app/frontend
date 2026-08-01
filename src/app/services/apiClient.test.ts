@@ -110,4 +110,21 @@ describe("apiClient", () => {
     expect(window.localStorage.getItem("beefit.auth.accessToken")).toBe("new-token");
     expect(window.localStorage.getItem("beefit.auth.refreshToken")).toBe("new-refresh-token");
   });
+
+  it("busca mídia como blob usando autenticação", async () => {
+    window.localStorage.setItem("beefit.auth.accessToken", "media-token");
+    const expectedBlob = new Blob(["image"], { type: "image/png" });
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(expectedBlob, {
+      status: 200,
+      headers: { "Content-Type": "image/png" },
+    }));
+
+    const { apiClient } = await import("./apiClient");
+    const blob = await apiClient.getBlob("/api/media/media-id", { auth: true });
+
+    expect(blob.type).toBe("image/png");
+    expect(vi.mocked(fetch).mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({ Authorization: "Bearer media-token" }),
+    });
+  });
 });

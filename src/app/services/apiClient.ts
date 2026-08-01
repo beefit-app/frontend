@@ -22,6 +22,7 @@ interface RequestOptions {
   logoutOnUnauthorized?: boolean;
   headers?: Record<string, string>;
   timeoutMs?: number;
+  responseType?: "json" | "blob";
 }
 
 interface ParsedResponse {
@@ -201,6 +202,10 @@ async function request<T>(path: string, options: RequestOptions = {}, hasRetried
     return null as T;
   }
 
+  if (response.ok && options.responseType === "blob") {
+    return (await response.blob()) as T;
+  }
+
   const { responseData } = await parseResponseBody(response);
 
   if (!response.ok) {
@@ -237,6 +242,10 @@ async function request<T>(path: string, options: RequestOptions = {}, hasRetried
 export const apiClient = {
   get<T>(path: string, options?: Omit<RequestOptions, "method" | "body">) {
     return request<T>(path, { ...options, method: "GET" });
+  },
+
+  getBlob(path: string, options?: Omit<RequestOptions, "method" | "body" | "responseType">) {
+    return request<Blob>(path, { ...options, method: "GET", responseType: "blob" });
   },
 
   post<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) {

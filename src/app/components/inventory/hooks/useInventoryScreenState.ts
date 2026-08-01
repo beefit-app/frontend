@@ -95,8 +95,8 @@ export function useInventoryScreenState() {
         try {
           const loadedTemplates = await workoutService.loadTemplates();
           setTemplates(loadedTemplates);
-        } catch (err) {
-          console.error("Failed to auto-reload templates via SSE", err);
+        } catch {
+          // A próxima abertura da tela recarrega os templates pela API.
         }
       }
     }, controller.signal);

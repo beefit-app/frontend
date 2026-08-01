@@ -13,6 +13,7 @@ import { HEX_CLIP } from "../constants";
 import type { WorkoutPost, WorkoutPostAuthor } from "../types";
 import { getMuscleBadgeStyle } from "../utils";
 import { HexAvatar } from "./shared";
+import { AuthenticatedImage } from "../../AuthenticatedImage";
 
 interface WorkoutPostCardBaseProps {
   post: WorkoutPost;
@@ -83,7 +84,7 @@ export function WorkoutPostCardBase({
         >
           <div style={{ width: "50%", position: "relative", height: 340 }}>
             {post.photoUrl ? (
-              <img
+              <AuthenticatedImage
                 src={post.photoUrl}
                 alt="Foto do treino"
                 style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
