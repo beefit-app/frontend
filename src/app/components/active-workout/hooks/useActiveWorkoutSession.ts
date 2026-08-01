@@ -18,6 +18,10 @@ export function useActiveWorkoutSession({
   initialSessionExercises,
   initialFinishPhotoFile = null,
   initialFinishIdempotencyKey = "",
+  initialFinishFinishedAt = "",
+  initialFinishPhotoMediaId = null,
+  initialFinishTitle = "",
+  initialShouldPostWorkout,
   bodyWeightKg,
   ghostModeEnabled = false,
   onWorkoutComplete,
@@ -33,6 +37,10 @@ export function useActiveWorkoutSession({
   | "initialSessionExercises"
   | "initialFinishPhotoFile"
   | "initialFinishIdempotencyKey"
+  | "initialFinishFinishedAt"
+  | "initialFinishPhotoMediaId"
+  | "initialFinishTitle"
+  | "initialShouldPostWorkout"
   | "bodyWeightKg"
   | "ghostModeEnabled"
   | "onWorkoutComplete"
@@ -52,11 +60,12 @@ export function useActiveWorkoutSession({
       ? initialSessionExercises
       : initialExercises.map((exercise) => createExerciseCard(exercise, { withInitialSet: false })),
   );
-  const [finishTitle, setFinishTitle] = useState(selectedGroups.join(" & "));
+  const [finishTitle, setFinishTitle] = useState(initialFinishTitle || selectedGroups.join(" & "));
   const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(() => initialFinishPhotoFile ? URL.createObjectURL(initialFinishPhotoFile) : null);
   const [finishPhotoFile, setFinishPhotoFile] = useState<File | null>(initialFinishPhotoFile);
   const [finishIdempotencyKey, setFinishIdempotencyKey] = useState(initialFinishIdempotencyKey);
-  const [shouldPostWorkout, setShouldPostWorkout] = useState(!ghostModeEnabled);
+  const [finishFinishedAt, setFinishFinishedAt] = useState(initialFinishFinishedAt);
+  const [shouldPostWorkout, setShouldPostWorkout] = useState(initialShouldPostWorkout ?? !ghostModeEnabled);
   const [finishTitleError, setFinishTitleError] = useState("");
   const [finishValidationError, setFinishValidationError] = useState("");
   const [pendingExerciseFocusId, setPendingExerciseFocusId] = useState<string | null>(null);
@@ -211,9 +220,9 @@ export function useActiveWorkoutSession({
   }, [exercises, sessionGroups]);
 
   useEffect(() => {
-    if (!isFinishingWorkout) return;
+    if (!isFinishingWorkout || finishIdempotencyKey) return;
     setShouldPostWorkout(!ghostModeEnabled);
-  }, [ghostModeEnabled, isFinishingWorkout]);
+  }, [finishIdempotencyKey, ghostModeEnabled, isFinishingWorkout]);
 
   useEffect(() => {
     if (!finishValidationError) return;
@@ -316,11 +325,14 @@ export function useActiveWorkoutSession({
       return;
     }
 
-    setFinishTitle(defaultFinishTitle);
+    setFinishTitle((current) => finishIdempotencyKey ? current : defaultFinishTitle);
     setFinishTitleError("");
     setFinishValidationError("");
-    setShouldPostWorkout(!ghostModeEnabled);
-    setFinishIdempotencyKey(crypto.randomUUID());
+    if (!finishIdempotencyKey) {
+      setShouldPostWorkout(!ghostModeEnabled);
+      setFinishIdempotencyKey(crypto.randomUUID());
+      setFinishFinishedAt(new Date().toISOString());
+    }
     setIsFinishingWorkout(true);
   }
 
@@ -340,6 +352,8 @@ export function useActiveWorkoutSession({
       elapsedSeconds,
       exercises,
       idempotencyKey: finishIdempotencyKey || crypto.randomUUID(),
+      finishedAt: finishFinishedAt || new Date().toISOString(),
+      photoMediaId: initialFinishPhotoMediaId,
     };
 
     onWorkoutComplete?.(draft);

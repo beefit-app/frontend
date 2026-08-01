@@ -2,6 +2,7 @@ import type {
   ExerciseCatalogItem,
   WorkoutCompletionDraft,
   WorkoutCompletionResult,
+  WorkoutRecoveryResult,
   WorkoutExercise,
   WorkoutTemplate,
 } from "../types/workout";
@@ -171,7 +172,7 @@ function normalizeSessionExercise(exercise: BackendSessionExercise): WorkoutExer
 
 function toFinishPayload(draft: WorkoutCompletionDraft) {
   return {
-    finishedAt: new Date().toISOString(),
+    finishedAt: draft.finishedAt,
     muscleGroups: draft.selectedGroups.map(toApiMuscleGroup),
     title: draft.title,
     shouldPostWorkout: draft.shouldPostWorkout,
@@ -340,22 +341,39 @@ export const workoutService = {
     };
   },
 
-  async finishWorkout(draft: WorkoutCompletionDraft) {
+  async finishWorkout(
+    draft: WorkoutCompletionDraft,
+    onPrepared?: (preparedDraft: WorkoutCompletionDraft) => Promise<void>,
+  ) {
     if (!draft.workoutId) {
       throw new Error("Sessão de treino sem ID do backend.");
     }
 
-    let photoMediaId: string | null = null;
-    if (draft.photoFile && draft.shouldPostWorkout) {
+    let photoMediaId = draft.photoMediaId ?? null;
+    if (!photoMediaId && draft.photoFile && draft.shouldPostWorkout) {
       photoMediaId = await this.uploadWorkoutPhoto(draft.photoFile);
     }
 
+    const preparedDraft = { ...draft, photoMediaId };
+    await onPrepared?.(preparedDraft);
+
     const response = await apiClient.post<BackendWorkoutSession>(
       `/api/workout/${draft.workoutId}/finish`,
-      { ...toFinishPayload(draft), photoMediaId },
+      { ...toFinishPayload(preparedDraft), photoMediaId },
       { auth: true, headers: { "Idempotency-Key": draft.idempotencyKey } },
     );
     return normalizeWorkoutResult(response);
+  },
+
+  async getWorkout(workoutId: string): Promise<WorkoutRecoveryResult> {
+    const response = await apiClient.get<BackendWorkoutSession>(`/api/workout/${workoutId}`, { auth: true });
+    return {
+      ...normalizeWorkoutResult(response),
+      status: response.status,
+      startedAt: new Date(response.startedAt).getTime(),
+      muscleGroups: response.muscleGroups.map((group) => getGroupLabel(normalizeGroupId(group))),
+      exercises: response.exercises.map(normalizeSessionExercise),
+    };
   },
 
   async getActiveWorkout() {

@@ -36,6 +36,8 @@ export interface WorkoutCompletionDraft {
   elapsedSeconds: number;
   exercises: WorkoutExercise[];
   idempotencyKey: string;
+  finishedAt: string;
+  photoMediaId?: string | null;
 }
 
 export interface PersistedWorkoutDraft {
@@ -49,6 +51,8 @@ export interface PersistedWorkoutDraft {
   photoFileName: string | null;
   pendingFinish: boolean;
   idempotencyKey?: string;
+  finishedAt?: string;
+  photoMediaId?: string | null;
   updatedAt: number;
 }
 
@@ -64,6 +68,13 @@ export interface WorkoutCompletionResult {
     muscleGroup: string;
     isPersonalRecord: boolean;
   } | null;
+}
+
+export interface WorkoutRecoveryResult extends WorkoutCompletionResult {
+  status: string;
+  startedAt: number;
+  muscleGroups: string[];
+  exercises: WorkoutExercise[];
 }
 
 export interface MuscleGroupOption {
