@@ -66,6 +66,7 @@ interface BackendWorkoutSession {
     attackPower: number;
     rarity: string;
     muscleGroup: string;
+    muscleIntensities: Record<string, number>;
     isPersonalRecord: boolean;
   } | null;
 }

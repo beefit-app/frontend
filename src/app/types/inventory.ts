@@ -17,6 +17,7 @@ export interface InventoryCard {
   rarity: InventoryRarity;
   rarityLabel: string;
   muscleGroup: InventoryMuscleGroup;
+  muscleIntensities: Record<string, number>;
   isPersonalRecord: boolean;
   bodyWeightAtGeneration: number | null;
   generatedAt: string;

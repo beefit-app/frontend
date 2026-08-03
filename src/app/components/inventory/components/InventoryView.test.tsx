@@ -73,6 +73,7 @@ describe("InventoryView", () => {
             rarity: "LEGENDARY",
             rarityLabel: "Lendário",
             muscleGroup: "BACK",
+            muscleIntensities: { "upper-back": 4, biceps: 2 },
             isPersonalRecord: true,
             bodyWeightAtGeneration: 80,
             generatedAt: "2026-06-27T15:00:00Z",
@@ -85,6 +86,7 @@ describe("InventoryView", () => {
     expect(screen.getByText("Carta de Costas")).toBeInTheDocument();
     expect(screen.getByText("Poder de ataque")).toBeInTheDocument();
     expect(screen.getByText("PR")).toBeInTheDocument();
+    expect(screen.getByText("Quanto mais claro, maior a participação no treino")).toBeInTheDocument();
   });
 
   it("mostra templates salvos na aba de templates", async () => {

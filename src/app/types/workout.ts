@@ -66,6 +66,7 @@ export interface WorkoutCompletionResult {
     attackPower: number;
     rarity: string;
     muscleGroup: string;
+    muscleIntensities: Record<string, number>;
     isPersonalRecord: boolean;
   } | null;
 }

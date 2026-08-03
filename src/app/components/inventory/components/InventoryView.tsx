@@ -1,4 +1,5 @@
 import { IonCol, IonGrid, IonRow } from "@ionic/react";
+import Body, { type ExtendedBodyPart, type Slug } from "react-muscle-highlighter";
 import {
   Check,
   Filter,
@@ -28,6 +29,38 @@ import {
 import type { InventoryCard, InventoryFilters, InventoryMuscleGroup, InventoryRarity } from "../types";
 
 type InventoryTab = "cards" | "templates";
+
+const HEATMAP_PARTS: Record<InventoryMuscleGroup, readonly Slug[]> = {
+  CHEST: ["chest"],
+  BACK: ["upper-back", "lower-back"],
+  LEGS: ["quadriceps", "hamstring", "calves", "tibialis", "adductors"],
+  GLUTES: ["gluteal"],
+  SHOULDERS: ["deltoids"],
+  ARMS: ["biceps", "triceps", "forearm"],
+  CORE: ["abs", "obliques"],
+  TRAPS: ["trapezius"],
+};
+
+const BEEFIT_HEATMAP_COLORS = ["#6B5200", "#A98200", "#D4AD00", "#FFD700"] as const;
+const BEEFIT_HEATMAP_BASE = "#292929";
+const BEEFIT_HEATMAP_STROKE = "rgba(255,215,0,0.22)";
+const HEATMAP_SLUGS = new Set<Slug>([
+  "abs",
+  "adductors",
+  "biceps",
+  "calves",
+  "chest",
+  "deltoids",
+  "forearm",
+  "gluteal",
+  "hamstring",
+  "lower-back",
+  "neck",
+  "quadriceps",
+  "trapezius",
+  "triceps",
+  "upper-back",
+]);
 
 function formatAttackPower(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -314,28 +347,43 @@ function EmptyState({
 function InventoryCardTile({ card }: { card: InventoryCard }) {
   const rarity = RARITY_META[card.rarity] ?? RARITY_META.COMMON;
   const muscle = MUSCLE_GROUP_META[card.muscleGroup] ?? MUSCLE_GROUP_META.CORE;
+  const intensityByBodyPart = new Map<Slug, number>();
+
+  Object.entries(card.muscleIntensities).forEach(([muscleKey, intensity]) => {
+    const groupedParts = HEATMAP_PARTS[muscleKey as InventoryMuscleGroup];
+    const bodyParts = groupedParts ?? (HEATMAP_SLUGS.has(muscleKey as Slug) ? [muscleKey as Slug] : []);
+    bodyParts.forEach((slug) => {
+      intensityByBodyPart.set(slug, Math.max(intensityByBodyPart.get(slug) ?? 0, intensity));
+    });
+  });
+
+  const heatmapData: readonly ExtendedBodyPart[] = Array.from(intensityByBodyPart, ([slug, intensity]) => ({
+    slug,
+    intensity,
+  }));
 
   return (
     <article
       style={{
         position: "relative",
         overflow: "hidden",
-        borderRadius: 16,
-        border: `2px solid ${rarity.border}`,
-        background: rarity.background,
-        padding: 18,
-        boxShadow: rarity.shadow,
+        borderRadius: 22,
+        border: `1px solid ${rarity.border}`,
+        background: `linear-gradient(135deg, ${rarity.background} 0%, #141414 68%)`,
+        padding: 16,
+        boxShadow: `0 12px 30px rgba(0,0,0,0.18), ${rarity.shadow}`,
       }}
     >
       <div
         aria-hidden="true"
         style={{
           position: "absolute",
-          top: -18,
-          right: -14,
-          width: 100,
-          height: 116,
-          opacity: card.rarity === "LEGENDARY" ? 0.1 : 0.06,
+          top: -72,
+          right: -54,
+          width: 180,
+          height: 180,
+          opacity: card.rarity === "LEGENDARY" ? 0.12 : 0.07,
+          borderRadius: "50%",
           clipPath: HEX_CLIP,
           background: rarity.accent,
         }}
@@ -353,9 +401,9 @@ function InventoryCardTile({ card }: { card: InventoryCard }) {
           }}
         />
       )}
-      <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "start" }}>
+      <div style={{ position: "relative", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 18, alignItems: "stretch" }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
             <span
               style={{
                 display: "inline-flex",
@@ -396,11 +444,11 @@ function InventoryCardTile({ card }: { card: InventoryCard }) {
             )}
           </div>
 
-          <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 12 }}>
             <div
               style={{
-                width: 44,
-                height: 50,
+                width: 42,
+                height: 48,
                 clipPath: HEX_CLIP,
                 background: rarity.badgeBackground,
                 border: `1px solid ${rarity.border}`,
@@ -414,7 +462,7 @@ function InventoryCardTile({ card }: { card: InventoryCard }) {
               <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 15, fontWeight: 800 }}>{muscle.shortLabel}</span>
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>
+              <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 17, fontWeight: 700, color: "#FFFFFF" }}>
                 Carta de {muscle.label}
               </div>
               <div style={{ marginTop: 4, fontFamily: "var(--font-inter)", fontSize: 13, color: "#8A8A8A" }}>
@@ -430,7 +478,7 @@ function InventoryCardTile({ card }: { card: InventoryCard }) {
             Poder de ataque
           </div>
 
-          <div style={{ marginTop: 16, borderTop: "1px solid #2D2D2D", paddingTop: 12, display: "grid", gap: 6 }}>
+          <div style={{ marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 12, display: "grid", gap: 6 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#737373" }}>Gerada em</span>
               <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600, color: "#D4D4D4" }}>{formatDate(card.generatedAt)}</span>
@@ -445,20 +493,71 @@ function InventoryCardTile({ card }: { card: InventoryCard }) {
         </div>
 
         <div
-          aria-hidden="true"
+          aria-label="Área reservada para o heatmap dos grupos musculares"
+          role="img"
           style={{
-            width: 70,
-            alignSelf: "stretch",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: 8,
+            gridColumn: "1 / -1",
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+            paddingTop: 16,
+            display: "grid",
+            gap: 12,
           }}
         >
-          <div style={{ width: 34, height: 38, clipPath: HEX_CLIP, background: "#2D2D2D" }} />
-          <div style={{ width: 44, height: 48, clipPath: HEX_CLIP, background: rarity.badgeBackground, border: `1px solid ${rarity.border}` }} />
-          <div style={{ width: 34, height: 38, clipPath: HEX_CLIP, background: rarity.badgeBackground, border: `1px solid ${rarity.border}` }} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 11, fontWeight: 800, color: "#D4D4D4", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Mapa muscular
+              </div>
+              <div style={{ marginTop: 3, color: "#737373", fontFamily: "var(--font-inter)", fontSize: 11 }}>
+                Quanto mais claro, maior a participação no treino
+              </div>
+            </div>
+            <span style={{ borderRadius: 999, border: `1px solid ${rarity.border}`, background: rarity.badgeBackground, color: rarity.color, padding: "5px 9px", fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>
+              {muscle.label}
+            </span>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+            <div style={{ position: "relative", minHeight: 230, overflow: "hidden", borderRadius: 16, border: `1px solid ${rarity.border}`, background: "linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015))", display: "grid", justifyItems: "center", alignItems: "center", padding: "12px 8px 10px" }}>
+              <span style={{ position: "absolute", top: 10, left: 10, borderRadius: 999, background: "rgba(255,255,255,0.08)", padding: "4px 7px", fontFamily: "var(--font-inter)", fontSize: 9, fontWeight: 700, color: "#A3A3A3", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Página 1
+              </span>
+              <Body
+                data={heatmapData}
+                side="front"
+                gender="male"
+                scale={0.5}
+                colors={BEEFIT_HEATMAP_COLORS}
+                defaultFill={BEEFIT_HEATMAP_BASE}
+                defaultStroke={BEEFIT_HEATMAP_STROKE}
+                defaultStrokeWidth={0.5}
+                border="none"
+              />
+              <span style={{ position: "absolute", bottom: 9, fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 600, color: "#A3A3A3" }}>Frente</span>
+            </div>
+            <div style={{ position: "relative", minHeight: 230, overflow: "hidden", borderRadius: 16, border: `1px solid ${rarity.border}`, background: "linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015))", display: "grid", justifyItems: "center", alignItems: "center", padding: "12px 8px 10px" }}>
+              <span style={{ position: "absolute", top: 10, left: 10, borderRadius: 999, background: "rgba(255,255,255,0.08)", padding: "4px 7px", fontFamily: "var(--font-inter)", fontSize: 9, fontWeight: 700, color: "#A3A3A3", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Página 2
+              </span>
+              <Body
+                data={heatmapData}
+                side="back"
+                gender="male"
+                scale={0.5}
+                colors={BEEFIT_HEATMAP_COLORS}
+                defaultFill={BEEFIT_HEATMAP_BASE}
+                defaultStroke={BEEFIT_HEATMAP_STROKE}
+                defaultStrokeWidth={0.5}
+                border="none"
+              />
+              <span style={{ position: "absolute", bottom: 9, fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 600, color: "#A3A3A3" }}>Costas</span>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#737373", fontFamily: "var(--font-inter)", fontSize: 9 }}>
+            <span>Baixa</span>
+            <span aria-hidden="true" style={{ width: 92, height: 5, borderRadius: 999, background: `linear-gradient(90deg, ${BEEFIT_HEATMAP_COLORS.join(", ")})` }} />
+            <span>Alta</span>
+          </div>
         </div>
       </div>
     </article>
