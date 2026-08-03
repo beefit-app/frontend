@@ -18,7 +18,6 @@ export function FinishWorkoutView({
   shouldPostWorkout,
   shouldSaveTemplate,
   ghostModeEnabled,
-  elapsedSeconds,
   onBack,
   onPhotoChange,
   onTitleChange,
@@ -36,7 +35,6 @@ export function FinishWorkoutView({
   shouldPostWorkout: boolean;
   shouldSaveTemplate: boolean;
   ghostModeEnabled: boolean;
-  elapsedSeconds: number;
   onBack: () => void;
   onPhotoChange: (file: File | null) => void;
   onTitleChange: (value: string) => void;

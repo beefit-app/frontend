@@ -11,7 +11,6 @@ import {
 } from "../utils";
 
 export function useActiveWorkoutSession({
-  catalogRevision = 0,
   workoutId = null,
   userId = null,
   startedAt = null,
@@ -27,7 +26,6 @@ export function useActiveWorkoutSession({
 }: Pick<
   ActiveWorkoutScreenProps,
   | "selectedGroups"
-  | "catalogRevision"
   | "workoutId"
   | "userId"
   | "startedAt"
@@ -59,6 +57,9 @@ export function useActiveWorkoutSession({
   );
   const [finishTitle, setFinishTitle] = useState(initialDraft?.title ?? selectedGroups.join(" & "));
   const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(null);
+  const [finishPhotoFile, setFinishPhotoFile] = useState<File | null>(null);
+  const [finishIdempotencyKey, setFinishIdempotencyKey] = useState(initialDraft?.idempotencyKey ?? "");
+  const [finishFinishedAt, setFinishFinishedAt] = useState(initialDraft?.finishedAt ?? "");
   const [shouldPostWorkout, setShouldPostWorkout] = useState(initialDraft?.shouldPostWorkout ?? !ghostModeEnabled);
   const [shouldSaveTemplate, setShouldSaveTemplate] = useState(initialDraft?.shouldSaveTemplate ?? false);
   const [finishTitleError, setFinishTitleError] = useState("");
@@ -67,7 +68,6 @@ export function useActiveWorkoutSession({
   const [catalogLoadError, setCatalogLoadError] = useState("");
   const [pendingExerciseFocusId, setPendingExerciseFocusId] = useState<string | null>(null);
   const [pendingSetFocusExerciseId, setPendingSetFocusExerciseId] = useState<string | null>(null);
-  const [catalogItems, setCatalogItems] = useState<ExerciseCatalogItem[]>(() => workoutService.getCatalog());
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const exerciseSlideRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -79,10 +79,6 @@ export function useActiveWorkoutSession({
   const activeCatalogExercise = useMemo(
     () => workoutService.getCatalogItemById(catalogDetailExerciseId, catalog),
     [catalog, catalogDetailExerciseId],
-  );
-  const visibleCatalogItems = useMemo(
-    () => workoutService.getCatalogByGroupId(activeCatalogGroupId, catalog),
-    [activeCatalogGroupId, catalog],
   );
   const sessionGroups = useMemo(
     () => workoutService.getSessionGroups(selectedGroups, exercises),
@@ -113,6 +109,8 @@ export function useActiveWorkoutSession({
     let active = true;
 
     async function loadCatalog() {
+      setIsLoadingCatalog(true);
+      setCatalogError(null);
       try {
         const loadedCatalog = await workoutService.loadCatalog();
         if (!active) return;
@@ -120,7 +118,11 @@ export function useActiveWorkoutSession({
         setCatalogLoadError("");
       } catch (error) {
         if (!active) return;
-        setCatalogLoadError(error instanceof Error ? error.message : "Não foi possível carregar o catálogo.");
+        const message = error instanceof Error ? error.message : "Não foi possível carregar o catálogo.";
+        setCatalogLoadError(message);
+        setCatalogError(message);
+      } finally {
+        if (active) setIsLoadingCatalog(false);
       }
     }
 
@@ -130,6 +132,10 @@ export function useActiveWorkoutSession({
       active = false;
     };
   }, []);
+
+  useEffect(() => () => {
+    if (finishPhotoUrl?.startsWith("blob:")) URL.revokeObjectURL(finishPhotoUrl);
+  }, [finishPhotoUrl]);
 
   useEffect(() => () => {
     if (finishPhotoUrl?.startsWith("blob:")) URL.revokeObjectURL(finishPhotoUrl);
@@ -197,6 +203,8 @@ export function useActiveWorkoutSession({
       exercises,
       shouldPostWorkout,
       shouldSaveTemplate,
+      idempotencyKey: finishIdempotencyKey || undefined,
+      finishedAt: finishFinishedAt || undefined,
       updatedAt: new Date().toISOString(),
     };
 
@@ -205,6 +213,8 @@ export function useActiveWorkoutSession({
     defaultFinishTitle,
     exercises,
     finishTitle,
+    finishFinishedAt,
+    finishIdempotencyKey,
     sessionGroups,
     shouldPostWorkout,
     shouldSaveTemplate,
@@ -316,6 +326,10 @@ export function useActiveWorkoutSession({
     setFinishTitle((current) => (current.trim() ? current : defaultFinishTitle));
     setFinishTitleError("");
     setFinishValidationError("");
+    if (!finishIdempotencyKey) {
+      setFinishIdempotencyKey(crypto.randomUUID());
+      setFinishFinishedAt(new Date().toISOString());
+    }
     setIsFinishingWorkout(true);
   }
 
@@ -337,7 +351,6 @@ export function useActiveWorkoutSession({
       exercises,
       idempotencyKey: finishIdempotencyKey || crypto.randomUUID(),
       finishedAt: finishFinishedAt || new Date().toISOString(),
-      photoMediaId: initialFinishPhotoMediaId,
     };
 
     onWorkoutComplete?.(draft);
@@ -370,7 +383,6 @@ export function useActiveWorkoutSession({
     groupedExercises,
     groupOrder,
     activeCatalogExercise,
-    visibleCatalogItems,
     sessionGroups,
     defaultFinishTitle,
     selectedCatalogIds,

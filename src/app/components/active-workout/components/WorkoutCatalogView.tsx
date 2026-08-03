@@ -10,7 +10,6 @@ import { BeeInput } from "../../BeeInput";
 export function WorkoutCatalogView({
   groupedExercises,
   activeCatalogGroupId,
-  visibleCatalogItems,
   catalogLoadError,
   selectedCatalogIds,
   isLoadingCatalog,
@@ -21,7 +20,6 @@ export function WorkoutCatalogView({
 }: {
   groupedExercises: { groupId: string; group: string; items: ExerciseCatalogItem[] }[];
   activeCatalogGroupId: string;
-  visibleCatalogItems: ExerciseCatalogItem[];
   catalogLoadError: string;
   selectedCatalogIds: Set<string>;
   isLoadingCatalog: boolean;
@@ -192,7 +190,12 @@ export function WorkoutCatalogView({
             </div>
 
             <div style={{ display: "grid", gap: 12 }}>
-              {catalogLoadError && (
+              {isLoadingCatalog && (
+                <div style={{ color: "#A3A3A3", fontFamily: "var(--font-inter)", fontSize: 14 }}>
+                  Carregando exercícios...
+                </div>
+              )}
+              {(catalogLoadError || catalogError) && (
                 <div
                   style={{
                     border: "1px solid rgba(239,68,68,0.35)",
@@ -205,10 +208,10 @@ export function WorkoutCatalogView({
                     lineHeight: 1.5,
                   }}
                 >
-                  {catalogLoadError}
+                  {catalogLoadError || catalogError}
                 </div>
               )}
-              {!catalogLoadError && visibleCatalogItems.length === 0 && (
+              {!isLoadingCatalog && !catalogLoadError && !catalogError && filteredItems.length === 0 && (
                 <div
                   style={{
                     border: "1px solid #2D2D2D",
@@ -224,7 +227,7 @@ export function WorkoutCatalogView({
                   Nenhum exercício encontrado para este grupo muscular.
                 </div>
               )}
-              {visibleCatalogItems.map((exercise) => {
+              {filteredItems.map((exercise) => {
                 const alreadyAdded = selectedCatalogIds.has(exercise.id);
                 const style = muscleStyle(exercise.group);
 

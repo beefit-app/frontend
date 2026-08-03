@@ -36,8 +36,8 @@ export interface WorkoutCompletionDraft {
   selectedGroups: string[];
   elapsedSeconds: number;
   exercises: WorkoutExercise[];
-  idempotencyKey: string;
-  finishedAt: string;
+  idempotencyKey?: string;
+  finishedAt?: string;
   photoMediaId?: string | null;
 }
 
@@ -49,6 +49,8 @@ export interface WorkoutDraft {
   exercises: WorkoutExercise[];
   shouldPostWorkout: boolean;
   shouldSaveTemplate: boolean;
+  idempotencyKey?: string;
+  finishedAt?: string;
   updatedAt: string;
 }
 
@@ -57,6 +59,17 @@ export interface WorkoutCompletionSummary {
   durationSeconds: number;
   estimatedCalories: number;
   totalVolume: number;
+}
+
+export interface WorkoutCompletionResult extends WorkoutCompletionSummary {
+  card?: {
+    id: string;
+    attackPower: number;
+    rarity: string;
+    muscleGroup: string;
+    muscleIntensities: Record<string, number>;
+    isPersonalRecord: boolean;
+  } | null;
 }
 
 export interface WorkoutRecoveryResult extends WorkoutCompletionResult {

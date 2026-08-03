@@ -192,24 +192,26 @@ function normalizeStartedSession(response: BackendWorkoutSession) {
 }
 
 function normalizeCompletionSummary(response: BackendWorkoutSession): WorkoutCompletionSummary {
-  return {
+  const summary: WorkoutCompletionResult = {
     workoutId: response.id,
     durationSeconds: response.durationSeconds ?? 0,
     estimatedCalories: response.estimatedCalories ?? 0,
     totalVolume: response.totalVolume ?? 0,
   };
+
+  if (response.card) summary.card = response.card;
+  return summary;
 }
 
 function toFinishPayload(draft: WorkoutCompletionDraft) {
   return {
-    finishedAt: new Date().toISOString(),
+    finishedAt: draft.finishedAt ?? new Date().toISOString(),
     title: draft.title,
     shouldPostWorkout: draft.shouldPostWorkout,
     muscleGroups: draft.selectedGroups.map(toBackendGroup),
     exercises: draft.exercises.map((exercise, exerciseIndex) => ({
       sessionExerciseId: exercise.sessionExerciseId ?? null,
       catalogExerciseId: exercise.catalogId,
-      catalogExerciseName: exercise.name,
       order: exerciseIndex + 1,
       sets: exercise.sets.map((set, setIndex) => ({
         id: set.backendId ?? null,
@@ -303,7 +305,7 @@ export const workoutService = {
   },
 
   getGroupedCatalog(exercises: ExerciseCatalogItem[] = catalogCache) {
-    const groupOrder = workoutDataSource.getGroupOrder();
+    const groups = workoutDataSource.getMuscleGroups();
 
     return groups.map((group) => ({
       groupId: group.id,
@@ -368,38 +370,49 @@ export const workoutService = {
       throw new Error("Sessão de treino sem ID do backend.");
     }
 
+    let photoMediaId = draft.photoMediaId ?? null;
+    if (!photoMediaId && draft.photoFile && draft.shouldPostWorkout) {
+      photoMediaId = await this.uploadWorkoutPhoto(draft.photoFile);
+    }
+
+    const idempotencyKey = draft.idempotencyKey ?? crypto.randomUUID();
+    const preparedDraft = { ...draft, photoMediaId, idempotencyKey };
+    await onPrepared?.(preparedDraft);
+    const payload = {
+      ...toFinishPayload(preparedDraft),
+      ...(photoMediaId ? { photoMediaId } : {}),
+    };
     const response = await apiClient.post<BackendWorkoutSession>(
       `/api/workout/${draft.workoutId}/finish`,
-      { ...toFinishPayload(preparedDraft), photoMediaId },
-      { auth: true, headers: { "Idempotency-Key": draft.idempotencyKey } },
+      payload,
+      { auth: true, headers: { "Idempotency-Key": idempotencyKey } },
     );
-    return normalizeWorkoutResult(response);
+
+    if (draft.shouldSaveTemplate) {
+      const createdTemplate = await apiClient.post<BackendTemplate>(
+        "/api/templates",
+        toTemplatePayload(draft),
+        { auth: true },
+      );
+      const normalizedTemplate = normalizeTemplate(createdTemplate);
+      templatesCache = [
+        normalizedTemplate,
+        ...templatesCache.filter((template) => template.id !== normalizedTemplate.id),
+      ];
+    }
+
+    return normalizeCompletionSummary(response);
   },
 
   async getWorkout(workoutId: string): Promise<WorkoutRecoveryResult> {
     const response = await apiClient.get<BackendWorkoutSession>(`/api/workout/${workoutId}`, { auth: true });
     return {
-      ...normalizeWorkoutResult(response),
+      ...normalizeCompletionSummary(response),
       status: response.status,
       startedAt: new Date(response.startedAt).getTime(),
       muscleGroups: response.muscleGroups.map((group) => getGroupLabel(normalizeGroupId(group))),
       exercises: response.exercises.map(normalizeSessionExercise),
     };
-  },
-
-  async getActiveWorkout() {
-    const response = await apiClient.get<BackendWorkoutSession | null>("/api/workout/active", { auth: true });
-    if (!response) return null;
-    return {
-      id: response.id,
-      startedAt: new Date(response.startedAt).getTime(),
-      muscleGroups: response.muscleGroups.map((group) => getGroupLabel(normalizeGroupId(group))),
-      exercises: response.exercises.map(normalizeSessionExercise),
-    };
-  },
-
-  async cancelWorkout(workoutId: string) {
-    return apiClient.post<BackendWorkoutSession>(`/api/workout/${workoutId}/cancel`, undefined, { auth: true });
   },
 
   async addMuscleGroup(workoutId: string, groupId: string) {
@@ -408,13 +421,6 @@ export const workoutService = {
       undefined,
       { auth: true },
     );
-
-    if (draft.shouldSaveTemplate) {
-      const createdTemplate = await apiClient.post<BackendTemplate>("/api/templates", toTemplatePayload(draft), { auth: true });
-      templatesCache = [normalizeTemplate(createdTemplate), ...templatesCache.filter((template) => template.id !== createdTemplate.id)];
-    }
-
-    return normalizeCompletionSummary(response);
   },
 
   async cancelWorkout(workoutId: string | null | undefined) {
@@ -430,7 +436,7 @@ export const workoutService = {
       "/api/templates",
       {
         name: input.name,
-        muscleGroups: input.groups.map(toApiMuscleGroup),
+        muscleGroups: input.groups.map(toBackendGroup),
         exercises: input.exerciseIds.map((catalogExerciseId, index) => ({ catalogExerciseId, order: index + 1 })),
       },
       { auth: true },
@@ -445,7 +451,7 @@ export const workoutService = {
       `/api/templates/${templateId}`,
       {
         name: input.name,
-        muscleGroups: input.groups.map(toApiMuscleGroup),
+        muscleGroups: input.groups.map(toBackendGroup),
         exercises: input.exerciseIds.map((catalogExerciseId, index) => ({ catalogExerciseId, order: index + 1 })),
       },
       { auth: true },

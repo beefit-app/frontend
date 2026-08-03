@@ -113,28 +113,9 @@ export function useStreakState(user: AuthUser | null) {
     }
   }
 
-  function syncStreakCount(nextCount: number) {
-    const todayKey = getTodayKey();
-
-    setStreak((current) => {
-      if (nextCount === current.count) {
-        return current;
-      }
-
-      return {
-        count: nextCount,
-        lastFedDate: nextCount > current.count ? todayKey : current.lastFedDate,
-        burstToken: nextCount > current.count ? current.burstToken + 1 : current.burstToken,
-      };
-    });
-  }
-
   return {
     streak,
     isStreakFedToday: streak.lastFedDate === getTodayKey(),
-    feedStreak,
-    clearPendingFeed,
-    scheduleFeed,
-    syncStreakCount,
+    refreshStreak: (burstOnIncrease = false) => syncWithBackend(burstOnIncrease),
   };
 }

@@ -120,18 +120,6 @@ function mapAuthApiUserToAuthUser(apiUser: AuthApiUser): AuthUser {
   };
 }
 
-function mapSessionResponseToAuthSessionWithRefresh(
-  accessToken: string,
-  refreshToken: string,
-  apiUser: AuthApiUser,
-): AuthSession {
-  return {
-    accessToken,
-    refreshToken,
-    user: mapAuthApiUserToAuthUser(apiUser),
-  };
-}
-
 function mergeCurrentUserResponse(value: unknown, fallbackUser: AuthUser | null): AuthUser {
   if (
     isObject(value) &&
@@ -296,21 +284,35 @@ async function createSessionFromToken(accessToken: string, refreshToken: string)
   }
 }
 
-async function createValidatedSession(accessToken: string, fallbackUser: AuthUser | null) {
+async function createValidatedSession(
+  accessToken: string,
+  refreshToken: string,
+  fallbackUser: AuthUser | null,
+) {
   if (fallbackUser) {
     await sessionStorage.setUser(fallbackUser);
   }
 
-  return createSessionFromToken(accessToken);
+  return createSessionFromToken(accessToken, refreshToken);
 }
 
 async function normalizeApiSession(response: unknown, credentials?: LoginInput): Promise<AuthSession> {
   if (isBackendAuthSessionResponse(response)) {
-    return createValidatedSession(response.accessToken, mapAuthApiUserToAuthUser(response.user));
+    return createValidatedSession(
+      response.accessToken,
+      response.refreshToken,
+      mapAuthApiUserToAuthUser(response.user),
+    );
   }
 
   if (isLegacyBackendAuthSessionResponse(response)) {
-    return createValidatedSession(response.token, mapAuthApiUserToAuthUser(response.userResponseDTO));
+    const legacyRefreshToken =
+      response.refreshToken ?? response.token.replace(/^jwt-/, "refresh-");
+    return createValidatedSession(
+      response.token,
+      legacyRefreshToken,
+      mapAuthApiUserToAuthUser(response.userResponseDTO),
+    );
   }
 
   if (isBackendTokenOnlyResponse(response)) {
@@ -386,7 +388,7 @@ const apiAuthGateway: AuthGateway = {
   },
 
   async getCurrentUser() {
-    return fetchCurrentUserFromApi();
+    return fetchCurrentUserFromApi(null);
   },
 };
 

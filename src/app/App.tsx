@@ -16,7 +16,6 @@ import { useAuth } from "./auth/AuthContext";
 import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
 import { useStreakState } from "./hooks/useStreakState";
 import { useWorkoutSessionState } from "./hooks/useWorkoutSessionState";
-import { profileService } from "./services/profileService";
 import type { WorkoutCompletionDraft, WorkoutCompletionSummary } from "./types/workout";
 
 setupIonicReact({ mode: "md" });
@@ -105,7 +104,9 @@ export default function App() {
   const { authScreen, screen, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
-  const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState();
+  const { streak, isStreakFedToday, refreshStreak } = useStreakState(
+    isAuthenticated ? (user ?? null) : null,
+  );
   const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
   const [profileRefreshToken, setProfileRefreshToken] = useState(0);
@@ -114,23 +115,34 @@ export default function App() {
   const isAdminRoute = pathname.startsWith("/admin");
   const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
 
+  useEffect(() => {
+    const handleLocationChange = () => setPathname(window.location.pathname);
+    window.addEventListener("popstate", handleLocationChange);
+    return () => window.removeEventListener("popstate", handleLocationChange);
+  }, []);
+
   if (legalDocument) {
     return <IonApp><IonPage><IonContent fullscreen><LegalDocuments document={legalDocument} /></IonContent></IonPage></IonApp>;
   }
 
   function handleWorkoutCompleted(_draft: WorkoutCompletionDraft, _summary: WorkoutCompletionSummary) {
-    clearPendingFeed();
     completeWorkout();
     setScreen("feed");
-    void contentRef.current?.scrollToTop(320);
-    void (async () => {
-      try {
-        const profile = await profileService.getProfile(user);
-        syncStreakCount(profile.streak);
-      } catch {
-        // Mantem o valor atual quando o refresh do perfil falha.
-      }
-    })();
+    setFeedRefreshToken((current) => current + 1);
+    setProfileRefreshToken((current) => current + 1);
+    void refreshStreak(true);
+    window.setTimeout(() => {
+      void contentRef.current?.scrollToTop(320);
+    }, 40);
+  }
+
+  function openSocialProfile(username: string) {
+    setSocialProfileReturnScreen(screen === "feed" ? "feed" : "social");
+    setSocialProfileUsername(username);
+    setScreen("social");
+    window.setTimeout(() => {
+      void contentRef.current?.scrollToTop(0);
+    }, 40);
   }
 
   const activeWorkoutLabel = activeWorkout?.selectedGroups.join(" · ");

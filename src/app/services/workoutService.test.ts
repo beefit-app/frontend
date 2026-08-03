@@ -91,7 +91,7 @@ describe("workoutService.finishWorkout", () => {
           },
         ],
       },
-      { auth: true },
+      { auth: true, headers: { "Idempotency-Key": expect.any(String) } },
     );
 
     expect(apiClient.post).toHaveBeenNthCalledWith(
