@@ -21,6 +21,8 @@ interface RequestOptions {
   auth?: boolean;
   suppressUnauthorizedEvent?: boolean;
   headers?: Record<string, string>;
+  timeoutMs?: number;
+  responseType?: "json" | "blob";
 }
 
 interface ParsedResponse {
@@ -29,16 +31,16 @@ interface ParsedResponse {
 }
 
 const API_BASE_URL = import.meta.env?.VITE_API_URL?.replace(/\/$/, "") ?? "";
+const DEFAULT_TIMEOUT_MS = 15_000;
 export const AUTH_UNAUTHORIZED_EVENT = "beefit:auth-unauthorized";
 let refreshRequest: Promise<string | null> | null = null;
 
 function buildUrl(path: string) {
   if (/^https?:\/\//.test(path)) return path;
+  if (!API_BASE_URL) {
+    throw new ApiError("A URL da API não está configurada para este ambiente.", 0, null);
+  }
   return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
-}
-
-function buildFallbackUrl(path: string) {
-  return path.startsWith("/") ? path : `/${path}`;
 }
 
 function getErrorMessage(data: unknown, fallbackMessage: string) {
@@ -99,35 +101,25 @@ async function request<T>(path: string, options: RequestOptions = {}) {
     }
   }
 
-  const requestUrls = [buildUrl(path)];
-  const fallbackUrl = buildFallbackUrl(path);
-
-  if (requestUrls[0] !== fallbackUrl) {
-    requestUrls.push(fallbackUrl);
-  }
-
-  let response: Response | null = null;
-  let lastError: unknown = null;
-
-  for (const requestUrl of requestUrls) {
-    try {
-      response = await performFetch(requestUrl, method, finalHeaders, body);
-      break;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  if (!response) {
+  let response: Response;
+  try {
+    response = await performFetch(buildUrl(path), method, finalHeaders, body, timeoutMs);
+  } catch (error) {
     throw new ApiError(
-      "Não foi possível conectar ao servidor. Verifique a URL da API, o CORS e se o backend está em execução.",
+      error instanceof DOMException && error.name === "AbortError"
+        ? "A requisição demorou demais. Verifique sua conexão e tente novamente."
+        : "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
       0,
-      lastError,
+      error,
     );
   }
 
   if (response.status === 204 || response.status === 205) {
     return null as T;
+  }
+
+  if (response.ok && options.responseType === "blob") {
+    return (await response.blob()) as T;
   }
 
   const { responseData } = await parseResponseBody(response);
@@ -167,6 +159,10 @@ async function request<T>(path: string, options: RequestOptions = {}) {
 export const apiClient = {
   get<T>(path: string, options?: Omit<RequestOptions, "method" | "body">) {
     return request<T>(path, { ...options, method: "GET" });
+  },
+
+  getBlob(path: string, options?: Omit<RequestOptions, "method" | "body" | "responseType">) {
+    return request<Blob>(path, { ...options, method: "GET", responseType: "blob" });
   },
 
   post<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) {

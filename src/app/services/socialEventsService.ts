@@ -7,6 +7,7 @@ export interface CardGeneratedEvent {
   attackPower: number;
   rarity: string;
   muscleGroup: string;
+  muscleIntensities: Record<string, number>;
   isPersonalRecord: boolean;
 }
 export interface FriendRequestPendingEvent {
@@ -68,7 +69,7 @@ async function openSocialEventsConnection(signal: AbortSignal) {
   const base = import.meta.env?.VITE_API_URL?.replace(/\/$/, "") ?? "";
   const response = await fetch(`${base}/api/social/feed`, { headers: token ? { Authorization: `Bearer ${token}` } : {}, signal });
   if (!response.ok || !response.body) throw new Error("Não foi possível conectar aos eventos sociais.");
-  const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = ""; let event = "message";
+  const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
   while (!signal.aborted) {
     const chunk = await reader.read(); if (chunk.done) break;
     buffer += decoder.decode(chunk.value, { stream: true });
@@ -76,7 +77,7 @@ async function openSocialEventsConnection(signal: AbortSignal) {
     for (const block of blocks) {
       const eventLine = block.split("\n").find((line) => line.startsWith("event:"));
       const dataLine = block.split("\n").find((line) => line.startsWith("data:"));
-      event = eventLine?.slice(6).trim() ?? "message";
+      const event = eventLine?.slice(6).trim() ?? "message";
       if (!dataLine) continue;
       try { notifyListeners(event, JSON.parse(dataLine.slice(5).trim()) as SocialEventPayload); } catch { /* ignore malformed event */ }
     }

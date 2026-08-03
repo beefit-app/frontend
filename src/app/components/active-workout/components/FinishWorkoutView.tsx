@@ -95,7 +95,7 @@ export function FinishWorkoutView({
               <input
                 ref={finishPhotoInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 style={{ display: "none" }}
                 onChange={(event) => onPhotoChange(event.target.files?.[0] ?? null)}
               />

@@ -1,0 +1,12 @@
+title = "BeeFit frontend secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ignore hexadecimal Stencil vnode keys in historical minified bundles"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''^dist/assets/.*\.js$''']
+regexes = ['''\bkey:"[0-9a-f]{5,}"''']

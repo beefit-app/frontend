@@ -36,6 +36,9 @@ export interface WorkoutCompletionDraft {
   selectedGroups: string[];
   elapsedSeconds: number;
   exercises: WorkoutExercise[];
+  idempotencyKey: string;
+  finishedAt: string;
+  photoMediaId?: string | null;
 }
 
 export interface WorkoutDraft {
@@ -54,6 +57,13 @@ export interface WorkoutCompletionSummary {
   durationSeconds: number;
   estimatedCalories: number;
   totalVolume: number;
+}
+
+export interface WorkoutRecoveryResult extends WorkoutCompletionResult {
+  status: string;
+  startedAt: number;
+  muscleGroups: string[];
+  exercises: WorkoutExercise[];
 }
 
 export interface MuscleGroupOption {

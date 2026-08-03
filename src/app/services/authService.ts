@@ -10,7 +10,7 @@ import type {
 import { ApiError, apiClient } from "./apiClient";
 
 const DEV_AUTH_BYPASS_ENABLED =
-  import.meta.env?.VITE_DEV_AUTH_BYPASS === "true" || !import.meta.env?.VITE_API_URL;
+  import.meta.env?.DEV === true && import.meta.env?.VITE_DEV_AUTH_BYPASS === "true";
 const MOCK_TOKEN_PREFIX = "beefit-dev-token";
 const AUTH_LOGIN_PATH = "/auth/login";
 const AUTH_REGISTER_PATH = "/auth/register";

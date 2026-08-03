@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
@@ -16,7 +16,28 @@ function beefitAssetResolver() {
   }
 }
 
-export default defineConfig({
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+
+  if (command === 'build') {
+    if (env.VITE_DEV_AUTH_BYPASS === 'true') {
+      throw new Error('VITE_DEV_AUTH_BYPASS=true não é permitido em builds distribuídos.')
+    }
+
+    const apiUrl = env.VITE_API_URL?.trim()
+    if (!apiUrl) {
+      throw new Error('VITE_API_URL deve ser definida para gerar o build.')
+    }
+
+    const parsedApiUrl = new URL(apiUrl)
+    const isLoopback = ['localhost', '127.0.0.1', '10.0.2.2'].includes(parsedApiUrl.hostname)
+    const allowsInsecureLocalApi = env.VITE_ALLOW_INSECURE_LOCAL_API === 'true' && isLoopback
+    if (parsedApiUrl.protocol !== 'https:' && !allowsInsecureLocalApi) {
+      throw new Error('VITE_API_URL deve usar HTTPS; HTTP só é permitido para desenvolvimento local explícito.')
+    }
+  }
+
+  return {
   plugins: [
     beefitAssetResolver(),
     // The React and Tailwind plugins are both required for BeeFit, even if
@@ -45,4 +66,5 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  }
 })

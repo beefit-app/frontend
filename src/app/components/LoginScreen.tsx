@@ -169,9 +169,9 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                     icon={<LockIcon />}
                     disabled={isSubmitting}
                     rightElement={
-                      <span onClick={() => setShowPassword(!showPassword)}>
+                      <button type="button" aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)} className="flex items-center bg-transparent p-0 text-inherit">
                         <EyeIcon />
-                      </span>
+                      </button>
                     }
                   />
 
@@ -225,6 +225,10 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                 </div>
               </IonCardContent>
             </IonCard>
+
+            <p className="mt-5 text-center font-inter text-xs leading-5 text-[#737373]">
+              Ao continuar, você concorda com os <a className="text-[#FFD700]" href="/terms">Termos de Uso</a> e a <a className="text-[#FFD700]" href="/privacy">Política de Privacidade</a>.
+            </p>
 
             <div className="mt-8 text-center">
               <button

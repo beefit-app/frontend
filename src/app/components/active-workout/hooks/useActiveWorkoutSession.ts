@@ -131,6 +131,10 @@ export function useActiveWorkoutSession({
     };
   }, []);
 
+  useEffect(() => () => {
+    if (finishPhotoUrl?.startsWith("blob:")) URL.revokeObjectURL(finishPhotoUrl);
+  }, [finishPhotoUrl]);
+
   useEffect(() => {
     if (!pendingExerciseFocusId) return;
 
@@ -331,6 +335,9 @@ export function useActiveWorkoutSession({
       selectedGroups: sessionGroups,
       elapsedSeconds,
       exercises,
+      idempotencyKey: finishIdempotencyKey || crypto.randomUUID(),
+      finishedAt: finishFinishedAt || new Date().toISOString(),
+      photoMediaId: initialFinishPhotoMediaId,
     };
 
     onWorkoutComplete?.(draft);

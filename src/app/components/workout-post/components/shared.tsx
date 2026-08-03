@@ -1,5 +1,6 @@
 import { HEX_CLIP, RARITY_STYLE } from "../constants";
 import type { Rarity } from "../types";
+import { useAuthenticatedMediaUrl } from "../../../hooks/useAuthenticatedMediaUrl";
 
 export function HexAvatar({
   src,
@@ -10,6 +11,7 @@ export function HexAvatar({
   initials: string;
   size?: number;
 }) {
+  const resolvedSource = useAuthenticatedMediaUrl(src);
   const outer = size + 5;
 
   return (
@@ -30,8 +32,8 @@ export function HexAvatar({
           width: size,
           height: Math.round(size * 1.155),
           clipPath: HEX_CLIP,
-          background: src ? undefined : "#2D2D2D",
-          backgroundImage: src ? `url(${src})` : undefined,
+          background: resolvedSource ? undefined : "#2D2D2D",
+          backgroundImage: resolvedSource ? `url(${resolvedSource})` : undefined,
           backgroundSize: "cover",
           backgroundPosition: "center",
           display: "flex",
@@ -39,7 +41,7 @@ export function HexAvatar({
           justifyContent: "center",
         }}
       >
-        {!src && (
+        {!resolvedSource && (
           <span
             style={{
               fontFamily: "var(--font-montserrat)",

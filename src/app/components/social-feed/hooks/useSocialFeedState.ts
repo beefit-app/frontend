@@ -123,8 +123,7 @@ export function useSocialFeedState() {
     try {
       await socialFeedService.importTemplate(id, templateName);
       setPosts((current) => current.map((post) => post.id === id ? { ...post, templateSaved: true } : post));
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("Não foi possível copiar o treino.");
     }
   }

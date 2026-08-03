@@ -76,6 +76,7 @@ export function WorkoutStartScreen({
   const [workoutDataError, setWorkoutDataError] = useState("");
   const [completionMessage, setCompletionMessage] = useState("");
   const [isStartingWorkout, setIsStartingWorkout] = useState(false);
+  const [recoveryAttempt, setRecoveryAttempt] = useState(0);
   const [activeWorkoutConfig, setActiveWorkoutConfig] = useState<{
     workoutId: string | null;
     title: string;
@@ -89,6 +90,8 @@ export function WorkoutStartScreen({
   const isClosingWorkoutRef = useRef(false);
   const generatedCardEventRef = useRef<CardGeneratedEvent | null>(null);
   const generatedCardResolverRef = useRef<((event: CardGeneratedEvent) => void) | null>(null);
+  const finishRequestRef = useRef<Promise<WorkoutCompletionResult> | null>(null);
+  const isPreparingFinishRef = useRef(false);
 
   // Esta tela depende só da interface do service; quando a API entrar,
   // a troca deve acontecer na implementação do service, não aqui.
@@ -146,6 +149,12 @@ export function WorkoutStartScreen({
     setSelectedGroups([]);
     setSelectedTemplateId((current) => (current === templateId ? null : templateId));
   }
+
+  useEffect(() => {
+    const retryRecovery = () => setRecoveryAttempt((current) => current + 1);
+    window.addEventListener("online", retryRecovery);
+    return () => window.removeEventListener("online", retryRecovery);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -211,13 +220,77 @@ export function WorkoutStartScreen({
     let active = true;
 
     async function restoreActiveWorkout() {
+      const persisted = await workoutDraftStorage.get();
       try {
+        if (persisted?.pendingFinish && persisted.workoutId) {
+          const restoredPhoto = persisted.photoFileName && !persisted.photoMediaId
+            ? await restoreWorkoutPhoto(persisted.photoFileName)
+            : null;
+          const pendingDraft: WorkoutCompletionDraft = {
+            workoutId: persisted.workoutId,
+            title: persisted.title,
+            photoUrl: persisted.photoUrl,
+            photoFile: restoredPhoto,
+            shouldPostWorkout: persisted.shouldPostWorkout,
+            selectedGroups: persisted.selectedGroups,
+            elapsedSeconds: Math.max(0, Math.floor((Date.now() - persisted.startedAt) / 1000)),
+            exercises: persisted.exercises,
+            idempotencyKey: persisted.idempotencyKey || crypto.randomUUID(),
+            finishedAt: persisted.finishedAt || new Date().toISOString(),
+            photoMediaId: persisted.photoMediaId ?? null,
+          };
+          await persistPendingFinish(pendingDraft, persisted.startedAt, persisted.photoFileName);
+
+          const persistedSession = await workoutService.getWorkout(persisted.workoutId);
+          if (!active) return;
+          if (persistedSession.status === "FINISHED") {
+            await removePersistedWorkoutPhoto(persisted.photoFileName);
+            await workoutDraftStorage.clear();
+            onActiveWorkoutChange?.(null);
+            onWorkoutCompleted?.(pendingDraft);
+            showGeneratedCardMessage(null, persistedSession);
+            return;
+          }
+
+          if (persistedSession.status !== "IN_PROGRESS") {
+            await removePersistedWorkoutPhoto(persisted.photoFileName);
+            await workoutDraftStorage.clear();
+            setStartError("A finalização pendente não pôde ser retomada porque o treino não está mais ativo.");
+            return;
+          }
+
+          setActiveWorkoutConfig({
+            workoutId: persistedSession.id,
+            title: persisted.title || "Treino em andamento",
+            subtitle: "Finalização pendente recuperada. Tentando concluir automaticamente.",
+            selectedGroups: persisted.selectedGroups,
+            startedAt: persisted.startedAt,
+            initialExerciseIds: [],
+            initialSessionExercises: persisted.exercises,
+            initialFinishPhotoFile: restoredPhoto,
+            initialFinishIdempotencyKey: pendingDraft.idempotencyKey,
+            initialFinishFinishedAt: pendingDraft.finishedAt,
+            initialFinishPhotoMediaId: pendingDraft.photoMediaId,
+            initialFinishTitle: pendingDraft.title,
+            initialShouldPostWorkout: pendingDraft.shouldPostWorkout,
+            pendingFinish: true,
+          });
+          onActiveWorkoutChange?.({ selectedGroups: persisted.selectedGroups, startedAt: persisted.startedAt });
+
+          const result = await finishPersistedDraft(pendingDraft, persisted.startedAt, persisted.photoFileName);
+          if (!active) return;
+          const cardEvent = await waitForGeneratedCardEvent(pendingDraft.workoutId);
+          await closeActiveWorkout();
+          onWorkoutCompleted?.(pendingDraft);
+          showGeneratedCardMessage(cardEvent, result);
+          return;
+        }
+
         const session = await workoutService.getActiveWorkout();
         if (!active || !session) {
           if (active) await workoutDraftStorage.clear();
           return;
         }
-        const persisted = await workoutDraftStorage.get();
         const startedAt = session.startedAt;
         const exercises = persisted?.workoutId === session.id ? persisted.exercises : session.exercises;
         const groups = session.muscleGroups;
@@ -231,16 +304,23 @@ export function WorkoutStartScreen({
           initialExerciseIds: [],
           initialSessionExercises: exercises,
           initialFinishPhotoFile: restoredPhoto,
+          initialFinishIdempotencyKey: persisted?.idempotencyKey,
+          initialFinishFinishedAt: persisted?.finishedAt,
+          initialFinishPhotoMediaId: persisted?.photoMediaId,
         });
         onActiveWorkoutChange?.({ selectedGroups: groups, startedAt });
       } catch (error) {
-        if (active) setStartError(error instanceof Error ? error.message : "Não foi possível recuperar o treino ativo.");
+        if (active) {
+          setStartError(persisted?.pendingFinish
+            ? "A finalização continua salva e será tentada automaticamente quando houver conexão e sessão válida."
+            : error instanceof Error ? error.message : "Não foi possível recuperar o treino ativo.");
+        }
       }
     }
 
     void restoreActiveWorkout();
     return () => { active = false; };
-  }, [onActiveWorkoutChange]);
+  }, [onActiveWorkoutChange, recoveryAttempt]);
 
   useEffect(() => {
     const workoutId = activeWorkoutConfig?.workoutId;
@@ -377,6 +457,8 @@ export function WorkoutStartScreen({
         initialDraft={activeWorkoutConfig.initialDraft}
         ghostModeEnabled={ghostModeEnabled}
         onWorkoutComplete={(draft) => {
+          if (isPreparingFinishRef.current) return;
+          isPreparingFinishRef.current = true;
           void (async () => {
             try {
               const summary = await workoutService.finishWorkout(draft);
@@ -385,20 +467,9 @@ export function WorkoutStartScreen({
               clearActiveWorkoutLocally();
               onWorkoutCompleted?.(draft, summary);
             } catch (error) {
-              const photoFileName = draft.photoFile ? await persistWorkoutPhoto(draft.photoFile) : null;
-              await workoutDraftStorage.set({
-                workoutId: draft.workoutId ?? activeWorkoutConfig.workoutId ?? "",
-                startedAt: activeWorkoutConfig.startedAt,
-                selectedGroups: draft.selectedGroups,
-                exercises: draft.exercises,
-                title: draft.title,
-                shouldPostWorkout: draft.shouldPostWorkout,
-                photoUrl: draft.photoUrl,
-                photoFileName,
-                pendingFinish: true,
-                updatedAt: Date.now(),
-              });
               window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o treino.");
+            } finally {
+              isPreparingFinishRef.current = false;
             }
           })();
         }}
@@ -411,6 +482,7 @@ export function WorkoutStartScreen({
           });
         }}
         onDraftChange={(draft) => {
+          if (activeWorkoutConfig.pendingFinish) return;
           void workoutDraftStorage.set({
             workoutId: activeWorkoutConfig.workoutId ?? "",
             startedAt: activeWorkoutConfig.startedAt,
@@ -421,6 +493,9 @@ export function WorkoutStartScreen({
             photoUrl: null,
             photoFileName: null,
             pendingFinish: false,
+            idempotencyKey: undefined,
+            finishedAt: undefined,
+            photoMediaId: null,
             updatedAt: Date.now(),
           });
         }}

@@ -2,6 +2,7 @@ import type {
   ExerciseCatalogItem,
   WorkoutCompletionDraft,
   WorkoutCompletionResult,
+  WorkoutRecoveryResult,
   WorkoutExercise,
   WorkoutCompletionSummary,
   WorkoutTemplate,
@@ -66,6 +67,7 @@ interface BackendWorkoutSession {
     attackPower: number;
     rarity: string;
     muscleGroup: string;
+    muscleIntensities: Record<string, number>;
     isPersonalRecord: boolean;
   } | null;
 }
@@ -358,17 +360,31 @@ export const workoutService = {
     return normalizeStartedSession(response);
   },
 
-  async finishWorkout(draft: WorkoutCompletionDraft) {
+  async finishWorkout(
+    draft: WorkoutCompletionDraft,
+    onPrepared?: (preparedDraft: WorkoutCompletionDraft) => Promise<void>,
+  ) {
     if (!draft.workoutId) {
       throw new Error("Sessão de treino sem ID do backend.");
     }
 
     const response = await apiClient.post<BackendWorkoutSession>(
       `/api/workout/${draft.workoutId}/finish`,
-      { ...toFinishPayload(draft), photoMediaId },
-      { auth: true },
+      { ...toFinishPayload(preparedDraft), photoMediaId },
+      { auth: true, headers: { "Idempotency-Key": draft.idempotencyKey } },
     );
     return normalizeWorkoutResult(response);
+  },
+
+  async getWorkout(workoutId: string): Promise<WorkoutRecoveryResult> {
+    const response = await apiClient.get<BackendWorkoutSession>(`/api/workout/${workoutId}`, { auth: true });
+    return {
+      ...normalizeWorkoutResult(response),
+      status: response.status,
+      startedAt: new Date(response.startedAt).getTime(),
+      muscleGroups: response.muscleGroups.map((group) => getGroupLabel(normalizeGroupId(group))),
+      exercises: response.exercises.map(normalizeSessionExercise),
+    };
   },
 
   async getActiveWorkout() {

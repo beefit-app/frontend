@@ -14,6 +14,7 @@ interface BackendInventoryCard {
   rarity: string;
   rarityLabel: string;
   muscleGroup: string;
+  muscleIntensities?: Record<string, number> | null;
   isPersonalRecord: boolean;
   bodyWeightAtGeneration?: number | null;
   generatedAt: string;
@@ -32,13 +33,30 @@ function normalizeRarity(value: string): InventoryRarity {
 }
 
 function normalizeCard(card: BackendInventoryCard): InventoryCard {
+  const muscleGroup = normalizeMuscleGroupEnum(card.muscleGroup) ?? "CORE";
+  const muscleIntensities: Record<string, number> = {};
+
+  Object.entries(card.muscleIntensities ?? {}).forEach(([rawGroup, rawIntensity]) => {
+    if (!rawGroup.trim() || typeof rawIntensity !== "number" || !Number.isFinite(rawIntensity)) return;
+    const trimmedGroup = rawGroup.trim();
+    const legacyGroup = trimmedGroup === trimmedGroup.toUpperCase()
+      ? normalizeMuscleGroupEnum(trimmedGroup)
+      : null;
+    muscleIntensities[legacyGroup ?? trimmedGroup.toLowerCase()] = Math.max(1, Math.min(4, Math.round(rawIntensity)));
+  });
+
+  if (Object.keys(muscleIntensities).length === 0) {
+    muscleIntensities[muscleGroup] = 4;
+  }
+
   return {
     id: card.id,
     workoutSessionId: card.workoutSessionId,
     attackPower: typeof card.attackPower === "number" ? card.attackPower : 0,
     rarity: normalizeRarity(card.rarity),
     rarityLabel: card.rarityLabel,
-    muscleGroup: normalizeMuscleGroupEnum(card.muscleGroup) ?? "CORE",
+    muscleGroup,
+    muscleIntensities,
     isPersonalRecord: Boolean(card.isPersonalRecord),
     bodyWeightAtGeneration:
       typeof card.bodyWeightAtGeneration === "number" ? card.bodyWeightAtGeneration : null,
@@ -81,12 +99,12 @@ export const inventoryService = {
         totalPages: response.totalPages ?? 0,
         last: response.last ?? true,
       };
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        throw new Error("Não foi possível carregar o inventário com a sessão atual.");
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 401) {
+        throw new Error("Não foi possível carregar o inventário com a sessão atual.", { cause });
       }
 
-      throw error;
+      throw cause;
     }
   },
 };

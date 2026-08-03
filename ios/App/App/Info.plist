@@ -24,6 +24,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>O BeeFit usa a câmera para adicionar fotos aos seus treinos e perfil.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O BeeFit acessa suas fotos para adicionar imagens aos seus treinos e perfil.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

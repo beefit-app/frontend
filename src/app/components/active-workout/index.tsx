@@ -3,6 +3,7 @@ import { FinishWorkoutView } from "./components/FinishWorkoutView";
 import { WorkoutCatalogDetailView } from "./components/WorkoutCatalogDetailView";
 import { WorkoutCatalogView } from "./components/WorkoutCatalogView";
 import { useActiveWorkoutSession } from "./hooks/useActiveWorkoutSession";
+import { revokeObjectUrl, validateImageFile } from "../../platform/mediaValidation";
 import type { ActiveWorkoutScreenProps } from "./types";
 
 export type { ActiveWorkoutScreenProps } from "./types";
@@ -29,8 +30,16 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
           session.setIsFinishingWorkout(false);
         }}
         onPhotoChange={(file) => {
-          session.setFinishPhotoFile(file);
-          session.setFinishPhotoUrl(file ? URL.createObjectURL(file) : null);
+          void (async () => {
+            try {
+              if (file) await validateImageFile(file);
+              revokeObjectUrl(session.finishPhotoUrl);
+              session.setFinishPhotoFile(file);
+              session.setFinishPhotoUrl(file ? URL.createObjectURL(file) : null);
+            } catch (error) {
+              session.setFinishTitleError(error instanceof Error ? error.message : "Imagem inválida.");
+            }
+          })();
         }}
         onTitleChange={(value) => {
           session.setFinishTitle(value);
