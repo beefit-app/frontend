@@ -109,7 +109,7 @@ export function ActiveWorkoutView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, padding: "24px 12px 0", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "24px 12px 0", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "flex-end", gap: 10, marginBottom: 12 }}>

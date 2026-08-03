@@ -1,10 +1,9 @@
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
-import { Camera, ChevronLeft, Flame, ImageIcon, Weight, AlertTriangle } from "lucide-react";
-import { Capacitor } from "@capacitor/core";
-import { CameraSource } from "@capacitor/camera";
+import { Bookmark, Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-react";
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
+import { formatElapsedTime } from "../utils";
 import { SurfaceCard } from "./shared";
 import { captureWorkoutPhoto } from "../../../platform/workoutPhoto";
 
@@ -13,30 +12,36 @@ export function FinishWorkoutView({
   finishPhotoUrl,
   finishTitle,
   finishTitleError,
+  elapsedSeconds,
   totalVolumeKg,
   estimatedCalories,
   shouldPostWorkout,
+  shouldSaveTemplate,
   ghostModeEnabled,
   elapsedSeconds,
   onBack,
   onPhotoChange,
   onTitleChange,
   onTogglePost,
+  onToggleSaveTemplate,
   onFinish,
 }: {
   finishPhotoInputRef: React.RefObject<HTMLInputElement | null>;
   finishPhotoUrl: string | null;
   finishTitle: string;
   finishTitleError: string;
+  elapsedSeconds: number;
   totalVolumeKg: number;
   estimatedCalories: number;
   shouldPostWorkout: boolean;
+  shouldSaveTemplate: boolean;
   ghostModeEnabled: boolean;
   elapsedSeconds: number;
   onBack: () => void;
   onPhotoChange: (file: File | null) => void;
   onTitleChange: (value: string) => void;
   onTogglePost: () => void;
+  onToggleSaveTemplate: () => void;
   onFinish: () => void;
 }) {
   const formattedVolume = new Intl.NumberFormat("pt-BR", {
@@ -45,10 +50,11 @@ export function FinishWorkoutView({
   const formattedCalories = new Intl.NumberFormat("pt-BR", {
     maximumFractionDigits: 0,
   }).format(estimatedCalories);
+  const formattedDuration = formatElapsedTime(elapsedSeconds);
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, padding: "32px 12px 24px", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "32px 12px 24px", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
             <button
@@ -165,6 +171,44 @@ export function FinishWorkoutView({
               <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)">
                 <div style={{ display: "grid", gap: 18 }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div
+                      style={{
+                        borderRadius: 18,
+                        border: "1px solid #2D2D2D",
+                        background: "#171717",
+                        padding: 14,
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <ImageIcon size={16} color="#60A5FA" />
+                        <span
+                          style={{
+                            fontFamily: "var(--font-inter)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            color: "#737373",
+                          }}
+                        >
+                          Duração
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-montserrat)",
+                          fontSize: 24,
+                          fontWeight: 800,
+                          color: "#FFFFFF",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {formattedDuration}
+                      </span>
+                    </div>
+
                     <div
                       style={{
                         borderRadius: 18,
@@ -304,6 +348,52 @@ export function FinishWorkoutView({
                           transition: "all 0.2s ease",
                         }}
                       />
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 16,
+                      padding: "16px 14px",
+                      borderRadius: 18,
+                      border: "1px solid #2D2D2D",
+                      background: "#171717",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <span style={{ display: "block", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700, color: "#FFFFFF", marginBottom: 4 }}>
+                        Salvar como template
+                      </span>
+                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#737373" }}>
+                        Usa o título como nome e salva apenas grupos e exercícios.
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={onToggleSaveTemplate}
+                      aria-pressed={shouldSaveTemplate}
+                      aria-label={shouldSaveTemplate ? "Não salvar template" : "Salvar template"}
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 14,
+                        border: "1px solid",
+                        borderColor: shouldSaveTemplate ? "#FFD700" : "#404040",
+                        background: shouldSaveTemplate ? "rgba(255,215,0,0.18)" : "#101010",
+                        color: shouldSaveTemplate ? "#FFD700" : "#737373",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Bookmark size={18} fill={shouldSaveTemplate ? "#FFD700" : "none"} />
                     </button>
                   </div>
                 </div>

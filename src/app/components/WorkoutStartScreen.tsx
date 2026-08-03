@@ -6,10 +6,14 @@ import { BeeButton } from "./BeeButton";
 import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { workoutService } from "../services/workoutService";
-import { subscribeSocialEvents, type CardGeneratedEvent } from "../services/socialEventsService";
 import { workoutDraftStorage } from "../storage/workoutDraftStorage";
-import { persistWorkoutPhoto, removePersistedWorkoutPhoto, restoreWorkoutPhoto } from "../platform/workoutPhoto";
-import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutCompletionResult, WorkoutExercise } from "../types/workout";
+import type {
+  ExerciseCatalogItem,
+  WorkoutCompletionDraft,
+  WorkoutCompletionSummary,
+  WorkoutDraft,
+  WorkoutExercise,
+} from "../types/workout";
 
 const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
@@ -44,10 +48,18 @@ function HexIcon({
   );
 }
 
+function formatCompletionSummary(summary: WorkoutCompletionSummary) {
+  const minutes = Math.max(0, Math.round(summary.durationSeconds / 60));
+  const calories = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(summary.estimatedCalories);
+  const volume = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(summary.totalVolume);
+
+  return `Treino finalizado: ${minutes} min, ${calories} kcal, ${volume} kg.`;
+}
+
 interface WorkoutStartScreenProps {
   ghostModeEnabled?: boolean;
   onActiveWorkoutChange?: (workout: { selectedGroups: string[]; startedAt: number } | null) => void;
-  onWorkoutCompleted?: (draft: WorkoutCompletionDraft) => void;
+  onWorkoutCompleted?: (draft: WorkoutCompletionDraft, summary: WorkoutCompletionSummary) => void;
 }
 
 export function WorkoutStartScreen({
@@ -61,6 +73,8 @@ export function WorkoutStartScreen({
   const [workoutTemplates, setWorkoutTemplates] = useState(() => workoutService.getTemplates());
   const [catalogRevision, setCatalogRevision] = useState(0);
   const [startError, setStartError] = useState("");
+  const [workoutDataError, setWorkoutDataError] = useState("");
+  const [completionMessage, setCompletionMessage] = useState("");
   const [isStartingWorkout, setIsStartingWorkout] = useState(false);
   const [recoveryAttempt, setRecoveryAttempt] = useState(0);
   const [activeWorkoutConfig, setActiveWorkoutConfig] = useState<{
@@ -71,13 +85,7 @@ export function WorkoutStartScreen({
     startedAt: number;
     initialExerciseIds: string[];
     initialSessionExercises: WorkoutExercise[];
-    initialFinishPhotoFile?: File | null;
-    initialFinishIdempotencyKey?: string;
-    initialFinishFinishedAt?: string;
-    initialFinishPhotoMediaId?: string | null;
-    initialFinishTitle?: string;
-    initialShouldPostWorkout?: boolean;
-    pendingFinish?: boolean;
+    initialDraft: WorkoutDraft | null;
   } | null>(null);
   const isClosingWorkoutRef = useRef(false);
   const generatedCardEventRef = useRef<CardGeneratedEvent | null>(null);
@@ -104,7 +112,7 @@ export function WorkoutStartScreen({
     generatedCardResolverRef.current = null;
   }
 
-  async function closeActiveWorkout() {
+  function clearActiveWorkoutLocally() {
     isClosingWorkoutRef.current = true;
     const draft = await workoutDraftStorage.get();
     await removePersistedWorkoutPhoto(draft?.photoFileName);
@@ -113,46 +121,21 @@ export function WorkoutStartScreen({
     onActiveWorkoutChange?.(null);
   }
 
-  async function persistPendingFinish(
-    draft: WorkoutCompletionDraft,
-    startedAt: number,
-    photoFileName: string | null,
-  ) {
-    await workoutDraftStorage.set({
-      workoutId: draft.workoutId ?? "",
-      startedAt,
-      selectedGroups: draft.selectedGroups,
-      exercises: draft.exercises,
-      title: draft.title,
-      shouldPostWorkout: draft.shouldPostWorkout,
-      photoUrl: draft.photoUrl,
-      photoFileName,
-      pendingFinish: true,
-      idempotencyKey: draft.idempotencyKey,
-      finishedAt: draft.finishedAt,
-      photoMediaId: draft.photoMediaId ?? null,
-      updatedAt: Date.now(),
-    });
-  }
+  function closeActiveWorkout() {
+    if (!activeWorkoutConfig?.workoutId) {
+      clearActiveWorkoutLocally();
+      return;
+    }
 
-  function finishPersistedDraft(
-    draft: WorkoutCompletionDraft,
-    startedAt: number,
-    photoFileName: string | null,
-  ) {
-    if (finishRequestRef.current) return finishRequestRef.current;
-    const request = workoutService.finishWorkout(draft, async (preparedDraft) => {
-      await persistPendingFinish(preparedDraft, startedAt, photoFileName);
-      setActiveWorkoutConfig((current) => current ? {
-        ...current,
-        initialFinishPhotoMediaId: preparedDraft.photoMediaId,
-        pendingFinish: true,
-      } : current);
-    }).finally(() => {
-      finishRequestRef.current = null;
-    });
-    finishRequestRef.current = request;
-    return request;
+    void (async () => {
+      try {
+        await workoutService.cancelWorkout(activeWorkoutConfig.workoutId);
+        await workoutDraftStorage.removeDraft(user?.id, activeWorkoutConfig.workoutId);
+        clearActiveWorkoutLocally();
+      } catch (error) {
+        setWorkoutDataError(error instanceof Error ? error.message : "Não foi possível cancelar o treino.");
+      }
+    })();
   }
 
   function toggleGroup(groupId: string) {
@@ -177,13 +160,52 @@ export function WorkoutStartScreen({
     let active = true;
 
     async function loadWorkoutData() {
+      let latestError = "";
+
       try {
         await workoutService.loadCatalog();
-        if (active) setCatalogRevision(Date.now());
+      } catch (error) {
+        latestError = error instanceof Error ? error.message : "Não foi possível carregar o catálogo.";
+      }
+
+      try {
         const templates = await workoutService.loadTemplates();
         if (active) setWorkoutTemplates(templates);
-      } catch {
-        if (active) setStartError("Não foi possível carregar catálogo e templates.");
+      } catch (error) {
+        latestError = error instanceof Error ? error.message : "Não foi possível carregar os templates.";
+      }
+
+      try {
+        const activeSession = await workoutService.getActiveWorkout();
+        if (!active) return;
+
+        setWorkoutDataError(latestError);
+        if (!activeSession) return;
+
+        const restoredDraft = await workoutDraftStorage.getDraft(user?.id, activeSession.id);
+        if (!active) return;
+
+        isClosingWorkoutRef.current = false;
+        setActiveWorkoutConfig({
+          workoutId: activeSession.id,
+          title: restoredDraft?.title ?? "Treino em andamento",
+          subtitle: restoredDraft
+            ? "Sessão restaurada com o rascunho local deste aparelho."
+            : "Sessão restaurada do backend. Continue registrando suas séries normalmente.",
+          selectedGroups: restoredDraft?.selectedGroups ?? activeSession.muscleGroups,
+          startedAt: activeSession.startedAt,
+          initialExerciseIds: [],
+          initialSessionExercises: restoredDraft?.exercises ?? activeSession.exercises,
+          initialDraft: restoredDraft,
+        });
+        onActiveWorkoutChange?.({
+          workoutId: activeSession.id,
+          selectedGroups: restoredDraft?.selectedGroups ?? activeSession.muscleGroups,
+          startedAt: activeSession.startedAt,
+        });
+      } catch (error) {
+        if (!active) return;
+        setWorkoutDataError(error instanceof Error ? error.message : "Não foi possível restaurar o treino ativo.");
       }
     }
 
@@ -192,7 +214,7 @@ export function WorkoutStartScreen({
     return () => {
       active = false;
     };
-  }, []);
+  }, [onActiveWorkoutChange]);
 
   useEffect(() => {
     let active = true;
@@ -360,6 +382,7 @@ export function WorkoutStartScreen({
     }
     setIsStartingWorkout(true);
     setStartError("");
+    setCompletionMessage("");
 
     try {
       if (selectedTemplate) {
@@ -378,8 +401,13 @@ export function WorkoutStartScreen({
           startedAt: startedSession.startedAt,
           initialExerciseIds: templateExercises.map((exercise) => exercise.id),
           initialSessionExercises: startedSession.exercises,
+          initialDraft: null,
         });
-        onActiveWorkoutChange?.({ selectedGroups: startedSession.muscleGroups, startedAt: startedSession.startedAt });
+        onActiveWorkoutChange?.({
+          workoutId: startedSession.id,
+          selectedGroups: startedSession.muscleGroups,
+          startedAt: startedSession.startedAt,
+        });
         return;
       }
 
@@ -397,8 +425,10 @@ export function WorkoutStartScreen({
         startedAt: startedSession.startedAt,
         initialExerciseIds: [],
         initialSessionExercises: startedSession.exercises,
+        initialDraft: null,
       });
       onActiveWorkoutChange?.({
+        workoutId: startedSession.id,
         selectedGroups: startedSession.muscleGroups.length > 0 ? startedSession.muscleGroups : labels,
         startedAt: startedSession.startedAt,
       });
@@ -413,6 +443,7 @@ export function WorkoutStartScreen({
     return (
       <ActiveWorkoutScreen
         workoutId={activeWorkoutConfig.workoutId}
+        userId={user?.id}
         startedAt={activeWorkoutConfig.startedAt}
         title={activeWorkoutConfig.title}
         subtitle={activeWorkoutConfig.subtitle}
@@ -423,29 +454,18 @@ export function WorkoutStartScreen({
           .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null)}
         catalogRevision={catalogRevision}
         initialSessionExercises={activeWorkoutConfig.initialSessionExercises}
-        initialFinishPhotoFile={activeWorkoutConfig.initialFinishPhotoFile}
-        initialFinishIdempotencyKey={activeWorkoutConfig.initialFinishIdempotencyKey}
-        initialFinishFinishedAt={activeWorkoutConfig.initialFinishFinishedAt}
-        initialFinishPhotoMediaId={activeWorkoutConfig.initialFinishPhotoMediaId}
-        initialFinishTitle={activeWorkoutConfig.initialFinishTitle}
-        initialShouldPostWorkout={activeWorkoutConfig.initialShouldPostWorkout}
+        initialDraft={activeWorkoutConfig.initialDraft}
         ghostModeEnabled={ghostModeEnabled}
         onWorkoutComplete={(draft) => {
           if (isPreparingFinishRef.current) return;
           isPreparingFinishRef.current = true;
           void (async () => {
             try {
-              const previousDraft = await workoutDraftStorage.get();
-              const photoFileName = previousDraft?.workoutId === draft.workoutId && previousDraft.photoFileName
-                ? previousDraft.photoFileName
-                : draft.photoFile ? await persistWorkoutPhoto(draft.photoFile) : null;
-              await persistPendingFinish(draft, activeWorkoutConfig.startedAt, photoFileName);
-              setActiveWorkoutConfig((current) => current ? { ...current, pendingFinish: true } : current);
-              const result = await finishPersistedDraft(draft, activeWorkoutConfig.startedAt, photoFileName);
-              const cardEvent = await waitForGeneratedCardEvent(draft.workoutId);
-              await closeActiveWorkout();
-              onWorkoutCompleted?.(draft);
-              showGeneratedCardMessage(cardEvent, result);
+              const summary = await workoutService.finishWorkout(draft);
+              await workoutDraftStorage.removeDraft(user?.id, draft.workoutId);
+              setCompletionMessage(formatCompletionSummary(summary));
+              clearActiveWorkoutLocally();
+              onWorkoutCompleted?.(draft, summary);
             } catch (error) {
               window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o treino.");
             } finally {
@@ -455,7 +475,11 @@ export function WorkoutStartScreen({
         }}
         onSessionGroupsChange={(groups) => {
           if (isClosingWorkoutRef.current) return;
-          onActiveWorkoutChange?.({ selectedGroups: groups, startedAt: activeWorkoutConfig.startedAt });
+          onActiveWorkoutChange?.({
+            workoutId: activeWorkoutConfig.workoutId,
+            selectedGroups: groups,
+            startedAt: activeWorkoutConfig.startedAt,
+          });
         }}
         onDraftChange={(draft) => {
           if (activeWorkoutConfig.pendingFinish) return;
@@ -514,7 +538,7 @@ export function WorkoutStartScreen({
 
   return (
     <PageBackground>
-      <IonGrid fixed className="relative z-10 px-3 py-5" style={{ maxWidth: 393 }}>
+      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "32px 12px 24px" }}>
         <IonRow>
           <IonCol size="12">
             <div style={{ display: "grid", gap: 0 }}>
@@ -544,6 +568,30 @@ export function WorkoutStartScreen({
             </div>
           </IonCol>
         </IonRow>
+
+        {completionMessage && (
+          <IonRow className="mt-5">
+            <IonCol size="12">
+              <IonCard
+                style={
+                  {
+                    "--background": "rgba(34,197,94,0.1)",
+                    "--color": "#FFFFFF",
+                    "--border-radius": "20px",
+                    margin: 0,
+                    border: "1px solid rgba(34,197,94,0.28)",
+                  } as React.CSSProperties
+                }
+              >
+                <IonCardContent style={{ padding: 16 }}>
+                  <IonText style={{ color: "#BBF7D0", fontFamily: "var(--font-inter)", fontSize: 14, lineHeight: 1.6 }}>
+                    {completionMessage}
+                  </IonText>
+                </IonCardContent>
+              </IonCard>
+            </IonCol>
+          </IonRow>
+        )}
 
         <IonRow className="mt-7">
           <IonCol size="12">
@@ -796,6 +844,11 @@ export function WorkoutStartScreen({
               {startError && (
                 <IonText style={{ color: "#FCA5A5", fontFamily: "var(--font-inter)", fontSize: 13 }}>
                   {startError}
+                </IonText>
+              )}
+              {workoutDataError && (
+                <IonText style={{ color: "#FCA5A5", fontFamily: "var(--font-inter)", fontSize: 13, lineHeight: 1.5 }}>
+                  {workoutDataError}
                 </IonText>
               )}
             </div>

@@ -25,20 +25,30 @@ describe("authService API integration", () => {
   });
 
   it("normaliza o login com o contrato atual do backend", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      createJsonResponse({
-        accessToken: "jwt-backend",
-        refreshToken: "refresh-backend",
-        user: {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          token: "jwt-backend",
+          userResponseDTO: {
+            id: "user-1",
+            fullName: "Bee Fit",
+            username: "beefit",
+            email: "user@email.com",
+            bodyWeight: 75.5,
+            weeklyGoal: 4,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({
           id: "user-1",
           fullName: "Bee Fit",
           username: "beefit",
           email: "user@email.com",
           bodyWeight: 75.5,
           weeklyGoal: 4,
-        },
-      }),
-    );
+        }),
+      );
 
     const { authService } = await import("./authService");
     const session = await authService.login({ email: "user@email.com", password: "123456" });
@@ -58,27 +68,42 @@ describe("authService API integration", () => {
     expect(window.localStorage.getItem("beefit.auth.accessToken")).toBe("jwt-backend");
     expect(window.localStorage.getItem("beefit.auth.refreshToken")).toBe("refresh-backend");
     expect(window.localStorage.getItem("beefit.auth.user")).toContain("\"Bee Fit\"");
-    expect(window.localStorage.getItem("beefit.auth.deviceId")).toBeTruthy();
+    expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe(`${API_URL}/auth/me`);
+    expect(vi.mocked(fetch).mock.calls[1]?.[1]).toMatchObject({
+      headers: expect.objectContaining({
+        Authorization: "Bearer jwt-backend",
+      }),
+    });
   });
 
-  it("registra usuário usando o contrato atual do backend", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      createJsonResponse(
-        {
-          accessToken: "jwt-register",
-          refreshToken: "refresh-register",
-          user: {
-            id: "user-2",
-            fullName: "Nova Pessoa",
-            username: "nova",
-            email: "nova@email.com",
-            bodyWeight: 68,
-            weeklyGoal: 5,
+  it("registra usuario usando o contrato atual do backend", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        createJsonResponse(
+          {
+            token: "jwt-register",
+            userResponseDTO: {
+              id: "user-2",
+              fullName: "Nova Pessoa",
+              username: "nova",
+              email: "nova@email.com",
+              bodyWeight: 68,
+              weeklyGoal: 5,
+            },
           },
-        },
-        { status: 201 },
-      ),
-    );
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          id: "user-2",
+          fullName: "Nova Pessoa",
+          username: "nova",
+          email: "nova@email.com",
+          bodyWeight: 68,
+          weeklyGoal: 5,
+        }),
+      );
 
     const { authService } = await import("./authService");
     const session = await authService.register({
@@ -118,7 +143,7 @@ describe("authService API integration", () => {
       },
     });
     expect(window.localStorage.getItem("beefit.auth.accessToken")).toBe("jwt-register");
-    expect(window.localStorage.getItem("beefit.auth.refreshToken")).toBe("refresh-register");
+    expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe(`${API_URL}/auth/me`);
   });
 
   it("restaura a sessão usando o perfil parcial e o cache local do usuário", async () => {

@@ -11,6 +11,7 @@ export function WorkoutCatalogView({
   groupedExercises,
   activeCatalogGroupId,
   visibleCatalogItems,
+  catalogLoadError,
   selectedCatalogIds,
   isLoadingCatalog,
   catalogError,
@@ -21,6 +22,7 @@ export function WorkoutCatalogView({
   groupedExercises: { groupId: string; group: string; items: ExerciseCatalogItem[] }[];
   activeCatalogGroupId: string;
   visibleCatalogItems: ExerciseCatalogItem[];
+  catalogLoadError: string;
   selectedCatalogIds: Set<string>;
   isLoadingCatalog: boolean;
   catalogError: string | null;
@@ -85,7 +87,7 @@ export function WorkoutCatalogView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, padding: "32px 12px 0", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "32px 12px 0", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
             <button
@@ -190,27 +192,39 @@ export function WorkoutCatalogView({
             </div>
 
             <div style={{ display: "grid", gap: 12 }}>
-              {isLoadingCatalog && (
-                <div style={{ color: "#B5B5B5", fontFamily: "var(--font-inter)", fontSize: 14 }}>
-                  Carregando exercícios...
+              {catalogLoadError && (
+                <div
+                  style={{
+                    border: "1px solid rgba(239,68,68,0.35)",
+                    background: "rgba(239,68,68,0.1)",
+                    borderRadius: 18,
+                    padding: 16,
+                    color: "#FCA5A5",
+                    fontFamily: "var(--font-inter)",
+                    fontSize: 14,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {catalogLoadError}
                 </div>
               )}
-
-              {!isLoadingCatalog && catalogError && (
-                <div style={{ color: "#FCA5A5", fontFamily: "var(--font-inter)", fontSize: 14 }}>
-                  {catalogError}
+              {!catalogLoadError && visibleCatalogItems.length === 0 && (
+                <div
+                  style={{
+                    border: "1px solid #2D2D2D",
+                    background: "#141414",
+                    borderRadius: 18,
+                    padding: 16,
+                    color: "#A3A3A3",
+                    fontFamily: "var(--font-inter)",
+                    fontSize: 14,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Nenhum exercício encontrado para este grupo muscular.
                 </div>
               )}
-
-              {!isLoadingCatalog && !catalogError && filteredItems.length === 0 && (
-                <div style={{ color: "#B5B5B5", fontFamily: "var(--font-inter)", fontSize: 14 }}>
-                  {searchTerm.trim()
-                    ? "Nenhum exercício encontrado com este nome."
-                    : "Nenhum exercício disponível nesta aba."}
-                </div>
-              )}
-
-              {!isLoadingCatalog && !catalogError && filteredItems.map((exercise) => {
+              {visibleCatalogItems.map((exercise) => {
                 const alreadyAdded = selectedCatalogIds.has(exercise.id);
                 const style = muscleStyle(exercise.group);
 

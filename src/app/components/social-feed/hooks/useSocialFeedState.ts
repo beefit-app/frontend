@@ -1,78 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
-import type { LiveFriend, SocialFeedPost } from "../types";
-import { subscribeSocialEvents, type WorkoutPresenceEvent } from "../../../services/socialEventsService";
-import { socialFeedStorage } from "../../../storage/socialFeedStorage";
-
-const PRESENCE_GROUP_LABELS: Record<string, string> = {
-  peito: "Peito",
-  costas: "Costas",
-  pernas: "Pernas",
-  gluteos: "Glúteos",
-  ombros: "Ombros",
-  bracos: "Braços",
-  core: "Core",
-  trapezio: "Trapézio",
-  CHEST: "Peito",
-  BACK: "Costas",
-  LEGS: "Pernas",
-  GLUTES: "Glúteos",
-  SHOULDERS: "Ombros",
-  ARMS: "Braços",
-  CORE: "Core",
-  TRAPS: "Trapézio",
-};
-
-function normalizePresenceGroups(groups: string[]) {
-  return Array.from(
-    new Set(
-      groups
-        .map((group) => PRESENCE_GROUP_LABELS[group] ?? group)
-        .filter((group) => group.trim().length > 0),
-    ),
-  );
-}
-
-function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
-  return {
-    ...friend,
-    groups: normalizePresenceGroups(friend.groups ?? []),
-  };
-}
+import { socialPresenceService } from "../../../services/socialPresenceService";
+import type { LiveFriend } from "../types";
 
 export function useSocialFeedState() {
-  const [posts, setPosts] = useState<SocialFeedPost[]>([]);
-  const [liveFriends, setLiveFriends] = useState<LiveFriend[]>(() => socialFeedStorage.getLiveFriends());
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const loadingRef = useRef(false);
-  const hasMoreRef = useRef(true);
-
-  const loadPage = useCallback(async (targetPage: number, replace = false) => {
-    if (loadingRef.current || (!replace && !hasMoreRef.current)) return;
-    loadingRef.current = true;
-    if (replace) setIsLoading(true);
-    else setIsLoadingMore(true);
-    setError(null);
-    try {
-      const result = await socialFeedService.load(targetPage);
-      setPosts((current) => {
-        const merged = replace ? result.posts : [...current, ...result.posts];
-        return Array.from(new Map(merged.map((post) => [String(post.id), post])).values());
-      });
-      const nextHasMore = !result.last;
-      hasMoreRef.current = nextHasMore;
-      setPage(targetPage); setHasMore(nextHasMore);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível carregar o feed."); }
-    finally { loadingRef.current = false; setIsLoading(false); setIsLoadingMore(false); }
-  }, []);
-
-  useEffect(() => { void loadPage(0, true); }, [loadPage]);
-  const loadMore = useCallback(() => void loadPage(page + 1), [loadPage, page]);
-  const retry = useCallback(() => void loadPage(posts.length ? page + 1 : 0, posts.length === 0), [loadPage, page, posts.length]);
+  const [posts, setPosts] = useState(() => socialFeedService.getInitialPosts());
+  const [liveFriends, setLiveFriends] = useState<LiveFriend[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -92,13 +25,69 @@ export function useSocialFeedState() {
   }, []);
 
   useEffect(() => {
-    const list = liveFriends.filter((item) => item.id !== "__self__");
-    if (list.length > 0) {
-      socialFeedStorage.setLiveFriends(list);
-    } else {
-      socialFeedStorage.clearLiveFriends();
+    const abortController = new AbortController();
+
+    function buildInitials(fullName: string) {
+      return fullName
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? "")
+        .join("");
     }
-  }, [liveFriends]);
+
+    function normalizeGroups(groups: string[]) {
+      return groups.map((group) => {
+        const normalized = group.trim().toLowerCase();
+        if (normalized === "chest" || normalized === "peito") return "Peito";
+        if (normalized === "back" || normalized === "costas") return "Costas";
+        if (normalized === "legs" || normalized === "pernas") return "Pernas";
+        if (normalized === "shoulders" || normalized === "ombros") return "Ombros";
+        if (normalized === "arms" || normalized === "bracos" || normalized === "braços") return "Braços";
+        if (normalized === "core") return "Core";
+        return group;
+      });
+    }
+
+    void socialPresenceService.subscribe((event) => {
+      setLiveFriends((current) => {
+        if (event.eventType === "WORKOUT_FINISHED" || event.eventType === "WORKOUT_CANCELED") {
+          return current.filter((friend) => friend.id !== event.userId);
+        }
+
+        const occurredAt = new Date(event.occurredAt).getTime();
+        const nextFriend: LiveFriend = {
+          id: event.userId,
+          name: event.fullName,
+          initials: buildInitials(event.fullName),
+          photoUrl: null,
+          groups: normalizeGroups(event.muscleGroups),
+          elapsedSeconds: Math.max(0, Math.floor((Date.now() - occurredAt) / 1000)),
+        };
+
+        const existingIndex = current.findIndex((friend) => friend.id === event.userId);
+        if (existingIndex === -1) {
+          return [...current, nextFriend];
+        }
+
+        return current.map((friend, index) => (index === existingIndex ? { ...friend, ...nextFriend } : friend));
+      });
+    }, abortController.signal).catch(() => {
+      abortController.abort();
+    });
+
+    return () => abortController.abort();
+  }, []);
+
+  function toggleLike(id: number) {
+    setPosts((current) =>
+      current.map((post) =>
+        post.id === id
+          ? { ...post, liked: !post.liked, likes: post.liked ? post.likes - 1 : post.likes + 1 }
+          : post,
+      ),
+    );
+  }
 
   useEffect(() => {
     const controller = new AbortController();

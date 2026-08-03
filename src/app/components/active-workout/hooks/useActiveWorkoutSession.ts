@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { workoutService } from "../../../services/workoutService";
+import { workoutDraftStorage } from "../../../storage/workoutDraftStorage";
 import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } from "../../../types/workout";
 import type { ActiveWorkoutScreenProps, DetailViewSource } from "../types";
 import {
@@ -12,16 +13,12 @@ import {
 export function useActiveWorkoutSession({
   catalogRevision = 0,
   workoutId = null,
+  userId = null,
   startedAt = null,
   selectedGroups,
   initialExercises = [],
   initialSessionExercises,
-  initialFinishPhotoFile = null,
-  initialFinishIdempotencyKey = "",
-  initialFinishFinishedAt = "",
-  initialFinishPhotoMediaId = null,
-  initialFinishTitle = "",
-  initialShouldPostWorkout,
+  initialDraft = null,
   bodyWeightKg,
   ghostModeEnabled = false,
   onWorkoutComplete,
@@ -32,22 +29,20 @@ export function useActiveWorkoutSession({
   | "selectedGroups"
   | "catalogRevision"
   | "workoutId"
+  | "userId"
   | "startedAt"
   | "initialExercises"
   | "initialSessionExercises"
-  | "initialFinishPhotoFile"
-  | "initialFinishIdempotencyKey"
-  | "initialFinishFinishedAt"
-  | "initialFinishPhotoMediaId"
-  | "initialFinishTitle"
-  | "initialShouldPostWorkout"
+  | "initialDraft"
   | "bodyWeightKg"
   | "ghostModeEnabled"
   | "onWorkoutComplete"
   | "onSessionGroupsChange"
   | "onDraftChange"
 >) {
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(() =>
+    startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0,
+  );
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isFinishingWorkout, setIsFinishingWorkout] = useState(false);
   const [activeCatalogGroupId, setActiveCatalogGroupId] = useState("peito");
@@ -56,18 +51,20 @@ export function useActiveWorkoutSession({
   const [isWorkoutMenuOpen, setIsWorkoutMenuOpen] = useState(false);
   const [activeExerciseMenuId, setActiveExerciseMenuId] = useState<string | null>(null);
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() =>
-    initialSessionExercises && initialSessionExercises.length > 0
+    initialDraft?.exercises && initialDraft.exercises.length > 0
+      ? initialDraft.exercises
+      : initialSessionExercises && initialSessionExercises.length > 0
       ? initialSessionExercises
       : initialExercises.map((exercise) => createExerciseCard(exercise, { withInitialSet: false })),
   );
-  const [finishTitle, setFinishTitle] = useState(initialFinishTitle || selectedGroups.join(" & "));
-  const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(() => initialFinishPhotoFile ? URL.createObjectURL(initialFinishPhotoFile) : null);
-  const [finishPhotoFile, setFinishPhotoFile] = useState<File | null>(initialFinishPhotoFile);
-  const [finishIdempotencyKey, setFinishIdempotencyKey] = useState(initialFinishIdempotencyKey);
-  const [finishFinishedAt, setFinishFinishedAt] = useState(initialFinishFinishedAt);
-  const [shouldPostWorkout, setShouldPostWorkout] = useState(initialShouldPostWorkout ?? !ghostModeEnabled);
+  const [finishTitle, setFinishTitle] = useState(initialDraft?.title ?? selectedGroups.join(" & "));
+  const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(null);
+  const [shouldPostWorkout, setShouldPostWorkout] = useState(initialDraft?.shouldPostWorkout ?? !ghostModeEnabled);
+  const [shouldSaveTemplate, setShouldSaveTemplate] = useState(initialDraft?.shouldSaveTemplate ?? false);
   const [finishTitleError, setFinishTitleError] = useState("");
   const [finishValidationError, setFinishValidationError] = useState("");
+  const [catalog, setCatalog] = useState(() => workoutService.getCatalog());
+  const [catalogLoadError, setCatalogLoadError] = useState("");
   const [pendingExerciseFocusId, setPendingExerciseFocusId] = useState<string | null>(null);
   const [pendingSetFocusExerciseId, setPendingSetFocusExerciseId] = useState<string | null>(null);
   const [catalogItems, setCatalogItems] = useState<ExerciseCatalogItem[]>(() => workoutService.getCatalog());
@@ -77,16 +74,15 @@ export function useActiveWorkoutSession({
   const seriesContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const finishPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  const catalog = catalogItems;
-  const groupedExercises = useMemo(() => workoutService.getGroupedCatalog(), [catalogItems]);
+  const groupedExercises = useMemo(() => workoutService.getGroupedCatalog(catalog), [catalog]);
   const groupOrder = useMemo(() => workoutService.getGroupOrder(), []);
   const activeCatalogExercise = useMemo(
-    () => workoutService.getCatalogItemById(catalogDetailExerciseId),
-    [catalogDetailExerciseId, catalogItems],
+    () => workoutService.getCatalogItemById(catalogDetailExerciseId, catalog),
+    [catalog, catalogDetailExerciseId],
   );
   const visibleCatalogItems = useMemo(
-    () => workoutService.getCatalogByGroupId(activeCatalogGroupId),
-    [activeCatalogGroupId, catalogItems],
+    () => workoutService.getCatalogByGroupId(activeCatalogGroupId, catalog),
+    [activeCatalogGroupId, catalog],
   );
   const sessionGroups = useMemo(
     () => workoutService.getSessionGroups(selectedGroups, exercises),
@@ -104,65 +100,36 @@ export function useActiveWorkoutSession({
   );
 
   useEffect(() => {
-    setCatalogItems(workoutService.getCatalog());
-  }, [catalogRevision]);
+    const updateElapsedSeconds = () => {
+      setElapsedSeconds(startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0);
+    };
+
+    updateElapsedSeconds();
+    const timer = window.setInterval(updateElapsedSeconds, 1000);
+    return () => window.clearInterval(timer);
+  }, [startedAt]);
 
   useEffect(() => {
-    if (!isCatalogOpen) return;
-    if (workoutService.hasCatalogLoaded()) {
-      setCatalogItems(workoutService.getCatalog());
-      setCatalogError(null);
-      return;
+    let active = true;
+
+    async function loadCatalog() {
+      try {
+        const loadedCatalog = await workoutService.loadCatalog();
+        if (!active) return;
+        setCatalog(loadedCatalog);
+        setCatalogLoadError("");
+      } catch (error) {
+        if (!active) return;
+        setCatalogLoadError(error instanceof Error ? error.message : "Não foi possível carregar o catálogo.");
+      }
     }
 
-    let active = true;
-    setIsLoadingCatalog(true);
-    setCatalogError(null);
-
-    void workoutService
-      .loadCatalog()
-      .then((catalogResponse) => {
-        if (!active) return;
-        setCatalogItems(catalogResponse);
-      })
-      .catch((error) => {
-        if (!active) return;
-        setCatalogError(error instanceof Error ? error.message : "Não foi possível carregar os exercícios.");
-      })
-      .finally(() => {
-        if (!active) return;
-        setIsLoadingCatalog(false);
-      });
+    void loadCatalog();
 
     return () => {
       active = false;
     };
-  }, [isCatalogOpen]);
-
-  useEffect(() => {
-    if (catalogItems.length === 0) return;
-    if (activeCatalogGroupId === "todos") return;
-    const currentGroupHasItems = catalogItems.some((exercise) => exercise.groupId === activeCatalogGroupId);
-    if (currentGroupHasItems) return;
-
-    const firstAvailableGroupId = groupedExercises.find((group) => group.items.length > 0)?.groupId;
-    if (firstAvailableGroupId) {
-      setActiveCatalogGroupId(firstAvailableGroupId);
-    }
-  }, [activeCatalogGroupId, catalogItems, groupedExercises]);
-
-  useEffect(() => {
-    const updateElapsed = () => {
-      if (startedAt) {
-        setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
-        return;
-      }
-      setElapsedSeconds((current) => current + 1);
-    };
-    updateElapsed();
-    const timer = window.setInterval(updateElapsed, 1000);
-    return () => window.clearInterval(timer);
-  }, [startedAt]);
+  }, []);
 
   useEffect(() => () => {
     if (finishPhotoUrl?.startsWith("blob:")) URL.revokeObjectURL(finishPhotoUrl);
@@ -220,9 +187,30 @@ export function useActiveWorkoutSession({
   }, [exercises, sessionGroups]);
 
   useEffect(() => {
-    if (!isFinishingWorkout || finishIdempotencyKey) return;
-    setShouldPostWorkout(!ghostModeEnabled);
-  }, [finishIdempotencyKey, ghostModeEnabled, isFinishingWorkout]);
+    if (!userId || !workoutId) return;
+
+    const draft = {
+      userId,
+      workoutId,
+      title: finishTitle.trim() || defaultFinishTitle,
+      selectedGroups: sessionGroups,
+      exercises,
+      shouldPostWorkout,
+      shouldSaveTemplate,
+      updatedAt: new Date().toISOString(),
+    };
+
+    void workoutDraftStorage.saveDraft(draft);
+  }, [
+    defaultFinishTitle,
+    exercises,
+    finishTitle,
+    sessionGroups,
+    shouldPostWorkout,
+    shouldSaveTemplate,
+    userId,
+    workoutId,
+  ]);
 
   useEffect(() => {
     if (!finishValidationError) return;
@@ -325,14 +313,9 @@ export function useActiveWorkoutSession({
       return;
     }
 
-    setFinishTitle((current) => finishIdempotencyKey ? current : defaultFinishTitle);
+    setFinishTitle((current) => (current.trim() ? current : defaultFinishTitle));
     setFinishTitleError("");
     setFinishValidationError("");
-    if (!finishIdempotencyKey) {
-      setShouldPostWorkout(!ghostModeEnabled);
-      setFinishIdempotencyKey(crypto.randomUUID());
-      setFinishFinishedAt(new Date().toISOString());
-    }
     setIsFinishingWorkout(true);
   }
 
@@ -348,6 +331,7 @@ export function useActiveWorkoutSession({
       photoUrl: finishPhotoUrl,
       photoFile: finishPhotoFile,
       shouldPostWorkout,
+      shouldSaveTemplate,
       selectedGroups: sessionGroups,
       elapsedSeconds,
       exercises,
@@ -373,8 +357,10 @@ export function useActiveWorkoutSession({
     finishPhotoUrl,
     finishPhotoFile,
     shouldPostWorkout,
+    shouldSaveTemplate,
     finishTitleError,
     finishValidationError,
+    catalogLoadError,
     totalVolumeKg,
     estimatedCalories,
     exerciseSlideRefs,
@@ -401,6 +387,7 @@ export function useActiveWorkoutSession({
     setFinishPhotoUrl,
     setFinishPhotoFile,
     setShouldPostWorkout,
+    setShouldSaveTemplate,
     setFinishTitleError,
     setFinishValidationError,
     addExercise,

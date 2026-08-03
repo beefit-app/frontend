@@ -58,9 +58,9 @@ export function SocialFeedView({
           pointerEvents: "none",
         }}
       />
-      <IonGrid fixed className="relative z-10 px-3 py-5">
+      <IonGrid fixed className="relative z-10 px-3 py-5" style={{ width: "100%", maxWidth: 393, margin: "0 auto" }}>
         <IonRow className="ion-justify-content-center">
-          <IonCol size="12" style={{ maxWidth: 393 }}>
+          <IonCol size="12">
             <div className="flex flex-col gap-6">
               <header className="relative z-20 pt-0">
                 <div className="flex items-start justify-between gap-4">

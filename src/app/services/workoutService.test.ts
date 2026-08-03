@@ -1,80 +1,128 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { WorkoutCompletionDraft } from "../types/workout";
 
-const API_URL = "http://api.test";
+vi.mock("./apiClient", () => ({
+  apiClient: {
+    get: vi.fn(),
+    post: vi.fn(),
+  },
+}));
 
-function jsonResponse(body: unknown) {
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+const finishedSession = {
+  id: "workout-1",
+  status: "FINISHED",
+  startedAt: "2026-06-04T10:00:00.000Z",
+  finishedAt: "2026-06-04T10:45:00.000Z",
+  durationSeconds: 2700,
+  estimatedCalories: 420,
+  totalVolume: 6400,
+  muscleGroups: ["CHEST"],
+  isPrivate: false,
+  exercises: [],
+};
+
+function createDraft(shouldSaveTemplate: boolean): WorkoutCompletionDraft {
+  return {
+    workoutId: "workout-1",
+    title: "Push pesado",
+    photoUrl: null,
+    shouldPostWorkout: true,
+    shouldSaveTemplate,
+    selectedGroups: ["Peito"],
+    elapsedSeconds: 120,
+    exercises: [
+      {
+        id: "exercise-1",
+        sessionExerciseId: "session-exercise-1",
+        catalogId: "catalog-1",
+        name: "Supino",
+        group: "Peito",
+        groupId: "peito",
+        sets: [{ id: "set-1", backendId: "set-backend-1", weight: "80", reps: "8" }],
+      },
+    ],
+  };
 }
 
-describe("workoutService idempotency", () => {
+describe("workoutService.finishWorkout", () => {
   beforeEach(() => {
-    vi.resetModules();
-    vi.stubEnv("VITE_API_URL", API_URL);
-    vi.stubGlobal("fetch", vi.fn());
-    window.localStorage.setItem("beefit.auth.accessToken", "token");
+    vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.unstubAllGlobals();
-    window.localStorage.clear();
-  });
-
-  it("reenvia o mesmo payload sem repetir o upload após falha de rede", async () => {
-    vi.mocked(fetch)
-      .mockResolvedValueOnce(jsonResponse({ mediaId: "media-1" }))
-      .mockRejectedValueOnce(new TypeError("network lost"))
-      .mockResolvedValueOnce(jsonResponse({
-        id: "workout-1",
-        status: "FINISHED",
-        startedAt: "2026-08-01T10:00:00-03:00",
-        finishedAt: "2026-08-01T10:40:00-03:00",
-        muscleGroups: ["CHEST"],
-        isPrivate: false,
-        exercises: [],
-        card: null,
-      }));
+  it("retorna resumo oficial do backend", async () => {
+    const { apiClient } = await import("./apiClient");
+    vi.mocked(apiClient.post).mockResolvedValueOnce(finishedSession);
 
     const { workoutService } = await import("./workoutService");
-    const draft: WorkoutCompletionDraft = {
+    const summary = await workoutService.finishWorkout(createDraft(false));
+
+    expect(summary).toEqual({
       workoutId: "workout-1",
-      title: "Treino de peito",
-      photoUrl: "blob:photo",
-      photoFile: new File(["photo"], "photo.jpg", { type: "image/jpeg" }),
-      shouldPostWorkout: true,
-      selectedGroups: ["Peito"],
-      elapsedSeconds: 2400,
-      exercises: [],
-      idempotencyKey: "finish-key-1",
-      finishedAt: "2026-08-01T13:40:00.000Z",
-      photoMediaId: null,
-    };
-    let preparedDraft: WorkoutCompletionDraft | null = null;
-
-    await expect(workoutService.finishWorkout(draft, async (prepared) => {
-      preparedDraft = prepared;
-    })).rejects.toMatchObject({ status: 0 });
-
-    expect(preparedDraft).toMatchObject({
-      idempotencyKey: "finish-key-1",
-      finishedAt: "2026-08-01T13:40:00.000Z",
-      photoMediaId: "media-1",
+      durationSeconds: 2700,
+      estimatedCalories: 420,
+      totalVolume: 6400,
     });
+  });
 
-    await workoutService.finishWorkout(preparedDraft!);
+  it("cria template quando a opcao esta ativa", async () => {
+    const { apiClient } = await import("./apiClient");
+    vi.mocked(apiClient.post)
+      .mockResolvedValueOnce(finishedSession)
+      .mockResolvedValueOnce({ id: "template-1", name: "Push pesado", muscleGroups: ["CHEST"], exercises: [] });
+    vi.mocked(apiClient.get).mockResolvedValueOnce([]);
 
-    expect(fetch).toHaveBeenCalledTimes(3);
-    const firstFinish = vi.mocked(fetch).mock.calls[1]?.[1];
-    const replayFinish = vi.mocked(fetch).mock.calls[2]?.[1];
-    expect(firstFinish?.body).toBe(replayFinish?.body);
-    expect(JSON.parse(String(replayFinish?.body))).toMatchObject({
-      finishedAt: "2026-08-01T13:40:00.000Z",
-      photoMediaId: "media-1",
-    });
-    expect(replayFinish?.headers).toMatchObject({ "Idempotency-Key": "finish-key-1" });
+    const { workoutService } = await import("./workoutService");
+    await workoutService.finishWorkout(createDraft(true));
+
+    expect(apiClient.post).toHaveBeenNthCalledWith(
+      1,
+      "/api/workout/workout-1/finish",
+      {
+        finishedAt: expect.any(String),
+        title: "Push pesado",
+        shouldPostWorkout: true,
+        muscleGroups: ["CHEST"],
+        exercises: [
+          {
+            sessionExerciseId: "session-exercise-1",
+            catalogExerciseId: "catalog-1",
+            order: 1,
+            sets: [{ id: "set-backend-1", order: 1, weightKg: 80, reps: 8 }],
+          },
+        ],
+      },
+      { auth: true },
+    );
+
+    expect(apiClient.post).toHaveBeenNthCalledWith(
+      2,
+      "/api/templates",
+      {
+        name: "Push pesado",
+        muscleGroups: ["CHEST"],
+        exercises: [{ catalogExerciseId: "catalog-1", order: 1 }],
+      },
+      { auth: true },
+    );
+  });
+
+  it("nao cria template quando a opcao esta inativa", async () => {
+    const { apiClient } = await import("./apiClient");
+    vi.mocked(apiClient.post).mockResolvedValueOnce(finishedSession);
+
+    const { workoutService } = await import("./workoutService");
+    await workoutService.finishWorkout(createDraft(false));
+
+    expect(apiClient.post).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancela treino ativo com endpoint dedicado", async () => {
+    const { apiClient } = await import("./apiClient");
+    vi.mocked(apiClient.post).mockResolvedValueOnce(finishedSession);
+
+    const { workoutService } = await import("./workoutService");
+    await workoutService.cancelWorkout("workout-1");
+
+    expect(apiClient.post).toHaveBeenCalledWith("/api/workout/workout-1/cancel", undefined, { auth: true });
   });
 });
