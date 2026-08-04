@@ -250,7 +250,10 @@ export function ActiveWorkoutView({
                       <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
                           <div style={{ display: "grid", gap: 8, minWidth: 0 }}>
-                            <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}>
+                            <span
+                              className="line-clamp-2"
+                              style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}
+                            >
                               {exercise.name}
                             </span>
                             <MuscleTag group={exercise.group} />

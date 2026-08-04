@@ -168,7 +168,7 @@ export function FinishWorkoutView({
 
               <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)">
                 <div style={{ display: "grid", gap: 18 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
                     <div
                       style={{
                         borderRadius: 18,

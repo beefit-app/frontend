@@ -517,7 +517,7 @@ function InventoryCardTile({ card }: { card: InventoryCard }) {
             </span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+          <div className="mx-auto max-w-[380px]" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
             <div style={{ position: "relative", minHeight: 230, overflow: "hidden", borderRadius: 16, border: `1px solid ${rarity.border}`, background: "linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015))", display: "grid", justifyItems: "center", alignItems: "center", padding: "12px 8px 10px" }}>
               <span style={{ position: "absolute", top: 10, left: 10, borderRadius: 999, background: "rgba(255,255,255,0.08)", padding: "4px 7px", fontFamily: "var(--font-inter)", fontSize: 9, fontWeight: 700, color: "#A3A3A3", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 Página 1
@@ -1137,11 +1137,9 @@ export function InventoryView({
           <IonCol size="12">
             <div>
               <header className="relative mb-6">
-                <div className="pr-[58px]">
-                  <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
-                    Inventário<span className="text-[#FFD700]">.</span>
-                  </h1>
-                </div>
+                <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
+                  Inventário<span className="text-[#FFD700]">.</span>
+                </h1>
                 <p className="mt-2 max-w-[320px] font-inter text-[14px] leading-[1.45] text-[#A3A3A3]">
                   Acompanhe suas cartas e organize templates para começar o treino mais rápido.
                 </p>

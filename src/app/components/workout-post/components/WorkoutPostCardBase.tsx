@@ -82,7 +82,7 @@ export function WorkoutPostCardBase({
           style={{ display: "flex", width: "200%", touchAction: "pan-y", cursor: "grab" }}
           {...swipeHandlers}
         >
-          <div style={{ width: "50%", position: "relative", height: 340 }}>
+          <div className="h-[340px] sm:h-[400px] lg:h-[460px]" style={{ width: "50%", position: "relative" }}>
             {post.photoUrl ? (
               <AuthenticatedImage
                 src={post.photoUrl}
@@ -226,7 +226,10 @@ export function WorkoutPostCardBase({
                       fontSize: 16,
                       fontWeight: 700,
                       color: "#ffffff",
-                      display: "block",
+                      display: "-webkit-box",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: 2,
+                      overflow: "hidden",
                       textShadow: "0 1px 6px rgba(0,0,0,0.5)",
                     }}
                   >
@@ -274,7 +277,7 @@ export function WorkoutPostCardBase({
             </div>
           </div>
 
-          <div style={{ width: "50%", display: "flex", flexDirection: "column", height: 340 }}>
+          <div className="h-[340px] sm:h-[400px] lg:h-[460px]" style={{ width: "50%", display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 14px 10px", borderBottom: "1px solid #2D2D2D", flexShrink: 0 }}>
               <button
                 type="button"
@@ -321,7 +324,19 @@ export function WorkoutPostCardBase({
                           flexShrink: 0,
                         }}
                       />
-                      <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 12, fontWeight: 700, color: "#ffffff" }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-montserrat)",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: "#ffffff",
+                          flex: "1 1 0%",
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         {exercise.name}
                       </span>
                       <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373", marginLeft: "auto", flexShrink: 0 }}>
