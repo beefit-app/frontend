@@ -105,7 +105,7 @@ export default function App() {
   const { authScreen, screen, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
-  const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState();
+  const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState(user);
   const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
   const [profileRefreshToken, setProfileRefreshToken] = useState(0);
@@ -131,6 +131,12 @@ export default function App() {
         // Mantem o valor atual quando o refresh do perfil falha.
       }
     })();
+  }
+
+  function openSocialProfile(username: string) {
+    setSocialProfileUsername(username);
+    setSocialProfileReturnScreen("feed");
+    setScreen("social");
   }
 
   const activeWorkoutLabel = activeWorkout?.selectedGroups.join(" · ");
@@ -213,7 +219,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setScreen("workout")}
-                className="mx-auto flex w-full max-w-[393px] items-center justify-between gap-3 rounded-[20px] border border-[rgba(255,215,0,0.28)] bg-[linear-gradient(135deg,rgba(255,215,0,0.14)_0%,rgba(20,20,20,0.98)_34%,rgba(20,20,20,0.98)_100%)] px-4 py-3 text-left shadow-[0_12px_30px_rgba(0,0,0,0.24)]"
+                className="beefit-shell-width flex items-center justify-between gap-3 rounded-[20px] border border-[rgba(255,215,0,0.28)] bg-[linear-gradient(135deg,rgba(255,215,0,0.14)_0%,rgba(20,20,20,0.98)_34%,rgba(20,20,20,0.98)_100%)] px-4 py-3 text-left shadow-[0_12px_30px_rgba(0,0,0,0.24)]"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(255,215,0,0.24)] bg-[rgba(255,215,0,0.12)] text-[#FFD700]">
@@ -310,13 +316,11 @@ export default function App() {
           >
             <nav
               aria-label="Navegação principal"
+              className="beefit-shell-width"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-                width: "100%",
-                maxWidth: 393,
                 height: 68,
-                margin: "0 auto",
                 background: "#0A0A0A",
                 borderTop: "2px solid #FFD700",
                 borderLeft: "1px solid #2D2D2D",
@@ -350,7 +354,7 @@ export default function App() {
                       fontFamily: "var(--font-montserrat)",
                       fontSize: 10,
                       fontWeight: 700,
-                      letterSpacing: "0.05em",
+                      letterSpacing: "0.02em",
                       textTransform: "uppercase",
                       cursor: "pointer",
                     }}

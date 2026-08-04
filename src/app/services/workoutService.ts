@@ -246,7 +246,7 @@ export const workoutService = {
   async loadCatalog() {
     const response = await apiClient.get<BackendCatalogExercise[] | BackendPage<BackendCatalogExercise>>(
       "/api/exercises?size=1000",
-      { auth: true, suppressUnauthorizedEvent: true },
+      { auth: true },
     );
     catalogCache = extractList(response).map(normalizeCatalogExercise);
     return catalogCache;
@@ -267,7 +267,6 @@ export const workoutService = {
   async loadTemplates() {
     const response = await apiClient.get<BackendTemplate[] | null>("/api/templates", {
       auth: true,
-      suppressUnauthorizedEvent: true,
     });
     if (!response) {
       templatesCache = [];
@@ -354,7 +353,6 @@ export const workoutService = {
   async getActiveWorkout() {
     const response = await apiClient.get<BackendWorkoutSession | null>("/api/workout/active", {
       auth: true,
-      suppressUnauthorizedEvent: true,
     });
     if (!response) return null;
     return normalizeStartedSession(response);

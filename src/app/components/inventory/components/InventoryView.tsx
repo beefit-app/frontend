@@ -1132,7 +1132,7 @@ export function InventoryView({
 
   return (
     <PageBackground>
-      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-5" style={{ maxWidth: 393 }}>
+      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-5">
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <div>

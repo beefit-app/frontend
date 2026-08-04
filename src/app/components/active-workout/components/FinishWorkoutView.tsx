@@ -18,7 +18,6 @@ export function FinishWorkoutView({
   shouldPostWorkout,
   shouldSaveTemplate,
   ghostModeEnabled,
-  elapsedSeconds,
   onBack,
   onPhotoChange,
   onTitleChange,
@@ -36,7 +35,6 @@ export function FinishWorkoutView({
   shouldPostWorkout: boolean;
   shouldSaveTemplate: boolean;
   ghostModeEnabled: boolean;
-  elapsedSeconds: number;
   onBack: () => void;
   onPhotoChange: (file: File | null) => void;
   onTitleChange: (value: string) => void;
@@ -54,7 +52,7 @@ export function FinishWorkoutView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "32px 12px 24px", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ padding: "32px 12px 24px", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
             <button

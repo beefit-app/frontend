@@ -49,7 +49,7 @@ export function ProfileView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, position: "relative", padding: "0 0 32px", zIndex: 1 }}>
+      <IonGrid fixed style={{ position: "relative", padding: "0 0 32px", zIndex: 1 }}>
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <div style={{ position: "relative" }}>

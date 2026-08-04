@@ -77,7 +77,7 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
     <PageBackground>
       <IonGrid fixed className="relative z-10 min-h-full px-3 py-5">
         <IonRow className="ion-justify-content-center ion-align-items-center">
-          <IonCol size="12" style={{ maxWidth: 393 }}>
+          <IonCol size="12">
             <div className="mb-8 flex flex-col items-center">
               <img
                 src={logoImg}

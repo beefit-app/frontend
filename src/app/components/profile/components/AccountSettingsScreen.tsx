@@ -87,7 +87,7 @@ export function AccountSettingsScreen({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, padding: "20px 0 40px", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ padding: "20px 0 40px", position: "relative", zIndex: 1 }}>
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>

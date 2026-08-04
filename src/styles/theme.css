@@ -30,6 +30,32 @@
   --ion-tab-bar-color: #737373;
   --ion-tab-bar-color-selected: #FFD700;
   --ion-border-color: #2D2D2D;
+
+  /* Responsive width for the app's single-column mobile-card shell.
+     xs matches the original fixed mobile design; larger breakpoints
+     grow gradually instead of staying pinned to phone width. */
+  --ion-grid-width-xs: 393px;
+  --ion-grid-width-sm: 480px;
+  --ion-grid-width-md: 560px;
+  --ion-grid-width-lg: 640px;
+  --ion-grid-width-xl: 640px;
+}
+
+/* Shared responsive shell width for elements outside ion-grid (header, bottom nav)
+   so they scale in step with the ion-grid content below/above them. */
+.beefit-shell-width {
+  width: 100%;
+  max-width: var(--ion-grid-width-xs);
+  margin-inline: auto;
+}
+@media (min-width: 576px) {
+  .beefit-shell-width { max-width: var(--ion-grid-width-sm); }
+}
+@media (min-width: 768px) {
+  .beefit-shell-width { max-width: var(--ion-grid-width-md); }
+}
+@media (min-width: 992px) {
+  .beefit-shell-width { max-width: var(--ion-grid-width-lg); }
 }
 
 /* Ionic button — apply Montserrat font into shadow DOM */

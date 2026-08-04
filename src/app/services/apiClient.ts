@@ -19,7 +19,7 @@ interface RequestOptions {
   method?: HttpMethod;
   body?: unknown;
   auth?: boolean;
-  suppressUnauthorizedEvent?: boolean;
+  logoutOnUnauthorized?: boolean;
   headers?: Record<string, string>;
   timeoutMs?: number;
   responseType?: "json" | "blob";
@@ -80,8 +80,92 @@ function getErrorMessage(data: unknown, fallbackMessage: string) {
   return fallbackMessage;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}) {
-  const { method = "GET", body, auth = false, suppressUnauthorizedEvent = false, headers = {} } = options;
+function getErrorCode(data: unknown) {
+  if (!data || typeof data !== "object") return null;
+  const maybeError = "error" in data ? data.error : null;
+  return typeof maybeError === "string" && maybeError.trim() ? maybeError : null;
+}
+
+async function parseResponseBody(response: Response): Promise<ParsedResponse> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const rawResponse = await response.text();
+  let responseData: unknown = rawResponse;
+
+  if (contentType.includes("application/json") && rawResponse.trim()) {
+    try {
+      responseData = JSON.parse(rawResponse);
+    } catch {
+      responseData = rawResponse;
+    }
+  }
+
+  return { responseData, rawResponse };
+}
+
+async function performFetch(
+  requestUrl: string,
+  method: HttpMethod,
+  finalHeaders: Record<string, string>,
+  body: unknown,
+  timeoutMs: number,
+) {
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(requestUrl, {
+      method,
+      headers: finalHeaders,
+      body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+async function runRefreshRequest(): Promise<string | null> {
+  const refreshToken = await sessionStorage.getRefreshToken();
+  const deviceId = await sessionStorage.getDeviceId();
+
+  if (!refreshToken || !deviceId) {
+    return null;
+  }
+
+  try {
+    const response = await performFetch(
+      buildUrl("/auth/refresh"),
+      "POST",
+      { Accept: "application/json", "Content-Type": "application/json" },
+      { refreshToken, deviceId },
+      DEFAULT_TIMEOUT_MS,
+    );
+    const { responseData } = await parseResponseBody(response);
+    if (!response.ok || !responseData || typeof responseData !== "object") return null;
+    if (
+      typeof (responseData as RefreshSessionResponse).accessToken !== "string" ||
+      typeof (responseData as RefreshSessionResponse).refreshToken !== "string"
+    ) return null;
+    await sessionStorage.setToken((responseData as RefreshSessionResponse).accessToken);
+    await sessionStorage.setRefreshToken((responseData as RefreshSessionResponse).refreshToken);
+    return (responseData as RefreshSessionResponse).accessToken;
+  } catch {
+    return null;
+  }
+}
+
+async function refreshAccessToken() {
+  if (!refreshRequest) {
+    refreshRequest = runRefreshRequest().finally(() => {
+      refreshRequest = null;
+    });
+  }
+
+  return refreshRequest;
+}
+
+async function request<T>(path: string, options: RequestOptions = {}, hasRetriedAfterRefresh = false) {
+  const { method = "GET", body, auth = false, logoutOnUnauthorized = false, headers = {}, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
   const finalHeaders: Record<string, string> = {
     Accept: "application/json",
     ...headers,
@@ -141,8 +225,7 @@ async function request<T>(path: string, options: RequestOptions = {}) {
       }
     }
 
-  if (!response.ok) {
-    if (response.status === 401 && auth && !suppressUnauthorizedEvent) {
+    if (response.status === 401 && auth && (logoutOnUnauthorized || hasRetriedAfterRefresh)) {
       window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
     }
 

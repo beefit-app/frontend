@@ -112,7 +112,7 @@ export function WorkoutStartScreen({
     generatedCardResolverRef.current = null;
   }
 
-  function clearActiveWorkoutLocally() {
+  async function clearActiveWorkoutLocally() {
     isClosingWorkoutRef.current = true;
     const draft = await workoutDraftStorage.get();
     await removePersistedWorkoutPhoto(draft?.photoFileName);
@@ -538,7 +538,7 @@ export function WorkoutStartScreen({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "32px 12px 24px" }}>
+      <IonGrid fixed style={{ padding: "32px 12px 24px" }}>
         <IonRow>
           <IonCol size="12">
             <div style={{ display: "grid", gap: 0 }}>

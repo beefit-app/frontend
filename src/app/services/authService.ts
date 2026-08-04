@@ -296,21 +296,25 @@ async function createSessionFromToken(accessToken: string, refreshToken: string)
   }
 }
 
-async function createValidatedSession(accessToken: string, fallbackUser: AuthUser | null) {
+async function createValidatedSession(accessToken: string, refreshToken: string, fallbackUser: AuthUser | null) {
   if (fallbackUser) {
     await sessionStorage.setUser(fallbackUser);
   }
 
-  return createSessionFromToken(accessToken);
+  return createSessionFromToken(accessToken, refreshToken);
 }
 
 async function normalizeApiSession(response: unknown, credentials?: LoginInput): Promise<AuthSession> {
   if (isBackendAuthSessionResponse(response)) {
-    return createValidatedSession(response.accessToken, mapAuthApiUserToAuthUser(response.user));
+    return createValidatedSession(response.accessToken, response.refreshToken, mapAuthApiUserToAuthUser(response.user));
   }
 
   if (isLegacyBackendAuthSessionResponse(response)) {
-    return createValidatedSession(response.token, mapAuthApiUserToAuthUser(response.userResponseDTO));
+    return createValidatedSession(
+      response.token,
+      response.refreshToken ?? response.token,
+      mapAuthApiUserToAuthUser(response.userResponseDTO),
+    );
   }
 
   if (isBackendTokenOnlyResponse(response)) {

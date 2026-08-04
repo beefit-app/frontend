@@ -113,6 +113,10 @@ export function useStreakState(user: AuthUser | null) {
     }
   }
 
+  function clearPendingFeed() {
+    setStreak((current) => ({ ...current, burstToken: 0 }));
+  }
+
   function syncStreakCount(nextCount: number) {
     const todayKey = getTodayKey();
 
@@ -132,9 +136,7 @@ export function useStreakState(user: AuthUser | null) {
   return {
     streak,
     isStreakFedToday: streak.lastFedDate === getTodayKey(),
-    feedStreak,
     clearPendingFeed,
-    scheduleFeed,
     syncStreakCount,
   };
 }
