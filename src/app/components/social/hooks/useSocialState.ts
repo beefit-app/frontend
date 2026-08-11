@@ -9,7 +9,9 @@ const MAX_HIVES = 2;
 export function useSocialState(isActive = false) {
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState<SocialSection>("friends");
-  const [friends, setFriends] = useState<ReturnType<typeof socialService.loadFriends> extends Promise<infer T> ? T : never>([]);
+  // FriendProfile, e nao o retorno de loadFriends: aquele tipo tem friendshipId
+  // obrigatorio, enquanto busca e eventos produzem perfis sem friendship.
+  const [friends, setFriends] = useState<FriendProfile[]>([]);
   const [friendRequests, setFriendRequests] = useState<Awaited<ReturnType<typeof socialService.loadIncomingRequests>>>([]);
   const [sentRequests, setSentRequests] = useState<Awaited<ReturnType<typeof socialService.loadOutgoingRequests>>>([]);
   const [discoverablePeople, setDiscoverablePeople] = useState<typeof friends>([]);

@@ -1,8 +1,9 @@
-import type { Hive, SocialInitialState } from "./types";
+import type { Hive, HiveMember, SocialInitialState } from "./types";
 
-export const CURRENT_USER_MEMBER = {
+export const CURRENT_USER_MEMBER: HiveMember = {
   id: "me",
   name: "Alex Ferreira",
+  username: "@alexferreira",
   initials: "AF",
   workouts: 4,
   honeys: 15,
@@ -38,9 +39,9 @@ export const SOCIAL_INITIAL_STATE: SocialInitialState = {
       inviteCode: "FERRO-06",
       creatorId: "rafa",
       members: [
-        { id: "rafa", name: "Rafa Mendes", initials: "RM", workouts: 5, honeys: 19 },
+        { id: "rafa", name: "Rafa Mendes", username: "@rafamendes", initials: "RM", workouts: 5, honeys: 19 },
         CURRENT_USER_MEMBER,
-        { id: "bianca", name: "Bianca Reis", initials: "BR", workouts: 3, honeys: 12 },
+        { id: "bianca", name: "Bianca Reis", username: "@biancareis", initials: "BR", workouts: 3, honeys: 12 },
       ],
     },
   ],
@@ -54,8 +55,8 @@ export const INVITABLE_HIVES: Hive[] = [
     inviteCode: "BEE-POWER",
     creatorId: "bianca",
     members: [
-      { id: "bianca", name: "Bianca Reis", initials: "BR", workouts: 18, honeys: 24 },
-      { id: "marina", name: "Marina Costa", initials: "MC", workouts: 16, honeys: 20 },
+      { id: "bianca", name: "Bianca Reis", username: "@biancareis", initials: "BR", workouts: 18, honeys: 24 },
+      { id: "marina", name: "Marina Costa", username: "@marinacosta", initials: "MC", workouts: 16, honeys: 20 },
     ],
   },
   {
@@ -64,6 +65,6 @@ export const INVITABLE_HIVES: Hive[] = [
     period: "Semanal",
     inviteCode: "MEL-7D",
     creatorId: "lia",
-    members: [{ id: "lia", name: "Lia Rocha", initials: "LR", workouts: 4, honeys: 8 }],
+    members: [{ id: "lia", name: "Lia Rocha", username: "@liarocha", initials: "LR", workouts: 4, honeys: 8 }],
   },
 ];

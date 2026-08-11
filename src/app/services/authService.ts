@@ -139,7 +139,7 @@ function mergeCurrentUserResponse(value: unknown, fallbackUser: AuthUser | null)
     typeof value.email === "string" &&
     typeof value.id === "string"
   ) {
-    return mapAuthApiUserToAuthUser(value as AuthApiUser);
+    return mapAuthApiUserToAuthUser(value as unknown as AuthApiUser);
   }
 
   if (isBackendProfileResponse(value)) {
@@ -319,12 +319,11 @@ async function normalizeApiSession(response: unknown, credentials?: LoginInput):
 
   if (isBackendTokenOnlyResponse(response)) {
     const accessToken = response.accessToken ?? response.token;
-    const refreshToken = response.refreshToken ?? accessToken;
     if (!accessToken) {
       throw new Error("Resposta de autenticação inválida.");
     }
 
-    return createSessionFromToken(accessToken, refreshToken);
+    return createSessionFromToken(accessToken, response.refreshToken ?? accessToken);
   }
 
   if (credentials) {
@@ -390,7 +389,7 @@ const apiAuthGateway: AuthGateway = {
   },
 
   async getCurrentUser() {
-    return fetchCurrentUserFromApi();
+    return fetchCurrentUserFromApi(await sessionStorage.getUser<AuthUser>());
   },
 };
 
