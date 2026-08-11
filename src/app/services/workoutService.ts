@@ -72,31 +72,19 @@ interface BackendWorkoutSession {
   } | null;
 }
 
-const GROUP_LABEL_BY_ID: Record<string, string> = {
-  peito: "Peito",
-  costas: "Costas",
-  pernas: "Pernas",
-  ombros: "Ombros",
-  bracos: "Braços",
-  core: "Core",
-};
-
-const GROUP_ID_BY_BACKEND: Record<string, string> = {
+// /api/exercises serializa a entidade CatalogExercise crua, entao devolve o nome do
+// enum ("CHEST"). /api/workout e /api/templates passam pelo WorkoutMuscleGroupMapper
+// e falam o slug ("peito"). Ler os dois formatos e obrigatorio; escrever, nunca:
+// o mapper do backend so aceita o slug e lanca InvalidMuscleGroupException no resto.
+const GROUP_ID_BY_ENUM: Record<string, string> = {
   CHEST: "peito",
   BACK: "costas",
   LEGS: "pernas",
+  GLUTES: "gluteos",
   SHOULDERS: "ombros",
   ARMS: "bracos",
   CORE: "core",
-};
-
-const BACKEND_GROUP_BY_ID: Record<string, string> = {
-  peito: "CHEST",
-  costas: "BACK",
-  pernas: "LEGS",
-  ombros: "SHOULDERS",
-  bracos: "ARMS",
-  core: "CORE",
+  TRAPS: "trapezio",
 };
 
 let catalogCache: ExerciseCatalogItem[] = [];
@@ -111,7 +99,7 @@ function normalizeGroupId(value: string | null | undefined) {
   if (!value) return "core";
   const cleanValue = value.trim();
   return (
-    GROUP_ID_BY_BACKEND[cleanValue] ??
+    GROUP_ID_BY_ENUM[cleanValue.toUpperCase()] ??
     cleanValue
       .toLowerCase()
       .normalize("NFD")
@@ -120,12 +108,13 @@ function normalizeGroupId(value: string | null | undefined) {
 }
 
 function getGroupLabel(groupId: string) {
-  return GROUP_LABEL_BY_ID[groupId] ?? groupId;
+  return workoutDataSource.getMuscleGroups().find((group) => group.id === groupId)?.label ?? groupId;
 }
 
-function toBackendGroup(value: string) {
-  const groupId = normalizeGroupId(value);
-  return BACKEND_GROUP_BY_ID[groupId] ?? value;
+// Aceita id ("peito") ou rotulo ("Bra\u00e7os"): selectedGroups carrega id enquanto o
+// usuario seleciona e rotulo depois que a sessao comeca.
+function toApiMuscleGroup(value: string) {
+  return normalizeGroupId(value);
 }
 
 function normalizeCatalogExercise(exercise: BackendCatalogExercise): ExerciseCatalogItem {
@@ -205,7 +194,7 @@ function toFinishPayload(draft: WorkoutCompletionDraft) {
     finishedAt: new Date().toISOString(),
     title: draft.title,
     shouldPostWorkout: draft.shouldPostWorkout,
-    muscleGroups: draft.selectedGroups.map(toBackendGroup),
+    muscleGroups: draft.selectedGroups.map(toApiMuscleGroup),
     exercises: draft.exercises.map((exercise, exerciseIndex) => ({
       sessionExerciseId: exercise.sessionExerciseId ?? null,
       catalogExerciseId: exercise.catalogId,
@@ -224,7 +213,7 @@ function toFinishPayload(draft: WorkoutCompletionDraft) {
 function toTemplatePayload(draft: WorkoutCompletionDraft) {
   return {
     name: draft.title,
-    muscleGroups: draft.selectedGroups.map(toBackendGroup),
+    muscleGroups: draft.selectedGroups.map(toApiMuscleGroup),
     exercises: draft.exercises.map((exercise, exerciseIndex) => ({
       catalogExerciseId: exercise.catalogId,
       order: exerciseIndex + 1,
@@ -343,7 +332,7 @@ export const workoutService = {
     const response = await apiClient.post<BackendWorkoutSession>(
       "/api/workout/start",
       {
-        muscleGroups: input.selectedGroups.map(toBackendGroup),
+        muscleGroups: input.selectedGroups.map(toApiMuscleGroup),
         isPrivate: input.isPrivate,
         templateId: input.templateId ?? null,
         exercises: [],
