@@ -251,6 +251,15 @@ export const workoutService = {
     return catalogCache.length > 0;
   },
 
+  // Caches de modulo sobrevivem a troca de usuario porque a SPA nao recarrega no
+  // logout. templatesCache e por usuario e getTemplates() e lido de forma sincrona
+  // na montagem da tela de treino, entao sem este reset o proximo usuario ve os
+  // templates do anterior ate o refetch responder.
+  resetCaches() {
+    catalogCache = [];
+    templatesCache = [];
+  },
+
   async loadCatalog() {
     const response = await apiClient.get<BackendCatalogExercise[] | BackendPage<BackendCatalogExercise>>(
       "/api/exercises?size=1000",

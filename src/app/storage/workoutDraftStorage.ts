@@ -1,4 +1,5 @@
 import type { WorkoutDraft } from "../types/workout";
+import { removePersistedWorkoutPhoto } from "../platform/workoutPhoto";
 import { appStorage } from "./appStorage";
 
 export function getWorkoutDraftStorageKey(userId: string, workoutId: string) {
@@ -47,6 +48,19 @@ export const workoutDraftStorage = {
     if (!userId) return;
 
     for (const key of await appStorage.keys(getUserDraftPrefix(userId))) {
+      await appStorage.removeItem(key);
+    }
+  },
+
+  // Ao contrario de clearDrafts, apaga tambem a foto de cada rascunho. Remover so a
+  // chave deixa o arquivo orfao no IndexedDB (web) ou em workout-drafts/ (nativo),
+  // sem nada que o recolha depois.
+  async clearAllDrafts(userId: string | null | undefined) {
+    if (!userId) return;
+
+    for (const key of await appStorage.keys(getUserDraftPrefix(userId))) {
+      const draft = await appStorage.getItem<WorkoutDraft>(key);
+      await removePersistedWorkoutPhoto(draft?.photoFileName);
       await appStorage.removeItem(key);
     }
   },

@@ -8,6 +8,7 @@ import type {
   RegisterInput,
 } from "../types/auth";
 import { ApiError, apiClient } from "./apiClient";
+import { clearLocalUserData } from "./sessionTeardown";
 
 const DEV_AUTH_BYPASS_ENABLED =
   import.meta.env?.DEV === true && import.meta.env?.VITE_DEV_AUTH_BYPASS === "true";
@@ -195,10 +196,17 @@ async function persistSession(session: AuthSession) {
   return session;
 }
 
+// Desmonta a sessao inteira, nao so os tokens. Todo caminho de saida passa por
+// aqui — o logout explicito e o forcado por AUTH_UNAUTHORIZED_EVENT —, entao este
+// e o unico ponto que precisa saber apagar dado local.
 async function clearStoredSession() {
+  const cachedUser = await sessionStorage.getUser<AuthUser>();
+
   await sessionStorage.clearToken();
   await sessionStorage.clearRefreshToken();
   await sessionStorage.clearUser();
+
+  await clearLocalUserData(cachedUser?.id ?? null);
 }
 
 const mockAuthGateway: AuthGateway = {

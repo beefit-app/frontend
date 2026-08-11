@@ -1,6 +1,9 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getWorkoutDraftStorageKey, workoutDraftStorage } from "./workoutDraftStorage";
 import type { WorkoutDraft } from "../types/workout";
+
+const removePersistedWorkoutPhoto = vi.hoisted(() => vi.fn());
+vi.mock("../platform/workoutPhoto", () => ({ removePersistedWorkoutPhoto }));
 
 function createDraft(userId: string, workoutId: string): WorkoutDraft {
   return {
@@ -53,5 +56,27 @@ describe("workoutDraftStorage", () => {
     await workoutDraftStorage.removeDraft("user-1", "workout-1");
 
     await expect(workoutDraftStorage.getDraft("user-1", "workout-1")).resolves.toBeNull();
+  });
+
+  it("clearAllDrafts apaga a foto de cada rascunho, nao so a chave", async () => {
+    await workoutDraftStorage.saveDraft({
+      ...createDraft("user-1", "workout-1"),
+      photoFileName: "web:foto-1",
+    });
+    await workoutDraftStorage.saveDraft({
+      ...createDraft("user-1", "workout-2"),
+      photoFileName: "web:foto-2",
+    });
+    await workoutDraftStorage.saveDraft(createDraft("user-2", "workout-1"));
+
+    await workoutDraftStorage.clearAllDrafts("user-1");
+
+    // Remover so a chave deixaria o arquivo orfao no dispositivo, sem nada que o recolha.
+    expect(removePersistedWorkoutPhoto).toHaveBeenCalledWith("web:foto-1");
+    expect(removePersistedWorkoutPhoto).toHaveBeenCalledWith("web:foto-2");
+    expect(window.localStorage.getItem(getWorkoutDraftStorageKey("user-1", "workout-1"))).toBeNull();
+    expect(window.localStorage.getItem(getWorkoutDraftStorageKey("user-1", "workout-2"))).toBeNull();
+    // Nao pode encostar no rascunho de outro usuario.
+    await expect(workoutDraftStorage.getDraft("user-2", "workout-1")).resolves.not.toBeNull();
   });
 });

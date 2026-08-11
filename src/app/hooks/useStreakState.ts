@@ -45,6 +45,11 @@ function readPersistedStreak(): PersistedStreakState | null {
   }
 }
 
+export function clearPersistedStreak() {
+  if (typeof window === "undefined" || typeof window.localStorage === "undefined") return;
+  window.localStorage.removeItem(STREAK_STORAGE_KEY);
+}
+
 function persistStreak(streak: PersistedStreakState) {
   if (typeof window === "undefined" || typeof window.localStorage === "undefined") return;
   window.localStorage.setItem(STREAK_STORAGE_KEY, JSON.stringify(streak));

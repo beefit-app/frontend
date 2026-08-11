@@ -105,6 +105,14 @@ function ensureConnection() {
   });
 }
 
+// Derruba o stream no logout. Sem isto o laco de reconexao continua tentando de
+// segundo em segundo com um token que ja nao vale.
+export function closeSocialEventsConnection() {
+  listeners.clear();
+  connectionAbortController?.abort();
+  connectionAbortController = null;
+}
+
 export async function subscribeSocialEvents(
   onEvent: SocialEventListener,
   signal: AbortSignal,
