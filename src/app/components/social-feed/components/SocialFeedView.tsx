@@ -46,7 +46,7 @@ export function SocialFeedView({
     return () => observer.disconnect();
   }, [error, hasMore, isLoading, isLoadingMore, onLoadMore]);
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0A0A0A] pb-8">
+    <div className="relative min-h-full overflow-hidden bg-[#0A0A0A] pb-8">
       <div
         style={{
           position: "absolute",

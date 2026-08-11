@@ -648,8 +648,8 @@ export function AdminScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] pt-[env(safe-area-inset-top)] text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col lg:flex-row">
+    <div className="min-h-dvh bg-[#0A0A0A] text-white">
+      <div className="mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col lg:flex-row">
         <aside className="border-b border-[#2D2D2D] bg-[#101010] px-4 py-4 lg:w-64 lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
           <div className="flex items-center justify-between gap-3 lg:block">
             <div>
@@ -703,9 +703,9 @@ export function AdminScreen() {
           </Button>
         </aside>
 
-        <main className="flex-1 px-4 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8 lg:py-8">
+        <main className="flex-1 px-4 py-6 pb-[calc(1.5rem+var(--ion-safe-area-bottom,0px))] sm:px-6 lg:px-8 lg:py-8">
           {isPermissionError ? (
-            <div className="flex min-h-[60vh] items-center justify-center">
+            <div className="flex min-h-[60dvh] items-center justify-center">
               <div className="max-w-md rounded-lg border border-[#5F3B3B] bg-[#141414] p-6 text-center">
                 <AlertCircle className="mx-auto size-8 text-[#FCA5A5]" />
                 <h1 className="mt-4 font-montserrat text-xl font-bold text-white">Acesso restrito</h1>

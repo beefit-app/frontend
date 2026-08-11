@@ -760,7 +760,7 @@ function TemplateActionSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+      <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
         <SheetHeader className="px-0 pb-3 pt-3 text-left">
           <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
             {template?.name ?? "Opções do template"}
@@ -858,7 +858,7 @@ function TemplateFormSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto flex max-h-[92vh] max-w-[820px] gap-0 overflow-hidden rounded-t-[24px] border border-b-0 border-[#2D2D2D] bg-[#141414] p-0 text-white">
+      <SheetContent side="bottom" className="mx-auto flex max-h-[92dvh] max-w-[820px] gap-0 overflow-hidden rounded-t-[24px] border border-b-0 border-[#2D2D2D] bg-[#141414] p-0 text-white">
         <SheetHeader className="border-b border-[#2D2D2D] px-5 py-5 text-left">
           <SheetTitle className="font-montserrat text-[18px] font-bold text-white">
             {mode === "edit" ? "Editar template" : "Novo template"}
@@ -893,7 +893,7 @@ function TemplateFormSheet({
                     Adicione exercícios pelo catálogo abaixo.
                   </div>
                 ) : (
-                  <div className="grid max-h-[34vh] gap-2 overflow-y-auto pr-1 lg:max-h-[46vh]">
+                  <div className="grid max-h-[34dvh] gap-2 overflow-y-auto pr-1 lg:max-h-[46dvh]">
                     {selectedExercises.map((exercise, index) => (
                       <div key={`${exercise.id}-${index}`} className="flex items-center gap-3 rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-3 py-3">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[rgba(255,215,0,0.12)] font-montserrat text-[11px] font-bold text-[#FFD700]">
@@ -959,7 +959,7 @@ function TemplateFormSheet({
                 </div>
               </div>
 
-              <div className="grid max-h-[44vh] gap-2 overflow-y-auto pr-1 lg:max-h-[58vh]">
+              <div className="grid max-h-[44dvh] gap-2 overflow-y-auto pr-1 lg:max-h-[58dvh]">
                 {filteredCatalog.map((exercise) => (
                   <button
                     key={exercise.id}

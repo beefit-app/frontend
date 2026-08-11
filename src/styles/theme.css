@@ -58,6 +58,23 @@
   .beefit-shell-width { max-width: var(--ion-grid-width-lg); }
 }
 
+/* Bottom sheets follow the shell width from tablet up, but stay full-width on
+   phones: a sheet with side gutters on a narrow screen reads as a centered
+   modal instead of a sheet anchored to the bottom edge. */
+.beefit-sheet-width {
+  width: 100%;
+  margin-inline: auto;
+}
+@media (min-width: 576px) {
+  .beefit-sheet-width { max-width: var(--ion-grid-width-sm); }
+}
+@media (min-width: 768px) {
+  .beefit-sheet-width { max-width: var(--ion-grid-width-md); }
+}
+@media (min-width: 992px) {
+  .beefit-sheet-width { max-width: var(--ion-grid-width-lg); }
+}
+
 /* Ionic button — apply Montserrat font into shadow DOM */
 ion-button::part(native) {
   font-family: var(--font-montserrat);

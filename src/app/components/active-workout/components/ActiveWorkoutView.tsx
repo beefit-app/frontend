@@ -124,7 +124,7 @@ export function ActiveWorkoutView({
                   onClick={onToggleWorkoutMenu}
                   aria-label="Abrir ações do treino"
                 />
-                <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+                <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
                   <SheetHeader className="px-0 pb-3 pt-3 text-left">
                     <SheetTitle className="font-montserrat text-[20px] font-bold text-white">Ações do treino</SheetTitle>
                     <SheetDescription className="font-inter text-[13px] text-[#737373]">
@@ -269,7 +269,7 @@ export function ActiveWorkoutView({
                               onClick={() => onToggleExerciseMenu(exercise.id)}
                               aria-label={`Abrir ações de ${exercise.name}`}
                             />
-                            <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+                            <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
                               <SheetHeader className="px-0 pb-3 pt-3 text-left">
                                 <SheetTitle className="font-montserrat text-[20px] font-bold text-white">{exercise.name}</SheetTitle>
                                 <SheetDescription className="font-inter text-[13px] text-[#737373]">

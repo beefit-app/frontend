@@ -234,7 +234,7 @@ function FriendsPanel({
       </section>
 
       <Sheet open={friendActionsOpen} onOpenChange={setFriendActionsOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+        <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
           <SheetHeader className="px-0 pb-3 pt-3 text-left">
             <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
               {selectedFriend?.name ?? "Ações do amigo"}
@@ -384,7 +384,7 @@ function RankingPanel({
       </div>
 
       <Sheet open={hiveActionsOpen} onOpenChange={setHiveActionsOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+        <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
           <SheetHeader className="px-0 pb-3 pt-3 text-left">
             <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
               {hive.name}
@@ -449,7 +449,7 @@ function HiveSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+      <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
         <SheetHeader className="px-0 pb-3 pt-3 text-left">
           <SheetTitle className="font-montserrat text-[20px] font-bold text-white">{title}</SheetTitle>
           <SheetDescription className="font-inter text-[13px] text-[#737373]">
@@ -551,7 +551,7 @@ function HivesPanel({ state, onOpenProfile }: { state: SocialState; onOpenProfil
       )}
 
       <Sheet open={actionOpen} onOpenChange={setActionOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+        <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
           <SheetHeader className="px-0 pb-3 pt-3 text-left">
             <SheetTitle className="font-montserrat text-[20px] font-bold text-white">Adicionar Colmeia</SheetTitle>
             <SheetDescription className="font-inter text-[13px] text-[#737373]">
@@ -585,7 +585,7 @@ function HivesPanel({ state, onOpenProfile }: { state: SocialState; onOpenProfil
       <HiveSheet mode="create" open={createOpen} onOpenChange={setCreateOpen} state={state} />
       <HiveSheet mode="join" open={joinOpen} onOpenChange={setJoinOpen} state={state} />
       <Sheet open={leaveConfirmationOpen} onOpenChange={setLeaveConfirmationOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-4 text-white">
+        <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-4 text-white">
           <SheetHeader className="px-0 text-left">
             <SheetTitle className="font-montserrat text-[18px] font-bold text-white">Sair da Colmeia?</SheetTitle>
             <SheetDescription className="font-inter text-[13px] text-[#737373]">

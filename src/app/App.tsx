@@ -26,6 +26,14 @@ const SocialScreen = lazy(() => import("./components/SocialScreen").then(({ Soci
 const InventoryScreen = lazy(() => import("./components/InventoryScreen").then(({ InventoryScreen }) => ({ default: InventoryScreen })));
 const AdminScreen = lazy(() => import("./components/admin/AdminScreen").then(({ AdminScreen }) => ({ default: AdminScreen })));
 
+// O app nao usa IonHeader/IonToolbar em nenhuma tela e todos os IonContent sao
+// fullscreen, entao o Ionic nao aplica o recuo do notch sozinho. Consumimos aqui
+// a variavel que o proprio Ionic ja define em html (core.css), que resolve para
+// 0px no browser desktop.
+const SAFE_AREA_TOP_PADDING = {
+  "--padding-top": "var(--ion-safe-area-top, 0px)",
+} as React.CSSProperties;
+
 function DeferredScreen({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div className="p-6 text-center font-inter text-sm text-[#A3A3A3]">Carregando…</div>}>{children}</Suspense>;
 }
@@ -115,7 +123,15 @@ export default function App() {
   const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
 
   if (legalDocument) {
-    return <IonApp><IonPage><IonContent fullscreen><LegalDocuments document={legalDocument} /></IonContent></IonPage></IonApp>;
+    return (
+      <IonApp>
+        <IonPage>
+          <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>
+            <LegalDocuments document={legalDocument} />
+          </IonContent>
+        </IonPage>
+      </IonApp>
+    );
   }
 
   function handleWorkoutCompleted(_draft: WorkoutCompletionDraft, _summary: WorkoutCompletionSummary) {
@@ -152,6 +168,7 @@ export default function App() {
               {
                 "--background": "#0A0A0A",
                 "--color": "#ffffff",
+                ...SAFE_AREA_TOP_PADDING,
               } as React.CSSProperties
             }
           >
@@ -198,6 +215,7 @@ export default function App() {
               "--background":
                 "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%) center var(--beefit-page-gradient-top) / 100% var(--beefit-page-gradient-height) no-repeat, #0A0A0A",
               "--color": "#ffffff",
+              ...SAFE_AREA_TOP_PADDING,
             } as React.CSSProperties
           }
         >
@@ -311,7 +329,7 @@ export default function App() {
             data-testid="bottom-navigation"
             style={{
               background: "#0A0A0A",
-              paddingBottom: "env(safe-area-inset-bottom)",
+              paddingBottom: "var(--ion-safe-area-bottom, 0px)",
             }}
           >
             <nav
