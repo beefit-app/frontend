@@ -42,6 +42,11 @@ export function useConfirm() {
   const resolverRef = useRef<((result: string | boolean | null) => void) | null>(null);
 
   const confirm = useCallback((next: ConfirmOptions) => {
+    // Abrir um confirm com outro pendente sobrescreveria o resolver e deixaria o
+    // primeiro chamador esperando para sempre. A interface nao permite isso — o
+    // dialogo e modal —, mas uma chamada programatica travaria o fluxo em silencio,
+    // que e o mesmo risco que o onOpenChange ja cobre para o Esc.
+    resolverRef.current?.(false);
     setOptions(next);
     setValue(next.input?.initialValue ?? "");
     setError("");

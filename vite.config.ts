@@ -14,10 +14,9 @@ import react from '@vitejs/plugin-react'
 // da camera. connect-src recebe a origem da API porque no nativo a pagina roda em
 // capacitor://localhost, uma origem diferente da do backend.
 function beefitContentSecurityPolicy(apiUrl: string) {
-  const apiOrigin = new URL(apiUrl).origin
   // frame-ancestors fica de fora: o navegador ignora essa diretiva quando ela vem
   // por <meta>, entao ela tem de ser servida como header HTTP pelo host da pagina.
-  const directives = [
+  const buildDirectives = (apiOrigin: string) => [
     "default-src 'self'",
     "script-src 'self'",
     // fonts.googleapis.com serve a folha de estilo das fontes carregada em
@@ -36,9 +35,22 @@ function beefitContentSecurityPolicy(apiUrl: string) {
     name: 'beefit-csp',
     apply: 'build' as const,
     transformIndexHtml(html: string) {
+      // A origem so e resolvida aqui, e nao no corpo da funcao: o corpo roda ao
+      // montar a configuracao, inclusive em `serve`, e um new URL() com
+      // VITE_API_URL malformada derrubava o servidor de desenvolvimento com um
+      // "Invalid URL" sem contexto. A guarda que valida a variavel so roda no build.
+      let apiOrigin: string
+      try {
+        apiOrigin = new URL(apiUrl).origin
+      } catch {
+        throw new Error(
+          `VITE_API_URL inválida para montar a Content-Security-Policy: ${apiUrl}`,
+        )
+      }
+
       return html.replace(
         '<head>',
-        `<head>\n      <meta http-equiv="Content-Security-Policy" content="${directives.join('; ')}" />`,
+        `<head>\n      <meta http-equiv="Content-Security-Policy" content="${buildDirectives(apiOrigin).join('; ')}" />`,
       )
     },
   }
