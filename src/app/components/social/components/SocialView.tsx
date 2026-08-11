@@ -770,7 +770,7 @@ export function SocialView({
                   key={tab.id}
                   type="button"
                   onClick={() => state.setActiveSection(tab.id)}
-                  className={`relative flex items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
+                  className={`relative flex min-h-11 items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
                     state.activeSection === tab.id ? "text-[#0A0A0A]" : "text-[#737373]"
                   }`}
                 >

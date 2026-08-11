@@ -97,6 +97,11 @@ function FilterPill<T extends string | null>({
         background: active ? "rgba(255,215,0,0.12)" : "#141414",
         color: active ? "#FFD700" : "#D4D4D4",
         padding: "10px 14px",
+        // O pilulo e um alvo de toque primario: cresce ate o minimo de 44px em vez
+        // de usar pseudo-elemento, para a area clicavel coincidir com o desenho.
+        minHeight: 44,
+        display: "inline-flex",
+        alignItems: "center",
         fontFamily: "var(--font-montserrat)",
         fontSize: 11,
         fontWeight: 700,
@@ -170,6 +175,7 @@ function FilterSection({
             background: isOpen ? "rgba(255,215,0,0.12)" : "#141414",
             color: isOpen ? "#FFD700" : "#D4D4D4",
             padding: "10px 14px",
+            minHeight: 44,
             fontFamily: "var(--font-montserrat)",
             fontSize: 11,
             fontWeight: 700,
@@ -636,6 +642,9 @@ function TemplateCard({
           height: 110,
           clipPath: HEX_CLIP,
           background: "rgba(255,215,0,0.05)",
+          // Marca d'agua sobre o canto onde ficam os controles do card: sem isto
+          // ela captura toque, como ja faz a equivalente em BeeCard.
+          pointerEvents: "none",
         }}
       />
 
@@ -686,6 +695,7 @@ function TemplateCard({
           type="button"
           onClick={onOpenMenu}
           aria-label={`Gerenciar template ${template.name}`}
+          className="beefit-tap-target"
           style={{
             width: 40,
             height: 40,
@@ -1162,7 +1172,7 @@ export function InventoryView({
                       role="tab"
                       aria-selected={selected}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`relative flex items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
+                      className={`relative flex min-h-11 items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
                         selected ? "text-[#0A0A0A]" : "text-[#737373]"
                       }`}
                     >
@@ -1278,7 +1288,7 @@ export function InventoryView({
                     <button
                       type="button"
                       onClick={openCreateTemplate}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] border border-[rgba(255,215,0,0.32)] bg-[rgba(255,215,0,0.1)] text-[#FFD700] transition-colors"
+                      className="beefit-tap-target flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] border border-[rgba(255,215,0,0.32)] bg-[rgba(255,215,0,0.1)] text-[#FFD700] transition-colors"
                       aria-label="Criar novo template"
                     >
                       <Plus size={18} />
