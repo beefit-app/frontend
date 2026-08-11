@@ -4,6 +4,46 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
 
+// A CSP so entra no artefato distribuido: em dev o plugin do React injeta o
+// preamble de refresh inline, que exigiria 'unsafe-inline' em script-src e
+// anularia justamente a protecao que interessa.
+//
+// style-src precisa de 'unsafe-inline' porque o Ionic e o proprio codigo aplicam
+// estilo inline em quase toda tela. img-src e media-src precisam de blob: por
+// causa dos object URLs de useAuthenticatedMediaUrl, e data: pelas fotos vindas
+// da camera. connect-src recebe a origem da API porque no nativo a pagina roda em
+// capacitor://localhost, uma origem diferente da do backend.
+function beefitContentSecurityPolicy(apiUrl: string) {
+  const apiOrigin = new URL(apiUrl).origin
+  // frame-ancestors fica de fora: o navegador ignora essa diretiva quando ela vem
+  // por <meta>, entao ela tem de ser servida como header HTTP pelo host da pagina.
+  const directives = [
+    "default-src 'self'",
+    "script-src 'self'",
+    // fonts.googleapis.com serve a folha de estilo das fontes carregada em
+    // src/styles/fonts.css; gstatic serve os arquivos .woff2.
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "img-src 'self' data: blob:",
+    "media-src 'self' blob:",
+    `connect-src 'self' ${apiOrigin}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ]
+
+  return {
+    name: 'beefit-csp',
+    apply: 'build' as const,
+    transformIndexHtml(html: string) {
+      return html.replace(
+        '<head>',
+        `<head>\n      <meta http-equiv="Content-Security-Policy" content="${directives.join('; ')}" />`,
+      )
+    },
+  }
+}
+
 function beefitAssetResolver() {
   return {
     name: 'beefit-asset-resolver',
@@ -40,6 +80,7 @@ export default defineConfig(({ command, mode }) => {
   return {
   plugins: [
     beefitAssetResolver(),
+    beefitContentSecurityPolicy(env.VITE_API_URL?.trim() || 'https://localhost'),
     // The React and Tailwind plugins are both required for BeeFit, even if
     // Tailwind is not being actively used – do not remove them
     react(),
