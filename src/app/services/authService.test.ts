@@ -27,9 +27,11 @@ describe("authService API integration", () => {
   it("normaliza o login com o contrato atual do backend", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(
+        // Contrato de LoginResponseDTO: accessToken, refreshToken e user.
         createJsonResponse({
-          token: "jwt-backend",
-          userResponseDTO: {
+          accessToken: "jwt-backend",
+          refreshToken: "refresh-backend",
+          user: {
             id: "user-1",
             fullName: "Bee Fit",
             username: "beefit",
@@ -81,8 +83,9 @@ describe("authService API integration", () => {
       .mockResolvedValueOnce(
         createJsonResponse(
           {
-            token: "jwt-register",
-            userResponseDTO: {
+            accessToken: "jwt-register",
+            refreshToken: "refresh-register",
+            user: {
               id: "user-2",
               fullName: "Nova Pessoa",
               username: "nova",

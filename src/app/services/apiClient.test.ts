@@ -113,8 +113,9 @@ describe("apiClient", () => {
 
   it("busca mídia como blob usando autenticação", async () => {
     window.localStorage.setItem("beefit.auth.accessToken", "media-token");
-    const expectedBlob = new Blob(["image"], { type: "image/png" });
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(expectedBlob, {
+    // Corpo como string, nao Blob: o Blob do jsdom nao implementa stream(), que o
+    // construtor Response do Node exige. O tipo do blob vem do Content-Type.
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("image", {
       status: 200,
       headers: { "Content-Type": "image/png" },
     }));
@@ -123,6 +124,7 @@ describe("apiClient", () => {
     const blob = await apiClient.getBlob("/api/media/media-id", { auth: true });
 
     expect(blob.type).toBe("image/png");
+    expect(await blob.text()).toBe("image");
     expect(vi.mocked(fetch).mock.calls[0]?.[1]).toMatchObject({
       headers: expect.objectContaining({ Authorization: "Bearer media-token" }),
     });
