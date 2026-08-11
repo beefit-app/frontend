@@ -93,6 +93,7 @@ export function WorkoutCatalogView({
             <button
               type="button"
               onClick={onBack}
+              className="beefit-tap-target"
               style={{
                 border: "none",
                 background: "transparent",
@@ -160,6 +161,12 @@ export function WorkoutCatalogView({
                       color: active ? "#FFFFFF" : "#8F8F8F",
                       borderRadius: 14,
                       padding: "11px 14px 10px",
+                      // A aba e um alvo de toque primario: cresce ate o minimo de
+                      // 44px em vez de usar pseudo-elemento, para o pilulo visivel
+                      // coincidir com a area clicavel.
+                      minHeight: 44,
+                      display: "inline-flex",
+                      alignItems: "center",
                       whiteSpace: "nowrap",
                       fontFamily: "var(--font-montserrat)",
                       fontSize: 12,

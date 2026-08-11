@@ -77,7 +77,12 @@
 
 /* Expands a control's hit area to the 44x44 minimum without touching its
    drawing. The icon buttons in this design are 40px or smaller by intent, so
-   growing the element itself would change the layout on every card. */
+   growing the element itself would change the layout on every card.
+
+   Do not apply this to an element that is already absolutely positioned: this
+   rule sits outside any @layer and unlayered declarations beat layered ones, so
+   its position:relative would override Tailwind's .absolute utility. Size those
+   controls directly instead (see the sheet close button). */
 .beefit-tap-target {
   position: relative;
 }

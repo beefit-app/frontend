@@ -60,6 +60,7 @@ export function FinishWorkoutView({
             <button
               type="button"
               onClick={onBack}
+              className="beefit-tap-target"
               style={{
                 border: "none",
                 background: "transparent",
@@ -170,7 +171,11 @@ export function FinishWorkoutView({
 
               <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)">
                 <div style={{ display: "grid", gap: 18 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+                  {/* Tres colunas fixas deixam 51px de conteudo por card a 320px, mas o
+                      maior valor ("1 kcal" a 24px) mede 87px e vaza da caixa. O piso de
+                      120px = 87 de conteudo + 28 de padding + folga, entao auto-fit so
+                      forma a terceira coluna quando ela cabe de verdade. */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
                     <div
                       style={{
                         borderRadius: 18,
@@ -322,6 +327,7 @@ export function FinishWorkoutView({
                       type="button"
                       onClick={onTogglePost}
                       aria-pressed={shouldPostWorkout}
+                      className="beefit-tap-target"
                       style={{
                         width: 56,
                         height: 32,
@@ -377,6 +383,7 @@ export function FinishWorkoutView({
                       onClick={onToggleSaveTemplate}
                       aria-pressed={shouldSaveTemplate}
                       aria-label={shouldSaveTemplate ? "Não salvar template" : "Salvar template"}
+                      className="beefit-tap-target"
                       style={{
                         width: 42,
                         height: 42,

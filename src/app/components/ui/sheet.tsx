@@ -72,7 +72,11 @@ function SheetContent({
         {...props}
       >
         {children}
-        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
+        {/* size-11 e o minimo de 44px de toque; top/right 0.5 mantem o icone de 16px
+            no mesmo ponto em que ficava com o botao de 16px em top-4 right-4. Aqui
+            nao da para usar .beefit-tap-target: ela define position:relative fora de
+            @layer, e regra sem layer vence a utility .absolute do Tailwind. */}
+        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-0.5 right-0.5 flex size-11 items-center justify-center rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
           <XIcon className="size-4" />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>

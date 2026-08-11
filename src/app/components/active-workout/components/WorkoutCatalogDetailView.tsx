@@ -30,6 +30,7 @@ export function WorkoutCatalogDetailView({
             <button
               type="button"
               onClick={onBack}
+              className="beefit-tap-target"
               style={{
                 border: "none",
                 background: "transparent",
