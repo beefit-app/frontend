@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiClient } from "../services/apiClient";
+import { acquireMediaUrl, releaseMediaUrl } from "../services/mediaCache";
 
 function isProtectedMediaPath(value: string) {
   return value.startsWith("/api/media/");
@@ -17,23 +17,30 @@ export function useAuthenticatedMediaUrl(source?: string | null) {
     }
 
     let active = true;
-    let objectUrl: string | null = null;
+    let acquired = false;
     setResolvedSource(null);
 
-    void apiClient.getBlob(source, { auth: true }).then((blob) => {
-      objectUrl = URL.createObjectURL(blob);
-      if (active) {
-        setResolvedSource(objectUrl);
-      } else {
-        URL.revokeObjectURL(objectUrl);
-      }
-    }).catch(() => {
-      if (active) setResolvedSource(null);
-    });
+    void acquireMediaUrl(source)
+      .then((url) => {
+        if (!active) {
+          // Desmontou enquanto a foto vinha: devolve a referencia agora, porque a
+          // limpeza do efeito ja rodou e nao vai devolver por nos.
+          releaseMediaUrl(source);
+          return;
+        }
+        acquired = true;
+        setResolvedSource(url);
+      })
+      .catch(() => {
+        if (active) setResolvedSource(null);
+      });
 
     return () => {
       active = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (acquired) {
+        acquired = false;
+        releaseMediaUrl(source);
+      }
     };
   }, [source]);
 

@@ -2,6 +2,7 @@ import { clearPersistedStreak } from "../hooks/useStreakState";
 import { appStorage } from "../storage/appStorage";
 import { socialFeedStorage } from "../storage/socialFeedStorage";
 import { workoutDraftStorage } from "../storage/workoutDraftStorage";
+import { clearMediaCache } from "./mediaCache";
 import { closeSocialEventsConnection } from "./socialEventsService";
 import { workoutService } from "./workoutService";
 
@@ -21,6 +22,7 @@ const LEGACY_PROFILE_STORAGE_KEY = "beefit.profile.current";
 export async function clearLocalUserData(userId: string | null | undefined) {
   const steps: Array<[string, () => unknown | Promise<unknown>]> = [
     ["caches de treino", () => workoutService.resetCaches()],
+    ["fotos em memoria", () => clearMediaCache()],
     ["rascunhos e fotos", () => workoutDraftStorage.clearAllDrafts(userId)],
     ["amigos ao vivo", () => socialFeedStorage.clearLiveFriends()],
     ["ofensiva", () => clearPersistedStreak()],

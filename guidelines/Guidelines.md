@@ -145,6 +145,24 @@ Regras:
 - Evitar acoplar decisões de persistência diretamente à UI.
 - Quando uma tela emitir dados que depois irão para backend, usar estruturas explícitas e semânticas.
 
+## Dados locais e segurança
+
+- **Todo dado do usuário guardado no aparelho precisa sair no logout.** O ponto único é
+  `clearLocalUserData` (`src/app/services/sessionTeardown.ts`), chamado por
+  `clearStoredSession`. Ao criar um cache novo — variável de módulo, chave de storage,
+  object URL — acrescente a limpeza dele ali. Vale lembrar que caches de módulo
+  sobrevivem ao logout, porque a SPA não recarrega a página.
+- `beefit.auth.deviceId` é a única chave que sobrevive de propósito: identifica o
+  aparelho, não o usuário, e o backend a usa para vincular o refresh token e limitar
+  taxa por device.
+- A CSP é injetada no build por `beefitContentSecurityPolicy` em `vite.config.ts`, não
+  em `index.html`. Ao adicionar origem externa (fonte, imagem, API), libere a diretiva
+  correspondente e **valide com o build servido**: CSP errada não lança erro, só bloqueia
+  o recurso e deixa a tela quebrada.
+- **`frame-ancestors` não vale por `<meta>`** — o navegador ignora. Precisa ser servido
+  como header HTTP por quem hospeda a página; sem isso o app segue enquadrável em iframe.
+  Não há config de hospedagem neste repositório, então isso é passo de deploy.
+
 ## O que evitar
 
 - Criar soluções visuais que destoem do restante do app.

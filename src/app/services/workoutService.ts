@@ -88,7 +88,14 @@ const GROUP_ID_BY_ENUM: Record<string, string> = {
   TRAPS: "trapezio",
 };
 
+// O catalogo tem ~873 exercicios e e o mesmo para todo mundo. Duas telas o pedem
+// na montagem (WorkoutStartScreen e useActiveWorkoutSession), entao abrir um treino
+// disparava dois downloads completos em sequencia.
+const CATALOG_TTL_MS = 15 * 60 * 1000;
+
 let catalogCache: ExerciseCatalogItem[] = [];
+let catalogLoadedAt = 0;
+let catalogRequest: Promise<ExerciseCatalogItem[]> | null = null;
 let templatesCache: WorkoutTemplate[] = [];
 
 function extractList<T>(response: T[] | BackendPage<T>) {
@@ -257,16 +264,32 @@ export const workoutService = {
   // templates do anterior ate o refetch responder.
   resetCaches() {
     catalogCache = [];
+    catalogLoadedAt = 0;
+    catalogRequest = null;
     templatesCache = [];
   },
 
-  async loadCatalog() {
-    const response = await apiClient.get<BackendCatalogExercise[] | BackendPage<BackendCatalogExercise>>(
-      "/api/exercises?size=1000",
-      { auth: true },
-    );
-    catalogCache = extractList(response).map(normalizeCatalogExercise);
-    return catalogCache;
+  async loadCatalog(options?: { force?: boolean }) {
+    const isFresh = catalogCache.length > 0 && Date.now() - catalogLoadedAt < CATALOG_TTL_MS;
+    if (!options?.force && isFresh) return catalogCache;
+
+    // Duas telas pedem o catalogo quase ao mesmo tempo; sem esta deduplicacao a
+    // segunda dispara um download identico enquanto a primeira ainda esta em voo.
+    if (catalogRequest) return catalogRequest;
+
+    catalogRequest = (async () => {
+      const response = await apiClient.get<BackendCatalogExercise[] | BackendPage<BackendCatalogExercise>>(
+        "/api/exercises?size=1000",
+        { auth: true },
+      );
+      catalogCache = extractList(response).map(normalizeCatalogExercise);
+      catalogLoadedAt = Date.now();
+      return catalogCache;
+    })().finally(() => {
+      catalogRequest = null;
+    });
+
+    return catalogRequest;
   },
 
   getGroupOrder() {

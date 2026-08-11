@@ -157,6 +157,39 @@ describe("workoutService.finishWorkout", () => {
     expect(apiClient.post).toHaveBeenCalledTimes(1);
   });
 
+  it("nao baixa o catalogo duas vezes quando duas telas pedem juntas", async () => {
+    const { apiClient } = await import("./apiClient");
+    vi.mocked(apiClient.get).mockResolvedValue({ content: [] });
+
+    const { workoutService } = await import("./workoutService");
+    workoutService.resetCaches();
+
+    // Abrir um treino monta WorkoutStartScreen e useActiveWorkoutSession quase
+    // ao mesmo tempo; ambos chamam loadCatalog.
+    await Promise.all([workoutService.loadCatalog(), workoutService.loadCatalog()]);
+
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+  });
+
+  it("reaproveita o catalogo dentro do TTL e recarrega apos resetCaches", async () => {
+    const { apiClient } = await import("./apiClient");
+    vi.mocked(apiClient.get).mockResolvedValue({
+      content: [{ id: "e-1", name: "Supino", primaryMuscleGroupsList: ["CHEST"] }],
+    });
+
+    const { workoutService } = await import("./workoutService");
+    workoutService.resetCaches();
+
+    await workoutService.loadCatalog();
+    await workoutService.loadCatalog();
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+
+    // O logout zera os caches, entao o proximo usuario busca de novo.
+    workoutService.resetCaches();
+    await workoutService.loadCatalog();
+    expect(apiClient.get).toHaveBeenCalledTimes(2);
+  });
+
   it("cancela treino ativo com endpoint dedicado", async () => {
     const { apiClient } = await import("./apiClient");
     vi.mocked(apiClient.post).mockResolvedValueOnce(finishedSession);
