@@ -12,10 +12,11 @@ export function SocialFeedScreen({
   streakBurstToken: number;
   onOpenUserProfile?: (username: string) => void;
 }) {
-  const { posts, liveFriends, toggleLike, saveTemplate, isLoading, isLoadingMore, hasMore, error, loadMore, retry } =
+  const { confirmDialog, posts, liveFriends, toggleLike, saveTemplate, isLoading, isLoadingMore, hasMore, error, loadMore, retry } =
     useSocialFeedState();
 
   return (
+    <>
     <SocialFeedView
       posts={posts}
       liveFriends={liveFriends}
@@ -32,5 +33,7 @@ export function SocialFeedScreen({
       onLoadMore={loadMore}
       onRetry={retry}
     />
+    {confirmDialog}
+    </>
   );
 }

@@ -18,6 +18,7 @@ import { useStreakState } from "./hooks/useStreakState";
 import { useWorkoutSessionState } from "./hooks/useWorkoutSessionState";
 import { profileService } from "./services/profileService";
 import type { WorkoutCompletionDraft, WorkoutCompletionSummary } from "./types/workout";
+import { Toaster } from "./components/ui/sonner";
 
 setupIonicReact({ mode: "md" });
 
@@ -396,6 +397,7 @@ export default function App() {
           </IonFooter>
         )}
       </IonPage>
+      <Toaster />
     </IonApp>
   );
 }

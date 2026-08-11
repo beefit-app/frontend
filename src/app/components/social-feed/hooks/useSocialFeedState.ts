@@ -1,3 +1,6 @@
+import { toast } from "sonner";
+import { messages } from "../../../constants/messages";
+import { useConfirm } from "../../../hooks/useConfirm";
 import { useEffect, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
 import { socialFeedStorage } from "../../../storage/socialFeedStorage";
@@ -13,6 +16,8 @@ function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
 }
 
 export function useSocialFeedState() {
+  // O dialogo e devolvido para a view montar: este arquivo e .ts e nao renderiza.
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [posts, setPosts] = useState<SocialFeedPost[]>([]);
   const [liveFriends, setLiveFriends] = useState<LiveFriend[]>(() => socialFeedStorage.getLiveFriends());
   const [isLoading, setIsLoading] = useState(true);
@@ -108,13 +113,17 @@ export function useSocialFeedState() {
   async function saveTemplate(id: string | number) {
     const post = posts.find((p) => p.id === id);
     const templateName = post?.title || (post ? `Treino de ${post.author}` : "Meu Treino Importado");
-    const confirmCopy = window.confirm(`Deseja copiar o template "${templateName}" para o seu inventário?`);
-    if (!confirmCopy) return;
+    const confirmed = await confirm({
+      title: "Copiar treino?",
+      description: `"${templateName}" será salvo como template no seu inventário.`,
+      confirmLabel: "Copiar",
+    });
+    if (!confirmed) return;
     try {
       await socialFeedService.importTemplate(id, templateName);
       setPosts((current) => current.map((post) => (post.id === id ? { ...post, templateSaved: true } : post)));
     } catch {
-      alert("Não foi possível copiar o treino.");
+      toast.error(messages.actionFailed("copiar o treino"));
     }
   }
 
@@ -139,6 +148,7 @@ export function useSocialFeedState() {
   }
 
   return {
+    confirmDialog,
     posts,
     liveFriends,
     isLoading,

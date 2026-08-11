@@ -4,7 +4,10 @@ import { Check, Dumbbell, FolderKanban } from "lucide-react";
 import { ActiveWorkoutScreen } from "./ActiveWorkoutScreen";
 import { BeeButton } from "./BeeButton";
 import { PageBackground } from "./PageBackground";
+import { toast } from "sonner";
 import { useAuth } from "../auth/AuthContext";
+import { messages } from "../constants/messages";
+import { useConfirm } from "../hooks/useConfirm";
 import {
   persistWorkoutPhoto,
   removePersistedWorkoutPhoto,
@@ -76,6 +79,7 @@ export function WorkoutStartScreen({
   onWorkoutCompleted,
 }: WorkoutStartScreenProps) {
   const { user } = useAuth();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [workoutTemplates, setWorkoutTemplates] = useState(() => workoutService.getTemplates());
@@ -438,7 +442,9 @@ export function WorkoutStartScreen({
     const rarity = formatCardRarity(card.rarity);
     const attackPower = Math.round(card.attackPower);
     const recordMessage = card.isPersonalRecord ? " Novo recorde pessoal." : "";
-    window.alert(`Carta gerada: ${rarity} - ${attackPower} de poder.${recordMessage}`);
+    toast.success(`Carta ${rarity} gerada`, {
+      description: `${attackPower} de poder.${recordMessage}`,
+    });
   }
 
   async function handleStartWorkout() {
@@ -508,6 +514,7 @@ export function WorkoutStartScreen({
 
   if (activeWorkoutConfig) {
     return (
+      <>
       <ActiveWorkoutScreen
         workoutId={activeWorkoutConfig.workoutId}
         userId={user?.id}
@@ -553,7 +560,7 @@ export function WorkoutStartScreen({
             } catch (error) {
               // O rascunho pendente continua salvo; a retomada tenta de novo quando
               // houver conexao, reusando a mesma Idempotency-Key.
-              window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o treino.");
+              toast.error(error instanceof Error ? error.message : messages.actionFailed("finalizar o treino"));
             } finally {
               isPreparingFinishRef.current = false;
             }
@@ -568,23 +575,40 @@ export function WorkoutStartScreen({
           });
         }}
         onCancelWorkout={async () => {
-          if (!activeWorkoutConfig.workoutId || !window.confirm("Cancelar este treino? Os registros não poderão ser recuperados.")) return false;
+          if (!activeWorkoutConfig.workoutId) return false;
+          const confirmed = await confirm({
+            title: "Cancelar este treino?",
+            description: "Os registros desta sessão não poderão ser recuperados.",
+            confirmLabel: "Cancelar treino",
+            cancelLabel: "Continuar treinando",
+            destructive: true,
+          });
+          if (!confirmed) return false;
           try {
             await workoutService.cancelWorkout(activeWorkoutConfig.workoutId);
             await closeActiveWorkout();
             return true;
           } catch (error) {
-            window.alert(error instanceof Error ? error.message : "Não foi possível cancelar o treino.");
+            toast.error(error instanceof Error ? error.message : messages.actionFailed("cancelar o treino"));
             return false;
           }
         }}
         onSaveTemplate={async (groups, exercises) => {
           if (exercises.length === 0) {
-            window.alert("Adicione ao menos um exercício antes de salvar o template.");
+            toast.error("Adicione ao menos um exercício antes de salvar o template.");
             return false;
           }
-          const name = window.prompt("Nome do template");
-          if (!name?.trim()) return false;
+          const name = await confirm({
+            title: "Salvar como template",
+            description: "O template guarda os grupos e exercícios desta sessão.",
+            confirmLabel: "Salvar",
+            input: {
+              label: "Nome do template",
+              placeholder: "Ex: Peito e tríceps",
+              validate: (value) => (value.trim() ? "" : messages.required("um nome para o template")),
+            },
+          });
+          if (typeof name !== "string" || !name.trim()) return false;
           try {
             await workoutService.createTemplate({
               name: name.trim(),
@@ -592,15 +616,17 @@ export function WorkoutStartScreen({
               exerciseIds: exercises.map((exercise) => exercise.catalogId),
             });
             setWorkoutTemplates(await workoutService.loadTemplates());
-            window.alert("Template salvo.");
+            toast.success("Template salvo.");
             return true;
           } catch (error) {
-            window.alert(error instanceof Error ? error.message : "Não foi possível salvar o template.");
+            toast.error(error instanceof Error ? error.message : messages.actionFailed("salvar o template"));
             return false;
           }
         }}
         onBack={() => {}}
       />
+      {confirmDialog}
+      </>
     );
   }
 

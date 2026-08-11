@@ -7,6 +7,7 @@ import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
 import type { AccountSettingsSaveInput } from "../types";
 import { messages } from "../../../constants/messages";
+import { useConfirm } from "../../../hooks/useConfirm";
 import { SectionLabel } from "./shared";
 
 export function AccountSettingsScreen({
@@ -36,6 +37,7 @@ export function AccountSettingsScreen({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const EyeToggleIcon = ({ visible }: { visible: boolean }) => (visible ? <EyeOff size={18} /> : <Eye size={18} />);
 
@@ -196,8 +198,17 @@ export function AccountSettingsScreen({
                   </p>
                   <BeeInput label="Confirme sua senha" type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} disabled={isSubmitting} />
                   <BeeButton variant="dark" fullWidth disabled={isSubmitting || !deletePassword.trim()} onClick={() => {
-                    if (!window.confirm("Excluir permanentemente sua conta?")) return;
-                    void onDeleteAccount?.(deletePassword).then((deleted) => { if (deleted) setDeletePassword(""); });
+                    void (async () => {
+                      const confirmed = await confirm({
+                        title: "Excluir permanentemente sua conta?",
+                        description: "Seus treinos, posts, mídias, cartas e relações sociais serão removidos. Esta ação não pode ser desfeita.",
+                        confirmLabel: "Excluir conta",
+                        destructive: true,
+                      });
+                      if (!confirmed) return;
+                      const deleted = await onDeleteAccount?.(deletePassword);
+                      if (deleted) setDeletePassword("");
+                    })();
                   }}>
                     Excluir permanentemente
                   </BeeButton>
@@ -314,6 +325,7 @@ export function AccountSettingsScreen({
           </IonCol>
         </IonRow>
       </IonGrid>
+      {confirmDialog}
     </PageBackground>
   );
 }

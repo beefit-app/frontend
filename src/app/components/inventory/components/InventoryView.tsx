@@ -27,6 +27,9 @@ import {
   RARITY_META,
 } from "../constants";
 import type { InventoryCard, InventoryFilters, InventoryMuscleGroup, InventoryRarity } from "../types";
+import { toast } from "sonner";
+import { messages } from "../../../constants/messages";
+import { useConfirm } from "../../../hooks/useConfirm";
 
 type InventoryTab = "cards" | "templates";
 
@@ -1118,16 +1121,24 @@ export function InventoryView({
     setTemplateFormOpen(true);
   }
 
+  const { confirm, dialog: confirmDialog } = useConfirm();
+
   async function deleteSelectedTemplate() {
     if (!selectedTemplate) return;
-    if (!window.confirm(`Excluir o template "${selectedTemplate.name}"?`)) return;
+    const confirmed = await confirm({
+      title: "Excluir template?",
+      description: `"${selectedTemplate.name}" será removido do seu inventário.`,
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!confirmed) return;
 
     try {
       await onDeleteTemplate(selectedTemplate.id);
       setTemplateMenuOpen(false);
       setSelectedTemplate(null);
     } catch (cause) {
-      window.alert(cause instanceof Error ? cause.message : "Não foi possível excluir o template.");
+      toast.error(cause instanceof Error ? cause.message : messages.actionFailed("excluir o template"));
     }
   }
 
@@ -1386,6 +1397,7 @@ export function InventoryView({
         onOpenChange={setTemplateFormOpen}
         onSubmit={submitTemplate}
       />
+      {confirmDialog}
     </PageBackground>
   );
 }
