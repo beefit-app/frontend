@@ -48,8 +48,17 @@ export interface WorkoutDraft {
   selectedGroups: string[];
   exercises: WorkoutExercise[];
   shouldPostWorkout: boolean;
-  shouldSaveTemplate: boolean;
-  updatedAt: string;
+  shouldSaveTemplate?: boolean;
+  updatedAt: string | number;
+  startedAt?: number;
+  // Estado da finalizacao offline: o rascunho sobrevive ao fechamento do app e
+  // e retomado por WorkoutStartScreen quando ha conexao e sessao valida.
+  pendingFinish?: boolean;
+  idempotencyKey?: string;
+  finishedAt?: string;
+  photoUrl?: string | null;
+  photoFileName?: string | null;
+  photoMediaId?: string | null;
 }
 
 export interface WorkoutCompletionSummary {

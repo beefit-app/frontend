@@ -25,4 +25,15 @@ export const appStorage = {
     if (!hasLocalStorage()) return;
     window.localStorage.removeItem(key);
   },
+
+  async keys(prefix: string) {
+    if (!hasLocalStorage()) return [];
+
+    const matches: string[] = [];
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(prefix)) matches.push(key);
+    }
+    return matches;
+  },
 };

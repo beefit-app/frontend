@@ -114,10 +114,10 @@ export function WorkoutStartScreen({
 
   async function clearActiveWorkoutLocally() {
     isClosingWorkoutRef.current = true;
-    const draft = await workoutDraftStorage.get();
+    const draft = await workoutDraftStorage.getCurrentDraft(user?.id);
     await removePersistedWorkoutPhoto(draft?.photoFileName);
     resetWorkoutState();
-    await workoutDraftStorage.clear();
+    await workoutDraftStorage.clearDrafts(user?.id);
     onActiveWorkoutChange?.(null);
   }
 
@@ -220,7 +220,7 @@ export function WorkoutStartScreen({
     let active = true;
 
     async function restoreActiveWorkout() {
-      const persisted = await workoutDraftStorage.get();
+      const persisted = await workoutDraftStorage.getCurrentDraft(user?.id);
       try {
         if (persisted?.pendingFinish && persisted.workoutId) {
           const restoredPhoto = persisted.photoFileName && !persisted.photoMediaId
@@ -245,7 +245,7 @@ export function WorkoutStartScreen({
           if (!active) return;
           if (persistedSession.status === "FINISHED") {
             await removePersistedWorkoutPhoto(persisted.photoFileName);
-            await workoutDraftStorage.clear();
+            await workoutDraftStorage.clearDrafts(user?.id);
             onActiveWorkoutChange?.(null);
             onWorkoutCompleted?.(pendingDraft);
             showGeneratedCardMessage(null, persistedSession);
@@ -254,7 +254,7 @@ export function WorkoutStartScreen({
 
           if (persistedSession.status !== "IN_PROGRESS") {
             await removePersistedWorkoutPhoto(persisted.photoFileName);
-            await workoutDraftStorage.clear();
+            await workoutDraftStorage.clearDrafts(user?.id);
             setStartError("A finalização pendente não pôde ser retomada porque o treino não está mais ativo.");
             return;
           }
@@ -288,7 +288,7 @@ export function WorkoutStartScreen({
 
         const session = await workoutService.getActiveWorkout();
         if (!active || !session) {
-          if (active) await workoutDraftStorage.clear();
+          if (active) await workoutDraftStorage.clearDrafts(user?.id);
           return;
         }
         const startedAt = session.startedAt;
@@ -483,7 +483,8 @@ export function WorkoutStartScreen({
         }}
         onDraftChange={(draft) => {
           if (activeWorkoutConfig.pendingFinish) return;
-          void workoutDraftStorage.set({
+          void workoutDraftStorage.saveDraft({
+            userId: user?.id ?? "",
             workoutId: activeWorkoutConfig.workoutId ?? "",
             startedAt: activeWorkoutConfig.startedAt,
             selectedGroups: draft.selectedGroups,

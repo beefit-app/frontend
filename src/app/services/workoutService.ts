@@ -302,13 +302,17 @@ export const workoutService = {
   },
 
   getGroupedCatalog(exercises: ExerciseCatalogItem[] = catalogCache) {
-    const groupOrder = workoutDataSource.getGroupOrder();
+    const groupOrder: readonly string[] = workoutDataSource.getGroupOrder();
 
-    return groups.map((group) => ({
-      groupId: group.id,
-      group: group.label,
-      items: exercises.filter((exercise) => exercise.groupId === group.id),
-    }));
+    return workoutDataSource
+      .getMuscleGroups()
+      .slice()
+      .sort((first, second) => groupOrder.indexOf(first.label) - groupOrder.indexOf(second.label))
+      .map((group) => ({
+        groupId: group.id,
+        group: group.label,
+        items: exercises.filter((exercise) => exercise.groupId === group.id),
+      }));
   },
 
   getCatalogByGroupId(groupId: string, exercises: ExerciseCatalogItem[] = catalogCache) {
