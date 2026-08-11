@@ -687,8 +687,8 @@ export function SocialView({
               </div>
 
               <div className="pr-[98px]">
-                <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
-                  Social<span className="text-[#FFD700]">.</span>
+                <h1 className="font-montserrat text-[34px] font-[800] leading-none text-[#FFD700]">
+                  Social.
                 </h1>
               </div>
               <p className="mt-2 max-w-[320px] font-inter text-[14px] leading-[1.45] text-[#A3A3A3]">

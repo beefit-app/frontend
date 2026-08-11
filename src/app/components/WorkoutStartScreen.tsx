@@ -637,14 +637,14 @@ export function WorkoutStartScreen({
               <h1
                 style={{
                   margin: 0,
-                  color: "#FFFFFF",
+                  color: "#FFD700",
                   fontFamily: "var(--font-montserrat)",
                   fontSize: 34,
                   fontWeight: 800,
                   lineHeight: 1,
                 }}
               >
-                Início do treino<span style={{ color: "#FFD700" }}>.</span>
+                Início do treino.
               </h1>
               <IonText
                 style={{
