@@ -6,6 +6,8 @@ import { BeeInput } from "./BeeInput";
 import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { extractFieldErrors } from "../services/apiClient";
+import { BeeAlert } from "./BeeAlert";
+import { PASSWORD_MIN_LENGTH, WEIGHT_MAX_KG, WEIGHT_MIN_KG, messages } from "../constants/messages";
 
 interface RegisterScreenProps {
   onNavigateToLogin: () => void;
@@ -48,13 +50,13 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "Informe seu nome completo.";
+    if (!form.name.trim()) e.name = messages.required("seu nome completo");
     if (!form.username.trim()) e.username = "Escolha um nome de usuário.";
-    if (!form.email) e.email = "Informe seu e-mail.";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Informe um e-mail válido, como nome@email.com.";
-    if (!form.password) e.password = "Crie uma senha.";
-    else if (form.password.length < 6) e.password = "A senha precisa de pelo menos 6 caracteres.";
-    if (!form.weeklyGoal) e.weeklyGoal = "Informe sua meta semanal.";
+    if (!form.email) e.email = messages.required("seu e-mail");
+    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = messages.emailInvalid;
+    if (!form.password) e.password = messages.passwordCreate;
+    else if (form.password.length < PASSWORD_MIN_LENGTH) e.password = messages.passwordMin;
+    if (!form.weeklyGoal) e.weeklyGoal = messages.required("sua meta semanal");
     // O backend exige @Min(1) @Max(7); validar o teto aqui evita uma ida ao
     // servidor para um erro que da para prever.
     else if (
@@ -62,11 +64,14 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
       Number(form.weeklyGoal) < 1 ||
       Number(form.weeklyGoal) > 7
     )
-      e.weeklyGoal = "A meta semanal deve ser de 1 a 7 dias.";
-    if (!form.weight) e.weight = "Informe seu peso.";
-    else if (isNaN(Number(form.weight)) || Number(form.weight) <= 0)
-      e.weight = "O peso deve ser maior que zero.";
-    else if (Number(form.weight) > 300) e.weight = "O peso deve ser de até 300 kg.";
+      e.weeklyGoal = messages.weeklyGoalRange;
+    if (!form.weight) e.weight = messages.required("seu peso");
+    else if (
+      isNaN(Number(form.weight)) ||
+      Number(form.weight) < WEIGHT_MIN_KG ||
+      Number(form.weight) > WEIGHT_MAX_KG
+    )
+      e.weight = messages.weightRange;
     return e;
   }
 
@@ -334,18 +339,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                     </div>
                   </div>
 
-                  {authError && !isAuthErrorHandled && (
-                    <IonText
-                      style={{
-                        fontFamily: "var(--font-inter)",
-                        fontSize: 13,
-                        color: "#F87171",
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {authError}
-                    </IonText>
-                  )}
+                  {authError && !isAuthErrorHandled && <BeeAlert>{authError}</BeeAlert>}
 
                   <div className="mt-2">
                     <BeeButton

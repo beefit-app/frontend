@@ -6,6 +6,7 @@ import { BeeCard } from "../../BeeCard";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
 import type { AccountSettingsSaveInput } from "../types";
+import { messages } from "../../../constants/messages";
 import { SectionLabel } from "./shared";
 
 export function AccountSettingsScreen({
@@ -43,15 +44,15 @@ export function AccountSettingsScreen({
     const isChangingPassword = Boolean(currentPassword || newPassword || confirmPassword);
 
     if (isChangingPassword) {
-      if (!currentPassword) nextErrors.currentPassword = "Digite sua senha atual";
-      if (!newPassword) nextErrors.newPassword = "Digite a nova senha";
+      if (!currentPassword) nextErrors.currentPassword = messages.required("sua senha atual");
+      if (!newPassword) nextErrors.newPassword = messages.required("a nova senha");
       else if (newPassword.length < 6) {
-        nextErrors.newPassword = "Mínimo de 6 caracteres";
+        nextErrors.newPassword = messages.passwordMin;
       }
-      if (!confirmPassword) nextErrors.confirmPassword = "Confirme a nova senha";
-      else if (confirmPassword !== newPassword) nextErrors.confirmPassword = "As senhas não coincidem";
+      if (!confirmPassword) nextErrors.confirmPassword = messages.required("a confirmação da nova senha");
+      else if (confirmPassword !== newPassword) nextErrors.confirmPassword = messages.passwordMismatch;
       if (currentPassword && newPassword && currentPassword === newPassword) {
-        nextErrors.newPassword = "A nova senha deve ser diferente da atual";
+        nextErrors.newPassword = messages.passwordSameAsCurrent;
       }
     }
 

@@ -6,6 +6,19 @@
   --font-inter: 'Inter', sans-serif;
   --beefit-page-gradient-top: -180px;
   --beefit-page-gradient-height: 540px;
+
+  /* Cores de estado dos avisos (BeeAlert e toasts). Substituem os tres vermelhos
+     soltos que estavam espalhados pelas telas. Nao usam o --destructive do
+     shadcn: aquele token e calibrado para fundo claro e some no fundo #0A0A0A. */
+  --beefit-danger: #F87171;
+  --beefit-danger-border: rgba(239, 68, 68, 0.28);
+  --beefit-danger-surface: rgba(239, 68, 68, 0.08);
+  --beefit-success: #4ADE80;
+  --beefit-success-border: rgba(34, 197, 94, 0.28);
+  --beefit-success-surface: rgba(34, 197, 94, 0.08);
+  --beefit-info: #FFD700;
+  --beefit-info-border: rgba(255, 215, 0, 0.28);
+  --beefit-info-surface: rgba(255, 215, 0, 0.08);
   --ion-font-family: var(--font-inter);
   --ion-background-color: #0A0A0A;
   --ion-background-color-rgb: 10, 10, 10;

@@ -7,6 +7,7 @@ import { BeeCard } from "../../BeeCard";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
 import type { ProfileData } from "../types";
+import { WEIGHT_MAX_KG, WEIGHT_MIN_KG, messages } from "../../../constants/messages";
 import { BeeTextarea, HexAvatar } from "./shared";
 import { profileService } from "../../../services/profileService";
 import { revokeObjectUrl, validateImageFile } from "../../../platform/mediaValidation";
@@ -38,13 +39,13 @@ export function ProfileEdit({
   function validate() {
     const nextErrors: Record<string, string> = {};
 
-    if (!displayName.trim()) nextErrors.displayName = "Nome é obrigatório";
-    if (displayName.trim().length > 40) nextErrors.displayName = "Máximo 40 caracteres";
-    if (bio.length > 200) nextErrors.bio = "Máximo 200 caracteres";
+    if (!displayName.trim()) nextErrors.displayName = messages.required("seu nome");
+    if (displayName.trim().length > 40) nextErrors.displayName = messages.maxLength(40);
+    if (bio.length > 200) nextErrors.bio = messages.maxLength(200);
 
     const parsedWeight = parseFloat(weight);
-    if (weight && (isNaN(parsedWeight) || parsedWeight < 30 || parsedWeight > 300)) {
-      nextErrors.weight = "Peso inválido (30–300 kg)";
+    if (weight && (isNaN(parsedWeight) || parsedWeight < WEIGHT_MIN_KG || parsedWeight > WEIGHT_MAX_KG)) {
+      nextErrors.weight = messages.weightRange;
     }
 
     return nextErrors;

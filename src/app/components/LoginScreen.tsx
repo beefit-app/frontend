@@ -5,6 +5,8 @@ import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
 import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
+import { BeeAlert } from "./BeeAlert";
+import { messages } from "../constants/messages";
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
@@ -19,9 +21,9 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
 
   function validate() {
     const e: typeof errors = {};
-    if (!email) e.email = "E-mail é obrigatório";
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = "E-mail inválido";
-    if (!password) e.password = "Senha é obrigatória";
+    if (!email) e.email = messages.required("seu e-mail");
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = messages.emailInvalid;
+    if (!password) e.password = messages.required("sua senha");
     return e;
   }
 
@@ -175,18 +177,7 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                     }
                   />
 
-                  {authError && (
-                    <IonText
-                      style={{
-                        fontFamily: "var(--font-inter)",
-                        fontSize: 13,
-                        color: "#F87171",
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {authError}
-                    </IonText>
-                  )}
+                  {authError && <BeeAlert>{authError}</BeeAlert>}
 
                   <div className="mt-2">
                     <BeeButton type="submit" variant="primary" fullWidth disabled={isSubmitting}>

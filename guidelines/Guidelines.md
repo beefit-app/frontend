@@ -145,6 +145,23 @@ Regras:
 - Evitar acoplar decisões de persistência diretamente à UI.
 - Quando uma tela emitir dados que depois irão para backend, usar estruturas explícitas e semânticas.
 
+## Mensagens de erro
+
+- **O texto vem de `src/app/constants/messages.ts`**, não escrito à mão na tela. A mesma
+  regra tinha textos diferentes por tela antes disso; se a mensagem se repete em mais de
+  um lugar, ela pertence ao catálogo.
+- Estilo: frase completa, primeira letra maiúscula, **ponto final**, em português, dizendo
+  **o que fazer** em vez de só apontar o erro — "Informe um e-mail válido, como
+  nome@email.com." e não "E-mail inválido".
+- Falha de operação segue a família já consolidada: `Não foi possível <verbo> <objeto>.`
+- **Erro de campo** vai no `error` do `BeeInput`, que já cuida da borda vermelha e da
+  associação com leitor de tela. **Erro de tela** usa `BeeAlert`.
+- **Nunca use `window.alert`, `window.confirm` ou `window.prompt`**: no app empacotado eles
+  aparecem com a cara do sistema operacional e ignoram a identidade visual. Use `toast()`
+  do sonner para aviso passageiro e `useConfirm` para decisão.
+- Cores de estado saem dos tokens `--beefit-danger`, `--beefit-success` e `--beefit-info`
+  em `theme.css`. Não repita hex de vermelho na tela.
+
 ## Dados locais e segurança
 
 - **Todo dado do usuário guardado no aparelho precisa sair no logout.** O ponto único é
