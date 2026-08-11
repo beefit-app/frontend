@@ -62,12 +62,13 @@ interface BackendWorkoutSession {
   muscleGroups: string[];
   isPrivate: boolean;
   exercises: BackendSessionExercise[];
+  // WorkoutCardResponseDTO nao expoe muscleIntensities; esse campo so chega pelo
+  // evento SSE CARD_GENERATED.
   card?: {
     id: string;
     attackPower: number;
     rarity: string;
     muscleGroup: string;
-    muscleIntensities: Record<string, number>;
     isPersonalRecord: boolean;
   } | null;
 }
@@ -189,9 +190,27 @@ function normalizeCompletionSummary(response: BackendWorkoutSession): WorkoutCom
   };
 }
 
+function normalizeWorkoutResult(response: BackendWorkoutSession): WorkoutCompletionResult {
+  return {
+    ...normalizeCompletionSummary(response),
+    card: response.card
+      ? {
+          id: response.card.id,
+          attackPower: response.card.attackPower,
+          rarity: response.card.rarity,
+          muscleGroup: normalizeGroupId(response.card.muscleGroup),
+          isPersonalRecord: response.card.isPersonalRecord,
+        }
+      : null,
+  };
+}
+
 function toFinishPayload(draft: WorkoutCompletionDraft) {
   return {
-    finishedAt: new Date().toISOString(),
+    // O backend guarda um hash deste corpo junto da Idempotency-Key e recusa a
+    // mesma chave com conteudo divergente, entao o carimbo vem do rascunho e
+    // nao pode ser recalculado a cada tentativa.
+    finishedAt: draft.finishedAt,
     title: draft.title,
     shouldPostWorkout: draft.shouldPostWorkout,
     muscleGroups: draft.selectedGroups.map(toApiMuscleGroup),
@@ -354,16 +373,39 @@ export const workoutService = {
   async finishWorkout(
     draft: WorkoutCompletionDraft,
     onPrepared?: (preparedDraft: WorkoutCompletionDraft) => Promise<void>,
-  ) {
+  ): Promise<WorkoutCompletionResult> {
     if (!draft.workoutId) {
       throw new Error("Sessão de treino sem ID do backend.");
     }
+
+    // O mediaId entra no hash de idempotencia do backend: a foto sobe uma vez so e
+    // o id resultante e devolvido ao chamador antes do POST, para que uma retomada
+    // reproduza o mesmo corpo em vez de subir a foto de novo.
+    const photoMediaId =
+      draft.photoMediaId ?? (draft.photoFile ? await this.uploadWorkoutPhoto(draft.photoFile) : null);
+    const preparedDraft: WorkoutCompletionDraft = { ...draft, photoMediaId };
+    await onPrepared?.(preparedDraft);
 
     const response = await apiClient.post<BackendWorkoutSession>(
       `/api/workout/${draft.workoutId}/finish`,
       { ...toFinishPayload(preparedDraft), photoMediaId },
       { auth: true, headers: { "Idempotency-Key": draft.idempotencyKey } },
     );
+
+    // shouldSaveTemplate nao existe no FinishWorkoutSnapshotRequestDTO; salvar o
+    // template e uma chamada separada.
+    if (draft.shouldSaveTemplate) {
+      const createdTemplate = await apiClient.post<BackendTemplate>(
+        "/api/templates",
+        toTemplatePayload(preparedDraft),
+        { auth: true },
+      );
+      templatesCache = [
+        normalizeTemplate(createdTemplate),
+        ...templatesCache.filter((template) => template.id !== createdTemplate.id),
+      ];
+    }
+
     return normalizeWorkoutResult(response);
   },
 
@@ -378,34 +420,12 @@ export const workoutService = {
     };
   },
 
-  async getActiveWorkout() {
-    const response = await apiClient.get<BackendWorkoutSession | null>("/api/workout/active", { auth: true });
-    if (!response) return null;
-    return {
-      id: response.id,
-      startedAt: new Date(response.startedAt).getTime(),
-      muscleGroups: response.muscleGroups.map((group) => getGroupLabel(normalizeGroupId(group))),
-      exercises: response.exercises.map(normalizeSessionExercise),
-    };
-  },
-
-  async cancelWorkout(workoutId: string) {
-    return apiClient.post<BackendWorkoutSession>(`/api/workout/${workoutId}/cancel`, undefined, { auth: true });
-  },
-
   async addMuscleGroup(workoutId: string, groupId: string) {
     return apiClient.post<BackendWorkoutSession>(
-      `/api/workout/${workoutId}/muscle-groups/${encodeURIComponent(groupId)}`,
+      `/api/workout/${workoutId}/muscle-groups/${encodeURIComponent(toApiMuscleGroup(groupId))}`,
       undefined,
       { auth: true },
     );
-
-    if (draft.shouldSaveTemplate) {
-      const createdTemplate = await apiClient.post<BackendTemplate>("/api/templates", toTemplatePayload(draft), { auth: true });
-      templatesCache = [normalizeTemplate(createdTemplate), ...templatesCache.filter((template) => template.id !== createdTemplate.id)];
-    }
-
-    return normalizeCompletionSummary(response);
   },
 
   async cancelWorkout(workoutId: string | null | undefined) {

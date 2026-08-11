@@ -24,7 +24,6 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
         shouldPostWorkout={session.shouldPostWorkout}
         shouldSaveTemplate={session.shouldSaveTemplate}
         ghostModeEnabled={props.ghostModeEnabled ?? false}
-        elapsedSeconds={session.elapsedSeconds}
         onBack={() => {
           session.setFinishValidationError("");
           session.setIsFinishingWorkout(false);

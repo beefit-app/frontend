@@ -1,5 +1,7 @@
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
-import { Bookmark, Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-react";
+import { CameraSource } from "@capacitor/camera";
+import { Capacitor } from "@capacitor/core";
+import { AlertTriangle, Bookmark, Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-react";
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";

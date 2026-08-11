@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { workoutService } from "../../../services/workoutService";
 import { workoutDraftStorage } from "../../../storage/workoutDraftStorage";
-import type { ExerciseCatalogItem, WorkoutCompletionDraft, WorkoutExercise } from "../../../types/workout";
+import type {
+  ExerciseCatalogItem,
+  WorkoutCompletionDraft,
+  WorkoutDraft,
+  WorkoutExercise,
+} from "../../../types/workout";
 import type { ActiveWorkoutScreenProps, DetailViewSource } from "../types";
 import {
   calculateEstimatedCalories,
@@ -21,6 +26,13 @@ export function useActiveWorkoutSession({
   initialDraft = null,
   bodyWeightKg,
   ghostModeEnabled = false,
+  initialFinishPhotoFile = null,
+  initialFinishIdempotencyKey = null,
+  initialFinishFinishedAt = null,
+  initialFinishPhotoMediaId = null,
+  initialFinishTitle = null,
+  initialShouldPostWorkout,
+  pendingFinish = false,
   onWorkoutComplete,
   onSessionGroupsChange,
   onDraftChange,
@@ -36,6 +48,13 @@ export function useActiveWorkoutSession({
   | "initialDraft"
   | "bodyWeightKg"
   | "ghostModeEnabled"
+  | "initialFinishPhotoFile"
+  | "initialFinishIdempotencyKey"
+  | "initialFinishFinishedAt"
+  | "initialFinishPhotoMediaId"
+  | "initialFinishTitle"
+  | "initialShouldPostWorkout"
+  | "pendingFinish"
   | "onWorkoutComplete"
   | "onSessionGroupsChange"
   | "onDraftChange"
@@ -57,9 +76,19 @@ export function useActiveWorkoutSession({
       ? initialSessionExercises
       : initialExercises.map((exercise) => createExerciseCard(exercise, { withInitialSet: false })),
   );
-  const [finishTitle, setFinishTitle] = useState(initialDraft?.title ?? selectedGroups.join(" & "));
+  const [finishTitle, setFinishTitle] = useState(
+    initialFinishTitle ?? initialDraft?.title ?? selectedGroups.join(" & "),
+  );
   const [finishPhotoUrl, setFinishPhotoUrl] = useState<string | null>(null);
-  const [shouldPostWorkout, setShouldPostWorkout] = useState(initialDraft?.shouldPostWorkout ?? !ghostModeEnabled);
+  const [finishPhotoFile, setFinishPhotoFile] = useState<File | null>(initialFinishPhotoFile);
+  // Chave e carimbo nascem uma unica vez por sessao: reabrir a tela de conclusao ou
+  // reclicar "concluir" tem de reenviar o mesmo corpo, senao o backend responde
+  // IdempotencyConflictException em vez de tratar a repeticao como no-op.
+  const [finishIdempotencyKey] = useState(() => initialFinishIdempotencyKey || crypto.randomUUID());
+  const [finishFinishedAt, setFinishFinishedAt] = useState(initialFinishFinishedAt ?? "");
+  const [shouldPostWorkout, setShouldPostWorkout] = useState(
+    initialShouldPostWorkout ?? initialDraft?.shouldPostWorkout ?? !ghostModeEnabled,
+  );
   const [shouldSaveTemplate, setShouldSaveTemplate] = useState(initialDraft?.shouldSaveTemplate ?? false);
   const [finishTitleError, setFinishTitleError] = useState("");
   const [finishValidationError, setFinishValidationError] = useState("");
@@ -186,10 +215,13 @@ export function useActiveWorkoutSession({
     onDraftChangeRef.current?.({ exercises, selectedGroups: sessionGroups });
   }, [exercises, sessionGroups]);
 
+  // Este efeito e o unico escritor do rascunho enquanto o treino esta em andamento.
+  // Depois que a finalizacao vira pendente, quem manda e persistPendingFinish: um
+  // save daqui apagaria a Idempotency-Key e o carimbo e quebraria a retomada.
   useEffect(() => {
-    if (!userId || !workoutId) return;
+    if (!userId || !workoutId || pendingFinish) return;
 
-    const draft = {
+    const draft: WorkoutDraft = {
       userId,
       workoutId,
       title: finishTitle.trim() || defaultFinishTitle,
@@ -197,6 +229,7 @@ export function useActiveWorkoutSession({
       exercises,
       shouldPostWorkout,
       shouldSaveTemplate,
+      startedAt: startedAt ?? undefined,
       updatedAt: new Date().toISOString(),
     };
 
@@ -205,9 +238,11 @@ export function useActiveWorkoutSession({
     defaultFinishTitle,
     exercises,
     finishTitle,
+    pendingFinish,
     sessionGroups,
     shouldPostWorkout,
     shouldSaveTemplate,
+    startedAt,
     userId,
     workoutId,
   ]);
@@ -325,6 +360,11 @@ export function useActiveWorkoutSession({
       return;
     }
 
+    // Carimba na primeira conclusao e reaproveita depois, para que uma segunda
+    // tentativa produza um corpo identico ao da primeira.
+    const finishedAt = finishFinishedAt || new Date().toISOString();
+    if (!finishFinishedAt) setFinishFinishedAt(finishedAt);
+
     const draft: WorkoutCompletionDraft = {
       workoutId,
       title: finishTitle.trim(),
@@ -335,8 +375,8 @@ export function useActiveWorkoutSession({
       selectedGroups: sessionGroups,
       elapsedSeconds,
       exercises,
-      idempotencyKey: finishIdempotencyKey || crypto.randomUUID(),
-      finishedAt: finishFinishedAt || new Date().toISOString(),
+      idempotencyKey: finishIdempotencyKey,
+      finishedAt,
       photoMediaId: initialFinishPhotoMediaId,
     };
 
