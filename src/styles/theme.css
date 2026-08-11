@@ -50,8 +50,19 @@
   --ion-grid-width-xs: 393px;
   --ion-grid-width-sm: 480px;
   --ion-grid-width-md: 560px;
-  --ion-grid-width-lg: 640px;
-  --ion-grid-width-xl: 640px;
+  /* Em tela grande o app nao precisa continuar com a largura de celular; 640px
+     deixavam dois tercos de um monitor de 1920 vazios. .beefit-shell-width e
+     .beefit-sheet-width leem estes mesmos tokens, entao nav e sheets acompanham. */
+  --ion-grid-width-lg: 800px;
+  --ion-grid-width-xl: 960px;
+}
+
+/* O .grid-fixed do Ionic centraliza por margem automatica, mas ela chega zerada
+   aqui — a largura passa e a margem nao. O resultado era a coluna de conteudo
+   colada a esquerda enquanto a barra inferior, que declara margin-inline abaixo,
+   ficava no centro: 320px de desalinhamento num monitor de 1280. */
+ion-grid.grid-fixed {
+  margin-inline: auto;
 }
 
 /* Shared responsive shell width for elements outside ion-grid (header, bottom nav)
@@ -70,6 +81,11 @@
 @media (min-width: 992px) {
   .beefit-shell-width { max-width: var(--ion-grid-width-lg); }
 }
+/* O ion-grid passa a usar o token xl a partir de 1200px; sem este degrau a barra
+   inferior ficava 160px mais estreita que o conteudo que ela acompanha. */
+@media (min-width: 1200px) {
+  .beefit-shell-width { max-width: var(--ion-grid-width-xl); }
+}
 
 /* Bottom sheets follow the shell width from tablet up, but stay full-width on
    phones: a sheet with side gutters on a narrow screen reads as a centered
@@ -86,6 +102,9 @@
 }
 @media (min-width: 992px) {
   .beefit-sheet-width { max-width: var(--ion-grid-width-lg); }
+}
+@media (min-width: 1200px) {
+  .beefit-sheet-width { max-width: var(--ion-grid-width-xl); }
 }
 
 /* O container do toast do sonner combina width:100% com o deslocamento lateral,

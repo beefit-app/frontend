@@ -730,7 +730,11 @@ export function WorkoutStartScreen({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {/* auto-fit em vez de sm:/lg:grid-cols: os prefixos do Tailwind
+                    consultam a largura da TELA, mas este grid vive dentro do shell,
+                    que e limitado. A 1280px o lg: pedia 4 colunas dentro de 640px e
+                    "Desenvolvimento" quebrava no meio da palavra. */}
+                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
                   {muscleGroups.map((group) => {
                     const selected = selectedGroups.includes(group.id);
                     return (
