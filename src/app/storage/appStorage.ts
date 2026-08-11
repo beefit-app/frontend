@@ -1,12 +1,25 @@
+import { Capacitor } from "@capacitor/core";
+import { Preferences } from "@capacitor/preferences";
+
 function hasLocalStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
+function isNative() {
+  return Capacitor.isNativePlatform();
+}
+
+// Mesmo padrao de storage/sessionStorage.ts: no nativo usa o armazenamento do
+// Capacitor, no web cai para localStorage. A API ja era assincrona, entao nenhum
+// call site muda.
 export const appStorage = {
   async getItem<T>(key: string) {
-    if (!hasLocalStorage()) return null;
+    const serializedValue = isNative()
+      ? (await Preferences.get({ key })).value
+      : hasLocalStorage()
+        ? window.localStorage.getItem(key)
+        : null;
 
-    const serializedValue = window.localStorage.getItem(key);
     if (!serializedValue) return null;
 
     try {
@@ -17,16 +30,33 @@ export const appStorage = {
   },
 
   async setItem<T>(key: string, value: T) {
+    const serializedValue = JSON.stringify(value);
+
+    if (isNative()) {
+      await Preferences.set({ key, value: serializedValue });
+      return;
+    }
+
     if (!hasLocalStorage()) return;
-    window.localStorage.setItem(key, JSON.stringify(value));
+    window.localStorage.setItem(key, serializedValue);
   },
 
   async removeItem(key: string) {
+    if (isNative()) {
+      await Preferences.remove({ key });
+      return;
+    }
+
     if (!hasLocalStorage()) return;
     window.localStorage.removeItem(key);
   },
 
   async keys(prefix: string) {
+    if (isNative()) {
+      const { keys } = await Preferences.keys();
+      return keys.filter((key) => key.startsWith(prefix));
+    }
+
     if (!hasLocalStorage()) return [];
 
     const matches: string[] = [];
