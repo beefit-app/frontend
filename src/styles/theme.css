@@ -107,9 +107,11 @@ ion-grid.grid-fixed {
   .beefit-sheet-width { max-width: var(--ion-grid-width-xl); }
 }
 
-/* O container do toast do sonner combina width:100% com o deslocamento lateral,
-   o que o faz ultrapassar a borda em telas estreitas. A regra mobile da propria
-   lib nao vence aqui, entao o teto e imposto direto. Medido em 320/360/390/430. */
+/* Teto medido, nao inferido: com o Toaster ja configurado com offset e
+   mobileOffset, o container do toast continuava chegando a 16px alem da borda em
+   320, 360, 390 e 430 — a auditoria acusou o sangramento nos quatro. Nao investiguei
+   qual regra da lib perde a disputa; o teto abaixo resolve independente disso.
+   Se um dia o sonner mudar, vale reconferir se isto ainda e necessario. */
 [data-sonner-toaster] {
   max-width: calc(100vw - 32px);
 }

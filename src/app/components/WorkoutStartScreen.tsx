@@ -242,14 +242,14 @@ export function WorkoutStartScreen({
       try {
         await workoutService.loadCatalog();
       } catch (error) {
-        latestError = error instanceof Error ? error.message : "Não foi possível carregar o catálogo.";
+        latestError = error instanceof Error ? error.message : messages.actionFailed("carregar o catálogo");
       }
 
       try {
         const templates = await workoutService.loadTemplates();
         if (active) setWorkoutTemplates(templates);
       } catch (error) {
-        latestError = error instanceof Error ? error.message : "Não foi possível carregar os templates.";
+        latestError = error instanceof Error ? error.message : messages.actionFailed("carregar os templates");
       }
 
       // A restauracao da sessao ativa pertence inteiramente ao efeito de
@@ -506,7 +506,7 @@ export function WorkoutStartScreen({
         startedAt: startedSession.startedAt,
       });
     } catch (error) {
-      setStartError(error instanceof Error ? error.message : "Não foi possível iniciar o treino.");
+      setStartError(error instanceof Error ? error.message : messages.actionFailed("iniciar o treino"));
     } finally {
       setIsStartingWorkout(false);
     }
