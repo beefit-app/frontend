@@ -190,6 +190,28 @@ describe("workoutService.finishWorkout", () => {
     expect(apiClient.get).toHaveBeenCalledTimes(2);
   });
 
+  it("descarta os templates que chegam depois do logout", async () => {
+    const { apiClient } = await import("./apiClient");
+    // A requisicao em voo nao e cancelada pelo logout; sem guarda ela grava os
+    // templates do usuario anterior no cache depois do resetCaches.
+    let responderTemplates: (templates: unknown) => void = () => {};
+    vi.mocked(apiClient.get).mockReturnValueOnce(new Promise((resolve) => {
+      responderTemplates = resolve;
+    }));
+
+    const { workoutService } = await import("./workoutService");
+    workoutService.resetCaches();
+
+    const pendente = workoutService.loadTemplates();
+    workoutService.resetCaches();
+    responderTemplates([{ id: "t-1", name: "Push de A", muscleGroups: ["peito"], exercises: [] }]);
+    await pendente;
+
+    // getTemplates e lido de forma sincrona na montagem da tela de treino: o
+    // usuario seguinte nao pode encontrar o template do anterior aqui.
+    expect(workoutService.getTemplates()).toEqual([]);
+  });
+
   it("cancela treino ativo com endpoint dedicado", async () => {
     const { apiClient } = await import("./apiClient");
     vi.mocked(apiClient.post).mockResolvedValueOnce(finishedSession);

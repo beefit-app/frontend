@@ -14,6 +14,11 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<string>>();
 
+// Um download em voo nao e cancelado pelo logout: ele resolve depois e reinsere a
+// foto do usuario anterior no cache. O contador marca "de qual sessao e este
+// download"; quem termina com o numero velho e descartado.
+let generation = 0;
+
 function evictUnused() {
   if (cache.size <= MAX_CACHED_MEDIA) return;
 
@@ -26,6 +31,7 @@ function evictUnused() {
 }
 
 export async function acquireMediaUrl(path: string) {
+  const generationAoPedir = generation;
   const cached = cache.get(path);
   if (cached) {
     cached.refs += 1;
@@ -46,6 +52,15 @@ export async function acquireMediaUrl(path: string) {
   }
 
   const url = await request;
+
+  if (generationAoPedir !== generation) {
+    // O cache foi limpo enquanto isto baixava. Revoga o URL recem-criado — quem
+    // limpou nao tinha como conhece-lo — e nao devolve a midia de uma sessao que
+    // ja acabou.
+    URL.revokeObjectURL(url);
+    throw new Error("Sessão encerrada durante o download da mídia.");
+  }
+
   const entry = cache.get(path);
   if (entry) {
     entry.refs += 1;
@@ -69,6 +84,7 @@ export function releaseMediaUrl(path: string) {
 // e acessiveis por object URL, que e exatamente o vazamento entre contas que o
 // desmonte de sessao existe para evitar.
 export function clearMediaCache() {
+  generation += 1;
   for (const entry of cache.values()) {
     URL.revokeObjectURL(entry.url);
   }

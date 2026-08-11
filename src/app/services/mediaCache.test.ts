@@ -55,6 +55,32 @@ describe("mediaCache", () => {
     expect(revokeObjectURL).not.toHaveBeenCalled();
   });
 
+  it("descarta o download que termina depois do logout", async () => {
+    // A requisicao em voo nao e cancelada pelo logout. Sem uma guarda, ela resolve
+    // depois e reinsere a foto do usuario anterior no cache — o mesmo vazamento
+    // entre contas que clearMediaCache existe para evitar.
+    let resolverDownload: (blob: Blob) => void = () => {};
+    getBlob.mockReturnValueOnce(new Promise<Blob>((resolve) => {
+      resolverDownload = resolve;
+    }));
+
+    const { acquireMediaUrl, clearMediaCache } = await import("./mediaCache");
+    const pendente = acquireMediaUrl("/api/media/foto-de-A").catch(() => "descartado");
+
+    clearMediaCache();
+    resolverDownload(new Blob(["foto"], { type: "image/png" }));
+    await pendente;
+
+    // O object URL criado tarde precisa ser revogado, senao vaza memoria e a foto
+    // continua acessivel.
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:foto-1");
+
+    // E a proxima exibicao tem de buscar de novo, em vez de achar a foto de A no cache.
+    getBlob.mockResolvedValueOnce(new Blob(["outra"], { type: "image/png" }));
+    await acquireMediaUrl("/api/media/foto-de-A");
+    expect(getBlob).toHaveBeenCalledTimes(2);
+  });
+
   it("clearMediaCache revoga tudo, para as fotos nao sobreviverem ao logout", async () => {
     const { acquireMediaUrl, clearMediaCache } = await import("./mediaCache");
 

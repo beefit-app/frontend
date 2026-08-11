@@ -98,6 +98,12 @@ let catalogLoadedAt = 0;
 let catalogRequest: Promise<ExerciseCatalogItem[]> | null = null;
 let templatesCache: WorkoutTemplate[] = [];
 
+// O logout nao cancela requisicao em voo: ela resolve depois e grava no cache que
+// acabou de ser limpo. Para templates isso e vazamento entre contas, porque
+// getTemplates e lido de forma sincrona na montagem da tela de treino. O contador
+// marca de qual sessao e cada requisicao; quem volta com o numero velho e descartado.
+let cacheGeneration = 0;
+
 function extractList<T>(response: T[] | BackendPage<T>) {
   if (Array.isArray(response)) return response;
   return response.content ?? [];
@@ -263,6 +269,7 @@ export const workoutService = {
   // na montagem da tela de treino, entao sem este reset o proximo usuario ve os
   // templates do anterior ate o refetch responder.
   resetCaches() {
+    cacheGeneration += 1;
     catalogCache = [];
     catalogLoadedAt = 0;
     catalogRequest = null;
@@ -277,12 +284,20 @@ export const workoutService = {
     // segunda dispara um download identico enquanto a primeira ainda esta em voo.
     if (catalogRequest) return catalogRequest;
 
+    const generationAoPedir = cacheGeneration;
     catalogRequest = (async () => {
       const response = await apiClient.get<BackendCatalogExercise[] | BackendPage<BackendCatalogExercise>>(
         "/api/exercises?size=1000",
         { auth: true },
       );
-      catalogCache = extractList(response).map(normalizeCatalogExercise);
+      const catalog = extractList(response).map(normalizeCatalogExercise);
+
+      // O catalogo e o mesmo para todo mundo, entao chegar tarde nao vaza dado de
+      // conta — mas gravar num cache ja limpo deixaria catalogLoadedAt mentindo
+      // sobre a validade da entrada.
+      if (generationAoPedir !== cacheGeneration) return catalog;
+
+      catalogCache = catalog;
       catalogLoadedAt = Date.now();
       return catalogCache;
     })().finally(() => {
@@ -305,15 +320,17 @@ export const workoutService = {
   },
 
   async loadTemplates() {
+    const generationAoPedir = cacheGeneration;
     const response = await apiClient.get<BackendTemplate[] | null>("/api/templates", {
       auth: true,
     });
-    if (!response) {
-      templatesCache = [];
-      return templatesCache;
-    }
+    const templates = response ? response.map(normalizeTemplate) : [];
 
-    templatesCache = response.map(normalizeTemplate);
+    // Chegou depois de um resetCaches: devolve ao chamador, que ja esta
+    // desmontando, mas nao grava — o cache pertence a sessao seguinte.
+    if (generationAoPedir !== cacheGeneration) return templates;
+
+    templatesCache = templates;
     return templatesCache;
   },
 
