@@ -8,6 +8,7 @@ import type { WorkoutExercise } from "../../../types/workout";
 import { ACTIVE_WORKOUT_CARD_STYLE, ACTIVE_WORKOUT_SLIDE_STYLE } from "../constants";
 import { formatElapsedTime } from "../utils";
 import { MuscleTag, SurfaceCard } from "./shared";
+import { BeeAlert } from "../../BeeAlert";
 
 function EllipsisActionButton({
   className = "",
@@ -557,17 +558,9 @@ export function ActiveWorkoutView({
         <IonRow className="mt-6">
           <IonCol size="12">
             {finishValidationError && (
-              <p
-                style={{
-                  margin: "0 2px 10px",
-                  fontFamily: "var(--font-inter)",
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  color: "#F87171",
-                }}
-              >
-                {finishValidationError}
-              </p>
+              <div style={{ margin: "0 2px 10px" }}>
+                <BeeAlert plain>{finishValidationError}</BeeAlert>
+              </div>
             )}
             <BeeButton variant="primary" size="lg" fullWidth onClick={onOpenFinish}>
               Concluir treino

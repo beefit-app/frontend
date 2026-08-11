@@ -1,8 +1,8 @@
 import { Scale } from "lucide-react";
 import { useEffect, useState } from "react";
-import { IonText } from "@ionic/react";
 import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import { BeeButton } from "../../BeeButton";
+import { BeeAlert } from "../../BeeAlert";
 import { BeeCard } from "../../BeeCard";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
@@ -151,17 +151,9 @@ export function ProfileEdit({
               </BeeCard>
 
               {saveError && (
-                <IonText
-                  style={{
-                    fontFamily: "var(--font-inter)",
-                    fontSize: 13,
-                    color: "#F87171",
-                    lineHeight: 1.5,
-                    textAlign: "center",
-                  }}
-                >
-                  {saveError}
-                </IonText>
+                <div style={{ textAlign: "center" }}>
+                  <BeeAlert plain>{saveError}</BeeAlert>
+                </div>
               )}
 
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

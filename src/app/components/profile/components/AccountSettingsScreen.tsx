@@ -2,6 +2,7 @@ import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import { ChevronLeft, Eye, EyeOff, Ghost, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { BeeButton } from "../../BeeButton";
+import { BeeAlert } from "../../BeeAlert";
 import { BeeCard } from "../../BeeCard";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
@@ -279,22 +280,7 @@ export function AccountSettingsScreen({
                 </div>
               </BeeCard>
 
-              {saveError && (
-                <div
-                  style={{
-                    borderRadius: 14,
-                    border: "1px solid rgba(248,113,113,0.24)",
-                    background: "rgba(127,29,29,0.18)",
-                    padding: "14px 16px",
-                    fontFamily: "var(--font-inter)",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "#FCA5A5",
-                  }}
-                >
-                  {saveError}
-                </div>
-              )}
+              {saveError && <BeeAlert>{saveError}</BeeAlert>}
 
               {successMessage && (
                 <div

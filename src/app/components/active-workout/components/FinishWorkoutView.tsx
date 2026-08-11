@@ -1,12 +1,13 @@
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 import { CameraSource } from "@capacitor/camera";
 import { Capacitor } from "@capacitor/core";
-import { AlertTriangle, Bookmark, Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-react";
+import { Bookmark, Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-react";
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
 import { formatElapsedTime } from "../utils";
 import { SurfaceCard } from "./shared";
+import { BeeAlert } from "../../BeeAlert";
 import { captureWorkoutPhoto } from "../../../platform/workoutPhoto";
 
 export function FinishWorkoutView({
@@ -413,41 +414,10 @@ export function FinishWorkoutView({
           <IonCol size="12">
             <div style={{ display: "grid", gap: 12 }}>
               {elapsedSeconds < 1800 && (
-                <div
-                  style={{
-                    borderRadius: 18,
-                    border: "1px solid rgba(239, 68, 68, 0.28)",
-                    background: "rgba(239, 68, 68, 0.08)",
-                    padding: "14px 16px",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 12,
-                    marginBottom: 4,
-                  }}
-                >
-                  <AlertTriangle size={18} color="#F87171" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <div style={{ display: "grid", gap: 3 }}>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-montserrat)",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: "#F87171",
-                      }}
-                    >
-                      Aviso de Ofensiva
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-inter)",
-                        fontSize: 12,
-                        lineHeight: 1.5,
-                        color: "#D4D4D4",
-                      }}
-                    >
-                      Treinos com menos de 30 minutos de duração não contabilizam para manter ou aumentar sua ofensiva de <strong>honeys</strong>.
-                    </span>
-                  </div>
+                <div style={{ marginBottom: 4 }}>
+                  <BeeAlert title="Aviso de Ofensiva">
+                    Treinos com menos de 30 minutos de duração não contabilizam para manter ou aumentar sua ofensiva de <strong>honeys</strong>.
+                  </BeeAlert>
                 </div>
               )}
               <BeeButton variant="primary" size="lg" fullWidth onClick={onFinish}>
