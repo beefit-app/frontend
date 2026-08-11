@@ -14,6 +14,16 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme="dark"
       position="top-center"
+      // Recuo do topo pela safe-area: sem isso o toast fica sob a barra de status
+      // num aparelho com notch — invisivel no browser, onde a variavel vale 0.
+      offset={{ top: "calc(var(--ion-safe-area-top, 0px) + 16px)" }}
+      // mobileOffset precisa declarar left e right: so com `offset`, o container
+      // fica com width 100% e left 16px, vazando 16px em toda tela estreita.
+      mobileOffset={{
+        top: "calc(var(--ion-safe-area-top, 0px) + 16px)",
+        left: "16px",
+        right: "16px",
+      }}
       className="toaster group"
       toastOptions={{
         style: {

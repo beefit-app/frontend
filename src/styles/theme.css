@@ -88,6 +88,13 @@
   .beefit-sheet-width { max-width: var(--ion-grid-width-lg); }
 }
 
+/* O container do toast do sonner combina width:100% com o deslocamento lateral,
+   o que o faz ultrapassar a borda em telas estreitas. A regra mobile da propria
+   lib nao vence aqui, entao o teto e imposto direto. Medido em 320/360/390/430. */
+[data-sonner-toaster] {
+  max-width: calc(100vw - 32px);
+}
+
 /* Expands a control's hit area to the 44x44 minimum without touching its
    drawing. The icon buttons in this design are 40px or smaller by intent, so
    growing the element itself would change the layout on every card.
