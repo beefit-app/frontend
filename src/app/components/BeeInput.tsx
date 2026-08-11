@@ -113,7 +113,10 @@ export function BeeInput({
           onIonChange={handleIonChange}
           onIonFocus={() => setFocused(true)}
           onIonBlur={() => setFocused(false)}
-          aria-invalid={Boolean(error)}
+          // String, nao booleano: IonInput e um custom element e o React nao
+          // serializa `aria-invalid={true}` como atributo nele — verificado em
+          // browser real, onde o aria-describedby aparecia e o aria-invalid nao.
+          aria-invalid={error ? "true" : undefined}
           aria-describedby={error ? errorId : undefined}
           style={
             {

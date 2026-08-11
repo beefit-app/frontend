@@ -80,6 +80,44 @@ function getErrorMessage(data: unknown, fallbackMessage: string) {
   return fallbackMessage;
 }
 
+/**
+ * Extrai `fields` do corpo de erro como um mapa campo -> mensagem.
+ *
+ * O backend responde com `{ fields: [{ field, message }] }` tanto na validacao
+ * (400) quanto no conflito de e-mail e username (409). Sem isto, a unica coisa
+ * que sobra e a mensagem geral, e o formulario nao tem como marcar o input que
+ * causou o erro.
+ *
+ * Nunca lanca: e chamado dentro de tratamento de erro, onde o corpo pode ser
+ * qualquer coisa — inclusive HTML de proxy ou string vazia.
+ */
+export function extractFieldErrors(error: unknown): Record<string, string> {
+  if (!error || typeof error !== "object") return {};
+
+  // Aceita o ApiError ou o corpo cru. A checagem e estrutural de proposito:
+  // instanceof quebra quando o modulo e reinstanciado ou quando o erro atravessa
+  // um limite que perde a identidade da classe.
+  const payload = "data" in error ? (error as { data: unknown }).data : error;
+  const data = payload && typeof payload === "object" ? payload : error;
+  if (!data || typeof data !== "object") return {};
+
+  const maybeFields = "fields" in data ? (data as Record<string, unknown>).fields : null;
+  if (!Array.isArray(maybeFields)) return {};
+
+  const fieldErrors: Record<string, string> = {};
+  for (const item of maybeFields) {
+    if (!item || typeof item !== "object") continue;
+    const { field, message } = item as Record<string, unknown>;
+    if (typeof field !== "string" || !field.trim()) continue;
+    if (typeof message !== "string" || !message.trim()) continue;
+    // Primeira mensagem por campo: o Bean Validation pode devolver mais de uma
+    // restricao violada para o mesmo campo, e empilhar so polui a tela.
+    if (!(field in fieldErrors)) fieldErrors[field] = message;
+  }
+
+  return fieldErrors;
+}
+
 function getErrorCode(data: unknown) {
   if (!data || typeof data !== "object") return null;
   const maybeError = "error" in data ? data.error : null;
