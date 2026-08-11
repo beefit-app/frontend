@@ -211,7 +211,7 @@ export function WorkoutStartScreen({
       await workoutDraftStorage.removeDraft(user?.id, activeWorkoutConfig.workoutId);
       await clearActiveWorkoutLocally();
     } catch (error) {
-      setWorkoutDataError(error instanceof Error ? error.message : "Não foi possível cancelar o treino.");
+      toast.error(error instanceof Error ? error.message : messages.actionFailed("cancelar o treino"));
     }
   }
 
@@ -584,14 +584,12 @@ export function WorkoutStartScreen({
             destructive: true,
           });
           if (!confirmed) return false;
-          try {
-            await workoutService.cancelWorkout(activeWorkoutConfig.workoutId);
-            await closeActiveWorkout();
-            return true;
-          } catch (error) {
-            toast.error(error instanceof Error ? error.message : messages.actionFailed("cancelar o treino"));
-            return false;
-          }
+          // closeActiveWorkout ja cancela no backend, remove o rascunho e limpa a
+          // tela. Cancelar aqui antes fazia a segunda chamada falhar — o treino ja
+          // nao estava em andamento — e o catch de closeActiveWorkout impedia a
+          // limpeza, prendendo o usuario na tela do treino.
+          await closeActiveWorkout();
+          return true;
         }}
         onSaveTemplate={async (groups, exercises) => {
           if (exercises.length === 0) {
