@@ -127,7 +127,7 @@ const EllipsisActionButton = forwardRef<HTMLButtonElement, React.ComponentProps<
     <button
       ref={ref}
       type={type}
-      className={`flex h-10 w-10 items-center justify-center rounded-[12px] border border-[#2D2D2D] bg-[#181818] text-[#A3A3A3] transition-colors hover:border-[#525252] hover:text-white ${className ?? ""}`}
+      className={`beefit-tap-target flex h-10 w-10 items-center justify-center rounded-[12px] border border-[#2D2D2D] bg-[#181818] text-[#A3A3A3] transition-colors hover:border-[#525252] hover:text-white ${className ?? ""}`}
       {...props}
     >
       <Ellipsis size={16} />
@@ -676,7 +676,7 @@ export function SocialView({
                   type="button"
                   onClick={() => openFriendsUtility()}
                   aria-label={searchOpen ? "Fechar busca de amigos" : "Pesquisar amigos"}
-                  className={`flex h-10 w-10 items-center justify-center rounded-[13px] border transition-colors ${
+                  className={`beefit-tap-target flex h-10 w-10 items-center justify-center rounded-[13px] border transition-colors ${
                     searchOpen
                       ? "border-[rgba(255,215,0,0.32)] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
                       : "border-[#2D2D2D] bg-[#141414] text-[#A3A3A3]"

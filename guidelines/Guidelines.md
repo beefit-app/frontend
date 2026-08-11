@@ -65,6 +65,31 @@ Diretrizes para manter consistência de produto, UI e implementação nas próxi
 - Espaçamentos devem ser consistentes e respirar; evitar blocos muito comprimidos.
 - A composição deve parecer pensada para mobile, não desktop comprimido.
 
+### Responsividade
+
+Convivem dois conjuntos de breakpoints, e eles **não** coincidem (só `768px` é comum):
+
+| Origem | Breakpoints | Onde vale |
+| --- | --- | --- |
+| Ionic | `576 / 768 / 992 / 1200` | `<IonGrid fixed>`, `.beefit-shell-width`, `.beefit-sheet-width` |
+| Tailwind (default) | `640 / 768 / 1024 / 1280` | prefixos `sm:` `md:` `lg:` `xl:` |
+
+Regras:
+
+- **Largura de shell e de overlay** usa as classes `.beefit-*`, ancoradas nos tokens
+  `--ion-grid-width-*` de `src/styles/theme.css`. Use `.beefit-shell-width` para o que
+  acompanha o conteúdo da página (header, bottom nav) e `.beefit-sheet-width` para bottom
+  sheets — esta última é full-width no celular e só cresce a partir de `576px`.
+- **Prefixos Tailwind** ficam reservados ao layout *interno* de um componente.
+  Não misture os dois para a mesma decisão de largura.
+- **Safe area**: consuma `var(--ion-safe-area-top / -bottom / -left / -right, 0px)`, que o
+  Ionic já define em `html`. Não use `env(safe-area-inset-*)` direto nem instale plugin.
+  O recuo superior é aplicado nos `IonContent` de `App.tsx` e cobre todas as telas.
+- **Altura de viewport**: use `dvh`, nunca `vh` nem `min-h-screen` — a barra de URL do
+  navegador mobile colapsa e corta o topo de sheets altos.
+- **Alvos de toque** devem ter no mínimo `44x44px` de área clicável. Quando o desenho pede
+  um ícone menor, expanda a área com um pseudo-elemento em vez de aumentar o elemento.
+
 ## Componentes principais
 
 ### `PageBackground`

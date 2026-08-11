@@ -75,6 +75,22 @@
   .beefit-sheet-width { max-width: var(--ion-grid-width-lg); }
 }
 
+/* Expands a control's hit area to the 44x44 minimum without touching its
+   drawing. The icon buttons in this design are 40px or smaller by intent, so
+   growing the element itself would change the layout on every card. */
+.beefit-tap-target {
+  position: relative;
+}
+.beefit-tap-target::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
 /* Ionic button — apply Montserrat font into shadow DOM */
 ion-button::part(native) {
   font-family: var(--font-montserrat);

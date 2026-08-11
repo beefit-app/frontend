@@ -81,6 +81,7 @@ export function ProfileView({
               {managementEnabled && (
                 <button
                   type="button"
+                  className="beefit-tap-target"
                   onClick={() => setIsProfileMenuOpen(true)}
                   style={{
                     position: "absolute",

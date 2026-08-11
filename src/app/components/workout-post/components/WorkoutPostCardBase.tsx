@@ -182,6 +182,7 @@ export function WorkoutPostCardBase({
                 </button>
                 <button
                   type="button"
+                  className="beefit-tap-target"
                   onClick={() => setShowExercises(true)}
                   style={{
                     background: "rgba(255,255,255,0.08)",
@@ -386,7 +387,7 @@ export function WorkoutPostCardBase({
             whileTap={{ scale: 0.96 }}
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
             aria-label={liked ? "Descurtir treino" : "Curtir treino"}
-            className="flex h-10 w-10 items-center justify-center rounded-full border"
+            className="beefit-tap-target flex h-10 w-10 items-center justify-center rounded-full border"
             style={{
               borderColor: liked ? "#FFD700" : "#404040",
               background: liked ? "rgba(255,215,0,0.12)" : "#1A1A1A",
@@ -402,7 +403,7 @@ export function WorkoutPostCardBase({
             whileTap={{ scale: 0.96 }}
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
             aria-label={templateSaved ? "Remover template salvo" : "Salvar template"}
-            className="flex h-10 w-10 items-center justify-center rounded-full border"
+            className="beefit-tap-target flex h-10 w-10 items-center justify-center rounded-full border"
             style={{
               borderColor: templateSaved ? "#A3A3A3" : "#404040",
               background: templateSaved ? "rgba(163,163,163,0.14)" : "#1A1A1A",
