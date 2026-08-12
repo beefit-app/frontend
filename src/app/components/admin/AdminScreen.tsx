@@ -284,7 +284,7 @@ function UsersView({
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative w-full sm:min-w-[260px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#737373]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8A8A8A]" />
             <Input
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}

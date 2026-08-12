@@ -302,7 +302,7 @@ export function WorkoutPostCardBase({
                 <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 13, fontWeight: 700, color: "#ffffff", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {post.title}
                 </span>
-                <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373" }}>
+                <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#8A8A8A" }}>
                   {post.exerciseDetails.length} exercícios · {post.duration}
                 </span>
               </div>
@@ -340,7 +340,7 @@ export function WorkoutPostCardBase({
                       >
                         {exercise.name}
                       </span>
-                      <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373", marginLeft: "auto", flexShrink: 0 }}>
+                      <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#8A8A8A", marginLeft: "auto", flexShrink: 0 }}>
                         {exercise.sets.length} séries
                       </span>
                     </div>
@@ -364,7 +364,7 @@ export function WorkoutPostCardBase({
                           <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 12, fontWeight: 800, color: "#FFE44D", lineHeight: 1 }}>
                             {set.weight > 0 ? `${set.weight}kg` : "PC"}
                           </span>
-                          <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373", lineHeight: 1 }}>
+                          <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#8A8A8A", lineHeight: 1 }}>
                             x {set.reps}
                           </span>
                         </div>
@@ -414,7 +414,7 @@ export function WorkoutPostCardBase({
           </Motion.button>
         </div>
 
-        <div className="flex items-center gap-3 font-inter text-[11px] font-semibold text-[#737373]">
+        <div className="flex items-center gap-3 font-inter text-[11px] font-semibold text-[#8A8A8A]">
           <span>{likes} curtidas</span>
         </div>
       </div>

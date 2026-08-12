@@ -362,7 +362,7 @@ export default function App() {
                       minWidth: 0,
                       border: "none",
                       background: "transparent",
-                      color: active ? "#FFD700" : "#737373",
+                      color: active ? "#FFD700" : "#8A8A8A",
                       opacity: implemented || id === "workout" ? 1 : 0.72,
                       display: "flex",
                       flexDirection: "column",

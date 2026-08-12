@@ -21,7 +21,7 @@ export function LiveFriendCard({ friend }: { friend: LiveFriend }) {
         <div className="min-w-0 flex-1">
           <p className="truncate font-montserrat text-[13px] font-bold text-white">{friend.name}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <span className="font-inter text-[11px] font-medium text-[#737373]">treinando</span>
+            <span className="font-inter text-[11px] font-medium text-[#8A8A8A]">treinando</span>
             {friend.groups.map((group) => {
               const style = getMuscleBadgeStyle(group, "accent");
               return (

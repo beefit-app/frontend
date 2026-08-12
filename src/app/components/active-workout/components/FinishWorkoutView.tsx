@@ -196,7 +196,7 @@ export function FinishWorkoutView({
                             fontWeight: 700,
                             letterSpacing: "0.08em",
                             textTransform: "uppercase",
-                            color: "#737373",
+                            color: "#8A8A8A",
                           }}
                         >
                           Duração
@@ -234,7 +234,7 @@ export function FinishWorkoutView({
                             fontWeight: 700,
                             letterSpacing: "0.08em",
                             textTransform: "uppercase",
-                            color: "#737373",
+                            color: "#8A8A8A",
                           }}
                         >
                           Volume total
@@ -272,7 +272,7 @@ export function FinishWorkoutView({
                             fontWeight: 700,
                             letterSpacing: "0.08em",
                             textTransform: "uppercase",
-                            color: "#737373",
+                            color: "#8A8A8A",
                           }}
                         >
                           Calorias
@@ -317,7 +317,7 @@ export function FinishWorkoutView({
                       <span style={{ display: "block", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700, color: "#FFFFFF", marginBottom: 4 }}>
                         Postar treino no perfil
                       </span>
-                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#737373" }}>
+                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#8A8A8A" }}>
                         {ghostModeEnabled
                           ? "Modo fantasma ativo: a publicação começa desmarcada."
                           : "Seu treino pode aparecer no feed e no perfil."}
@@ -374,7 +374,7 @@ export function FinishWorkoutView({
                       <span style={{ display: "block", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700, color: "#FFFFFF", marginBottom: 4 }}>
                         Salvar como template
                       </span>
-                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#737373" }}>
+                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#8A8A8A" }}>
                         Usa o título como nome e salva apenas grupos e exercícios.
                       </span>
                     </div>
@@ -392,7 +392,7 @@ export function FinishWorkoutView({
                         border: "1px solid",
                         borderColor: shouldSaveTemplate ? "#FFD700" : "#404040",
                         background: shouldSaveTemplate ? "rgba(255,215,0,0.18)" : "#101010",
-                        color: shouldSaveTemplate ? "#FFD700" : "#737373",
+                        color: shouldSaveTemplate ? "#FFD700" : "#8A8A8A",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",

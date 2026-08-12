@@ -130,7 +130,7 @@ export function SocialFeedView({
                   />
                 ))}
                 {error && <div className="rounded-2xl border border-[rgba(248,113,113,0.28)] px-4 py-4 text-center font-inter text-sm text-[#FCA5A5]">{error}<button type="button" onClick={onRetry} className="ml-2 font-bold underline">Tentar novamente</button></div>}
-                {!error && hasMore && <div ref={sentinelRef} className="py-4 text-center font-inter text-xs text-[#737373]">{isLoadingMore ? "Buscando mais treinos..." : ""}</div>}
+                {!error && hasMore && <div ref={sentinelRef} className="py-4 text-center font-inter text-xs text-[#8A8A8A]">{isLoadingMore ? "Buscando mais treinos..." : ""}</div>}
               </section>
             </div>
           </IonCol>

@@ -254,7 +254,7 @@ function FilterSection({
           </div>
 
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 11, fontWeight: 700, color: "#737373", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 11, fontWeight: 700, color: "#8A8A8A", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               Raridade
             </div>
             <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
@@ -270,7 +270,7 @@ function FilterSection({
           </div>
 
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 11, fontWeight: 700, color: "#737373", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 11, fontWeight: 700, color: "#8A8A8A", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               Grupo muscular
             </div>
             <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
@@ -483,17 +483,17 @@ function InventoryCardTile({ card }: { card: InventoryCard }) {
           <div style={{ marginTop: 18, fontFamily: "var(--font-montserrat)", fontSize: 32, fontWeight: 800, color: rarity.accent, lineHeight: 1 }}>
             {formatAttackPower(card.attackPower)}
           </div>
-          <div style={{ marginTop: 6, fontFamily: "var(--font-inter)", fontSize: 12, color: "#737373", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          <div style={{ marginTop: 6, fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A", textTransform: "uppercase", letterSpacing: "0.04em" }}>
             Poder de ataque
           </div>
 
           <div style={{ marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 12, display: "grid", gap: 6 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#737373" }}>Gerada em</span>
+              <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A" }}>Gerada em</span>
               <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600, color: "#D4D4D4" }}>{formatDate(card.generatedAt)}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#737373" }}>Peso corporal</span>
+              <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A" }}>Peso corporal</span>
               <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600, color: "#D4D4D4" }}>
                 {card.bodyWeightAtGeneration == null ? "N/D" : `${formatAttackPower(card.bodyWeightAtGeneration)} kg`}
               </span>
@@ -517,7 +517,7 @@ function InventoryCardTile({ card }: { card: InventoryCard }) {
               <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 11, fontWeight: 800, color: "#D4D4D4", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Mapa muscular
               </div>
-              <div style={{ marginTop: 3, color: "#737373", fontFamily: "var(--font-inter)", fontSize: 11 }}>
+              <div style={{ marginTop: 3, color: "#8A8A8A", fontFamily: "var(--font-inter)", fontSize: 11 }}>
                 Quanto mais claro, maior a participação no treino
               </div>
             </div>
@@ -562,7 +562,7 @@ function InventoryCardTile({ card }: { card: InventoryCard }) {
               <span style={{ position: "absolute", bottom: 9, fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 600, color: "#A3A3A3" }}>Costas</span>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#737373", fontFamily: "var(--font-inter)", fontSize: 9 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#8A8A8A", fontFamily: "var(--font-inter)", fontSize: 9 }}>
             <span>Baixa</span>
             <span aria-hidden="true" style={{ width: 92, height: 5, borderRadius: 999, background: `linear-gradient(90deg, ${BEEFIT_HEATMAP_COLORS.join(", ")})` }} />
             <span>Alta</span>
@@ -685,7 +685,7 @@ function TemplateCard({
               >
                 {template.name}
               </h2>
-              <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 7, fontFamily: "var(--font-inter)", fontSize: 11, color: "#737373" }}>
+              <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 7, fontFamily: "var(--font-inter)", fontSize: 11, color: "#8A8A8A" }}>
                 <span>{template.exerciseIds.length} exercícios</span>
                 <span style={{ width: 4, height: 4, borderRadius: 999, background: "#525252" }} />
                 <span>{uniqueGroups.length} grupos</span>
@@ -726,7 +726,7 @@ function TemplateCard({
           minWidth: 0,
         }}
       >
-        <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 10, fontWeight: 800, color: "#737373", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 10, fontWeight: 800, color: "#8A8A8A", textTransform: "uppercase", letterSpacing: "0.08em" }}>
           Grupos musculares
         </div>
         <div style={{ marginTop: 4, fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 700, color: "#FFD700", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -735,7 +735,7 @@ function TemplateCard({
       </div>
 
       <div style={{ position: "relative", display: "grid", gap: 9, borderTop: "1px solid #2D2D2D", paddingTop: 14 }}>
-        <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 10, fontWeight: 800, color: "#737373", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 10, fontWeight: 800, color: "#8A8A8A", textTransform: "uppercase", letterSpacing: "0.08em" }}>
           Exercícios
         </div>
         {exercises.map((exercise) => (
@@ -747,7 +747,7 @@ function TemplateCard({
           </div>
         ))}
         {exercises.length === 0 && (
-          <div style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#737373" }}>
+          <div style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A" }}>
             Exercícios indisponíveis no catálogo carregado.
           </div>
         )}
@@ -778,7 +778,7 @@ function TemplateActionSheet({
           <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
             {template?.name ?? "Opções do template"}
           </SheetTitle>
-          <SheetDescription className="font-inter text-[13px] text-[#737373]">
+          <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
             Escolha uma ação para este template.
           </SheetDescription>
         </SheetHeader>
@@ -876,7 +876,7 @@ function TemplateFormSheet({
           <SheetTitle className="font-montserrat text-[18px] font-bold text-white">
             {mode === "edit" ? "Editar template" : "Novo template"}
           </SheetTitle>
-          <SheetDescription className="font-inter text-[13px] text-[#737373]">
+          <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
             Nomeie o treino e adicione os exercícios na ordem desejada.
           </SheetDescription>
         </SheetHeader>
@@ -885,7 +885,7 @@ function TemplateFormSheet({
           <div className="grid gap-5 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:items-start">
             <div className="grid gap-5">
               <label className="grid gap-2">
-                <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#737373]">Nome</span>
+                <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">Nome</span>
                 <input
                   value={name}
                   onChange={(event) => setName(event.target.value)}
@@ -896,7 +896,7 @@ function TemplateFormSheet({
 
               <section className="grid gap-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#737373]">
+                  <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">
                     Exercícios adicionados
                   </span>
                   <span className="font-inter text-[12px] font-semibold text-[#FFD700]">{exerciseIds.length}</span>
@@ -914,7 +914,7 @@ function TemplateFormSheet({
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="truncate font-inter text-[13px] font-semibold text-white">{exercise.name}</div>
-                          <div className="font-inter text-[11px] text-[#737373]">{exercise.group}</div>
+                          <div className="font-inter text-[11px] text-[#8A8A8A]">{exercise.group}</div>
                         </div>
                         <button
                           type="button"
@@ -933,21 +933,21 @@ function TemplateFormSheet({
 
             <section className="grid gap-3">
               <label className="grid gap-2">
-                <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#737373]">Catálogo</span>
+                <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">Catálogo</span>
                 <div className="flex h-12 items-center gap-2 rounded-2xl border border-[#2D2D2D] bg-[#101010] px-4 text-[#737373] focus-within:border-[#FFD700]">
                   <Search size={16} />
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Buscar exercício"
-                    className="min-w-0 flex-1 bg-transparent font-inter text-[14px] text-white outline-none placeholder:text-[#737373]"
+                    className="min-w-0 flex-1 bg-transparent font-inter text-[14px] text-white outline-none placeholder:text-[#8A8A8A]"
                   />
                 </div>
               </label>
 
               <div className="grid gap-2">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#737373]">
+                  <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">
                     Grupo muscular
                   </span>
                   {catalogMuscleGroupFilter && (
@@ -985,7 +985,7 @@ function TemplateFormSheet({
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-inter text-[13px] font-semibold text-white">{exercise.name}</span>
-                      <span className="block font-inter text-[11px] text-[#737373]">{exercise.group}</span>
+                      <span className="block font-inter text-[11px] text-[#8A8A8A]">{exercise.group}</span>
                     </span>
                   </button>
                 ))}
@@ -1184,7 +1184,7 @@ export function InventoryView({
                       aria-selected={selected}
                       onClick={() => setActiveTab(tab.id)}
                       className={`relative flex min-h-11 items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
-                        selected ? "text-[#0A0A0A]" : "text-[#737373]"
+                        selected ? "text-[#0A0A0A]" : "text-[#8A8A8A]"
                       }`}
                     >
                       {selected && (
@@ -1281,7 +1281,7 @@ export function InventoryView({
 
                     {!isLoading && !error && cards.length > 0 && cards.map((card) => <InventoryCardTile key={card.id} card={card} />)}
 
-                    {!error && hasMore && <div ref={sentinelRef} style={{ padding: "8px 0", textAlign: "center", fontFamily: "var(--font-inter)", fontSize: 12, color: "#737373" }}>{isLoadingMore ? "Buscando mais cartas..." : ""}</div>}
+                    {!error && hasMore && <div ref={sentinelRef} style={{ padding: "8px 0", textAlign: "center", fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A" }}>{isLoadingMore ? "Buscando mais cartas..." : ""}</div>}
                   </section>
                     </>
                   )}
@@ -1291,7 +1291,7 @@ export function InventoryView({
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <FolderKanban size={14} color="#FFD700" />
-                      <h2 className="font-montserrat text-[11px] font-bold uppercase tracking-[0.1em] text-[#737373]">
+                      <h2 className="font-montserrat text-[11px] font-bold uppercase tracking-[0.1em] text-[#8A8A8A]">
                         Templates salvos
                       </h2>
                       <span className="font-montserrat text-[14px] font-bold text-[#FFD700]">{templates.length}</span>

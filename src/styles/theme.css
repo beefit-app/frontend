@@ -40,7 +40,7 @@
   --ion-toolbar-color: #ffffff;
   --ion-tab-bar-background: #0A0A0A;
   --ion-tab-bar-border-color: #2D2D2D;
-  --ion-tab-bar-color: #737373;
+  --ion-tab-bar-color: #8A8A8A;
   --ion-tab-bar-color-selected: #FFD700;
   --ion-border-color: #2D2D2D;
 
@@ -147,7 +147,7 @@ ion-button::part(native) {
 
 /* Ionic tab button font */
 ion-tab-button {
-  --color: #737373;
+  --color: #8A8A8A;
   --color-selected: #FFD700;
 }
 
@@ -216,6 +216,19 @@ ion-app {
   background-size: 100% var(--beefit-page-gradient-height);
 }
 
+/* Paleta do shadcn. ATENCAO: e a paleta CLARA, e ela e a que vale — nada no app
+   adiciona a classe `dark` ao documento, entao o bloco .dark abaixo e as ~20
+   utilidades `dark:` de components/ui/ nunca casam.
+
+   Consequencia pratica: todo componente de components/ui/ tem de receber cor
+   explicita no call site (bg-[#141414], text-white...), como ja fazem sheet,
+   alert-dialog e AdminScreen. Um componente novo usado sem override renderiza
+   CLARO sobre o app preto.
+
+   Nao basta marcar <html class="dark"> para consertar: `dark:` compila com
+   :is(.dark *), que tem especificidade maior que uma utility comum, entao os
+   overrides ja escritos nos call sites passariam a perder para o token. Trocar
+   isto exige revisar os call sites junto. */
 :root {
   --font-size: 16px;
   --background: #ffffff;

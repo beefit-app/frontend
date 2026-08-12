@@ -128,7 +128,7 @@ export function ActiveWorkoutView({
                 <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
                   <SheetHeader className="px-0 pb-3 pt-3 text-left">
                     <SheetTitle className="font-montserrat text-[20px] font-bold text-white">Ações do treino</SheetTitle>
-                    <SheetDescription className="font-inter text-[13px] text-[#737373]">
+                    <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
                       Escolha uma ação para o treino em andamento.
                     </SheetDescription>
                   </SheetHeader>
@@ -273,7 +273,7 @@ export function ActiveWorkoutView({
                             <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
                               <SheetHeader className="px-0 pb-3 pt-3 text-left">
                                 <SheetTitle className="font-montserrat text-[20px] font-bold text-white">{exercise.name}</SheetTitle>
-                                <SheetDescription className="font-inter text-[13px] text-[#737373]">
+                                <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
                                   Escolha uma ação para este exercício.
                                 </SheetDescription>
                               </SheetHeader>

@@ -213,7 +213,7 @@ export function StreakCard({
                 fontWeight: 700,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
-                color: isFedToday ? "#FDBA74" : "#737373",
+                color: isFedToday ? "#FDBA74" : "#8A8A8A",
                 marginBottom: 3,
               }}
             >
