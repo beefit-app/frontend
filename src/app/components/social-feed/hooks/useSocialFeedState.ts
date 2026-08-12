@@ -5,12 +5,15 @@ import { useEffect, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
 import { socialFeedStorage } from "../../../storage/socialFeedStorage";
 import { subscribeSocialEvents, type WorkoutPresenceEvent } from "../../../services/socialEventsService";
+import { normalizeMuscleGroupLabels } from "../../../services/muscleGroups";
 import type { LiveFriend, SocialFeedPost } from "../types";
 
 function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
   return {
     ...friend,
-    groups: Array.isArray(friend.groups) ? friend.groups : [],
+    // Os eventos SSE entregam o grupo cru (slug ou enum); o caminho REST ja chega
+    // rotulado por toLiveFriend. Normalizar aqui cobre os dois.
+    groups: normalizeMuscleGroupLabels(friend.groups),
     elapsedSeconds: Math.max(0, friend.elapsedSeconds),
   };
 }

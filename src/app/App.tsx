@@ -114,7 +114,9 @@ export default function App() {
   const { authScreen, screen, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
-  const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState(user);
+  const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState(
+    isAuthenticated ? user : null,
+  );
   const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
   const [profileRefreshToken, setProfileRefreshToken] = useState(0);

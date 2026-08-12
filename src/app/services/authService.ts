@@ -121,18 +121,6 @@ function mapAuthApiUserToAuthUser(apiUser: AuthApiUser): AuthUser {
   };
 }
 
-function mapSessionResponseToAuthSessionWithRefresh(
-  accessToken: string,
-  refreshToken: string,
-  apiUser: AuthApiUser,
-): AuthSession {
-  return {
-    accessToken,
-    refreshToken,
-    user: mapAuthApiUserToAuthUser(apiUser),
-  };
-}
-
 function mergeCurrentUserResponse(value: unknown, fallbackUser: AuthUser | null): AuthUser {
   if (
     isObject(value) &&
