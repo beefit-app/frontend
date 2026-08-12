@@ -1158,7 +1158,7 @@ export function InventoryView({
           <IonCol size="12">
             <div>
               <header className="relative mb-6">
-                <h1 className="font-montserrat text-[34px] font-[800] leading-none text-[#FFD700]">
+                <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
                   Inventário.
                 </h1>
                 <p className="mt-2 max-w-[320px] font-inter text-[14px] leading-[1.45] text-[#A3A3A3]">

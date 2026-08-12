@@ -637,7 +637,7 @@ export function WorkoutStartScreen({
               <h1
                 style={{
                   margin: 0,
-                  color: "#FFD700",
+                  color: "#FFFFFF",
                   fontFamily: "var(--font-montserrat)",
                   fontSize: 34,
                   fontWeight: 800,
