@@ -120,7 +120,7 @@ export function AccountSettingsScreen({
                 <h1 style={{ margin: 0, fontFamily: "var(--font-montserrat)", fontSize: 24, fontWeight: 700, color: "#ffffff" }}>
                   Configurações de conta
                 </h1>
-                <p style={{ margin: 0, fontFamily: "var(--font-inter)", fontSize: 14, lineHeight: 1.6, color: "#737373" }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-inter)", fontSize: 14, lineHeight: 1.6, color: "#8A8A8A" }}>
                   Gerencie sua senha e a forma como seu perfil aparece para outros usuários.
                 </p>
               </div>
@@ -132,6 +132,8 @@ export function AccountSettingsScreen({
                   <BeeInput
                     label="Senha atual"
                     type={showCurrentPassword ? "text" : "password"}
+                    name="currentPassword"
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     value={currentPassword}
                     onChange={(event) => {
@@ -152,6 +154,8 @@ export function AccountSettingsScreen({
                   <BeeInput
                     label="Nova senha"
                     type={showNewPassword ? "text" : "password"}
+                    name="newPassword"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={newPassword}
                     onChange={(event) => {
@@ -172,6 +176,8 @@ export function AccountSettingsScreen({
                   <BeeInput
                     label="Confirmar nova senha"
                     type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(event) => {
@@ -197,7 +203,7 @@ export function AccountSettingsScreen({
                   <p style={{ margin: 0, color: "#FCA5A5", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.55 }}>
                     Esta ação remove permanentemente seus treinos, posts, mídias, cartas e relações sociais.
                   </p>
-                  <BeeInput label="Confirme sua senha" type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} disabled={isSubmitting} />
+                  <BeeInput label="Confirme sua senha" type="password" name="deletePassword" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} disabled={isSubmitting} />
                   <BeeButton variant="dark" fullWidth disabled={isSubmitting || !deletePassword.trim()} onClick={() => {
                     void (async () => {
                       const confirmed = await confirm({
@@ -236,7 +242,7 @@ export function AccountSettingsScreen({
                       <span style={{ display: "block", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700, color: "#ffffff", marginBottom: 4 }}>
                         Modo fantasma
                       </span>
-                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#737373" }}>
+                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#8A8A8A" }}>
                         Oculta sua presença e reduz a visibilidade das suas atividades públicas.
                       </span>
                     </div>

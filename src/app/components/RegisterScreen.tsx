@@ -230,7 +230,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                 </h2>
                 <IonText
                   className="mb-8 block"
-                  style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#737373" }}
+                  style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#8A8A8A" }}
                 >
                   Comece sua jornada fitness hoje
                 </IonText>
@@ -239,6 +239,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   <BeeInput
                     label="Nome Completo"
                     type="text"
+                    name="name"
+                    autoComplete="name"
                     placeholder="Seu nome completo"
                     value={form.name}
                     onChange={(e) => setField("name", e.target.value)}
@@ -250,6 +252,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   <BeeInput
                     label="Nome de Usuário"
                     type="text"
+                    name="username"
+                    autoComplete="username"
                     placeholder="Seu username"
                     value={form.username}
                     onChange={(e) => setField("username", e.target.value)}
@@ -261,6 +265,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   <BeeInput
                     label="Endereço de E-mail"
                     type="email"
+                    name="email"
+                    autoComplete="email"
                     placeholder="seu@email.com"
                     value={form.email}
                     onChange={(e) => setField("email", e.target.value)}
@@ -272,6 +278,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   <BeeInput
                     label="Senha"
                     type={showPassword ? "text" : "password"}
+                    name="password"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={form.password}
                     onChange={(e) => setField("password", e.target.value)}
@@ -288,6 +296,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   <BeeInput
                     label="Meta de Exercício Semanal"
                     type="number"
+                    name="weeklyGoal"
+                    inputMode="numeric"
                     placeholder="Ex: 4 (dias por semana)"
                     value={form.weeklyGoal}
                     onChange={(e) => setField("weeklyGoal", e.target.value)}
@@ -302,6 +312,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                     <BeeInput
                       label="Peso Corporal (kg)"
                       type="number"
+                      name="weight"
+                      inputMode="decimal"
                       placeholder="Ex: 75.5"
                       value={form.weight}
                       onChange={(e) => setField("weight", e.target.value)}
@@ -326,7 +338,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                         style={{
                           fontFamily: "var(--font-inter)",
                           fontSize: 12,
-                          color: "#737373",
+                          color: "#8A8A8A",
                           lineHeight: 1.4,
                         }}
                       >

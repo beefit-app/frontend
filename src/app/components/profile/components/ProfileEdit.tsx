@@ -102,6 +102,8 @@ export function ProfileEdit({
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                   <BeeInput
                     label="Nome de Exibição"
+                    name="displayName"
+                    autoComplete="name"
                     value={displayName}
                     placeholder="Seu nome público"
                     onChange={(event) => {
@@ -126,7 +128,7 @@ export function ProfileEdit({
                       }}
                       error={errors.bio}
                     />
-                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: bioLeft < 20 ? "#F97316" : "#737373", textAlign: "right" }}>
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: bioLeft < 20 ? "#F97316" : "#8A8A8A", textAlign: "right" }}>
                       {bioLeft} restantes
                     </span>
                   </div>
@@ -134,6 +136,8 @@ export function ProfileEdit({
                     label="Peso Atual (kg)"
                     value={weight}
                     type="number"
+                    name="weight"
+                    inputMode="decimal"
                     placeholder="Ex: 82.5"
                     min="30"
                     max="300"

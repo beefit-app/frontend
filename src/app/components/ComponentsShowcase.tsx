@@ -76,7 +76,7 @@ export function ComponentsShowcase() {
           <h1 className="font-montserrat text-[32px] font-[800] text-white tracking-[-1px]">
             <span className="text-[#FFD700]">Bee</span>Fit
           </h1>
-          <p className="font-inter text-[14px] text-[#737373] mt-1">Biblioteca de Componentes</p>
+          <p className="font-inter text-[14px] text-[#8A8A8A] mt-1">Biblioteca de Componentes</p>
         </div>
 
         {/* TYPOGRAPHY */}
@@ -85,7 +85,7 @@ export function ComponentsShowcase() {
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <div style={{ width: 8, height: 9, background: "#FFD700", clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }} />
-              <span className="font-inter text-[12px] text-[#737373] uppercase tracking-wide">Display / H1</span>
+              <span className="font-inter text-[12px] text-[#8A8A8A] uppercase tracking-wide">Display / H1</span>
             </div>
             <h1 className="font-montserrat text-[40px] font-[800] text-white tracking-[-1px] leading-none">
               Treino de Força
@@ -93,28 +93,28 @@ export function ComponentsShowcase() {
             <div className="border-t border-[#2D2D2D] pt-4">
               <div className="flex items-center gap-2 mb-2">
                 <div style={{ width: 8, height: 9, background: "#FFD700", clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }} />
-                <span className="font-inter text-[12px] text-[#737373] uppercase tracking-wide">H2 / Heading</span>
+                <span className="font-inter text-[12px] text-[#8A8A8A] uppercase tracking-wide">H2 / Heading</span>
               </div>
               <h2 className="font-montserrat text-[32px] font-bold text-white leading-none">Recordes Pessoais</h2>
             </div>
             <div className="border-t border-[#2D2D2D] pt-4">
               <div className="flex items-center gap-2 mb-2">
                 <div style={{ width: 8, height: 9, background: "#FFD700", clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }} />
-                <span className="font-inter text-[12px] text-[#737373] uppercase tracking-wide">H3 / Subhead</span>
+                <span className="font-inter text-[12px] text-[#8A8A8A] uppercase tracking-wide">H3 / Subhead</span>
               </div>
               <h3 className="font-montserrat text-[24px] font-bold text-white leading-none">Supino Reto</h3>
             </div>
             <div className="border-t border-[#2D2D2D] pt-4">
               <div className="flex items-center gap-2 mb-2">
                 <div style={{ width: 8, height: 9, background: "#FFD700", clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }} />
-                <span className="font-inter text-[12px] text-[#737373] uppercase tracking-wide">Body</span>
+                <span className="font-inter text-[12px] text-[#8A8A8A] uppercase tracking-wide">Body</span>
               </div>
               <p className="font-inter text-[16px] text-white">Acompanhe seu progresso e supere seus limites a cada treino.</p>
             </div>
             <div className="border-t border-[#2D2D2D] pt-4">
               <div className="flex items-center gap-2 mb-2">
                 <div style={{ width: 8, height: 9, background: "#FFD700", clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }} />
-                <span className="font-inter text-[12px] text-[#737373] uppercase tracking-wide">Caption</span>
+                <span className="font-inter text-[12px] text-[#8A8A8A] uppercase tracking-wide">Caption</span>
               </div>
               <p className="font-inter text-[14px] font-medium text-[#A3A3A3]">Última sessão: Segunda, 10 Mai · 3 exercícios</p>
             </div>
@@ -128,7 +128,7 @@ export function ComponentsShowcase() {
         <BeeCard hover={false} className="mb-4">
           <div className="flex flex-col gap-4">
             <div>
-              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#737373] mb-3">Primários</p>
+              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-3">Primários</p>
               <div className="flex flex-col gap-3">
                 <BeeButton variant="primary" fullWidth>Criar Conta</BeeButton>
                 <BeeButton variant="secondary" fullWidth>Ver Depois</BeeButton>
@@ -136,7 +136,7 @@ export function ComponentsShowcase() {
               </div>
             </div>
             <div className="border-t border-[#2D2D2D] pt-4">
-              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#737373] mb-3">Ações de Treino</p>
+              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-3">Ações de Treino</p>
               <div className="flex flex-col gap-3">
                 <BeeButton variant="blue" fullWidth>Iniciar Treino</BeeButton>
                 <BeeButton variant="green" fullWidth>Finalizar Treino</BeeButton>
@@ -144,7 +144,7 @@ export function ComponentsShowcase() {
               </div>
             </div>
             <div className="border-t border-[#2D2D2D] pt-4">
-              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#737373] mb-3">Outline</p>
+              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-3">Outline</p>
               <div className="flex flex-col gap-3">
                 <BeeButton variant="outline-blue" fullWidth>Outline Azul</BeeButton>
                 <BeeButton variant="outline-green" fullWidth>Outline Verde</BeeButton>
@@ -152,7 +152,7 @@ export function ComponentsShowcase() {
               </div>
             </div>
             <div className="border-t border-[#2D2D2D] pt-4">
-              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#737373] mb-3">Tamanhos</p>
+              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-3">Tamanhos</p>
               <div className="flex flex-wrap items-center gap-3">
                 <BeeButton variant="primary" size="sm">Small</BeeButton>
                 <BeeButton variant="primary" size="md">Default</BeeButton>
@@ -169,15 +169,15 @@ export function ComponentsShowcase() {
         <BeeCard hover={false} className="mb-4">
           <div className="flex flex-col gap-6">
             <div>
-              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#737373] mb-4">Estado Padrão</p>
+              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-4">Estado Padrão</p>
               <BeeInput label="Texto" type="text" placeholder="Digite algo..." />
             </div>
             <div>
-              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#737373] mb-4">E-mail com ícone</p>
+              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-4">E-mail com ícone</p>
               <BeeInput label="E-mail" type="email" placeholder="seu@email.com" icon={<MailIcon />} />
             </div>
             <div>
-              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#737373] mb-4">Senha com máscara</p>
+              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-4">Senha com máscara</p>
               <BeeInput
                 label="Senha"
                 type={showPwd ? "text" : "password"}
@@ -187,12 +187,12 @@ export function ComponentsShowcase() {
               />
             </div>
             <div>
-              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#737373] mb-4">Campo numérico</p>
+              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-4">Campo numérico</p>
               <BeeInput label="Peso (kg)" type="number" placeholder="75.5" step="0.1" />
             </div>
             <div>
-              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#737373] mb-4">Estado de Erro</p>
-              <BeeInput label="E-mail" type="email" placeholder="email inválido" defaultValue="nao-e-email" error="E-mail inválido. Verifique o formato." icon={<MailIcon />} />
+              <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-4">Estado de Erro</p>
+              <BeeInput label="E-mail" type="email" placeholder="email inválido" value="nao-e-email" error="E-mail inválido. Verifique o formato." icon={<MailIcon />} />
             </div>
           </div>
         </BeeCard>
@@ -207,7 +207,7 @@ export function ComponentsShowcase() {
               <div className="w-14 h-14 rounded-xl bg-[#FFD700] flex items-center justify-center text-2xl flex-shrink-0">🏋️</div>
               <div>
                 <h3 className="font-montserrat text-[18px] font-bold text-white">Supino Reto</h3>
-                <p className="font-inter text-[13px] text-[#737373]">4 séries · 8-10 reps · 80kg</p>
+                <p className="font-inter text-[13px] text-[#8A8A8A]">4 séries · 8-10 reps · 80kg</p>
               </div>
               <span className="ml-auto text-[#FFD700]">→</span>
             </div>
@@ -217,18 +217,18 @@ export function ComponentsShowcase() {
             <div className="flex-1 relative bg-[#1A1A1A] border border-[#404040] rounded-xl p-4 overflow-hidden">
               <div className="absolute -top-2 -right-2 opacity-[0.08]" style={{ width: 30, height: 35, background: "#FFD700", clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }} />
               <p className="font-montserrat text-[28px] font-[800] text-[#FFD700] leading-none">12</p>
-              <p className="font-inter text-[12px] uppercase text-[#737373] tracking-wide mt-1">Treinos</p>
+              <p className="font-inter text-[12px] uppercase text-[#8A8A8A] tracking-wide mt-1">Treinos</p>
             </div>
             <div className="flex-1 relative bg-[#1A1A1A] border border-[#404040] rounded-xl p-4 overflow-hidden">
               <div className="absolute -top-2 -right-2 opacity-[0.08]" style={{ width: 30, height: 35, background: "#FFD700", clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }} />
               <p className="font-montserrat text-[28px] font-[800] text-[#FFD700] leading-none">2.4k</p>
-              <p className="font-inter text-[12px] uppercase text-[#737373] tracking-wide mt-1">Kcal</p>
+              <p className="font-inter text-[12px] uppercase text-[#8A8A8A] tracking-wide mt-1">Kcal</p>
             </div>
           </div>
 
           {/* Badges */}
           <BeeCard hover={false}>
-            <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#737373] mb-4">Badges / Tags</p>
+            <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-4">Badges / Tags</p>
             <div className="flex flex-wrap gap-2">
               <span className="px-3 py-1 rounded-full bg-[#FFD700] text-[#0A0A0A] font-inter text-[12px] font-semibold uppercase tracking-wide">Yellow</span>
               <span className="px-3 py-1 rounded-full border border-[#FFD700] text-[#FFD700] font-inter text-[12px] font-semibold uppercase tracking-wide">Outline</span>
@@ -245,7 +245,7 @@ export function ComponentsShowcase() {
 
           {/* Progress Bars */}
           <BeeCard hover={false}>
-            <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#737373] mb-4">Progress Bars</p>
+            <p className="font-montserrat text-[11px] font-bold uppercase tracking-wider text-[#8A8A8A] mb-4">Progress Bars</p>
             <div className="flex flex-col gap-4">
               {[
                 { label: "Meta Semanal", pct: 75, color: "#FFD700" },
@@ -291,7 +291,7 @@ export function ComponentsShowcase() {
                   className="w-full aspect-square rounded-lg border border-[#404040]"
                   style={{ background: hex }}
                 />
-                <span className="font-inter text-[9px] text-[#737373] text-center leading-tight">{name}</span>
+                <span className="font-inter text-[9px] text-[#8A8A8A] text-center leading-tight">{name}</span>
               </div>
             ))}
           </div>
