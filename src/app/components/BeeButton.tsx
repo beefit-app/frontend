@@ -20,7 +20,6 @@ interface BeeButtonProps {
   size?: BeeButtonSize;
   children: ReactNode;
   fullWidth?: boolean;
-  className?: string;
   onClick?: React.MouseEventHandler;
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
