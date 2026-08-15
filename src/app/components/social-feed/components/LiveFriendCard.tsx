@@ -3,13 +3,15 @@ import { HexAvatar, getMuscleBadgeStyle } from "../../workout-post";
 import type { LiveFriend } from "../types";
 import { formatElapsed } from "../utils";
 
+// O max-w preserva o "peek" do proximo card em telas de 320px, onde a largura
+// util do carrossel (~296px) nunca comportaria os 306px cheios.
 export function LiveFriendCard({ friend }: { friend: LiveFriend }) {
   return (
     <Motion.div
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 20 }}
-      className="min-w-[306px] rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] p-3"
+      className="w-[306px] max-w-[88%] shrink-0 rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] p-3"
     >
       <div className="flex items-center gap-3">
         <div className="relative shrink-0">
@@ -19,7 +21,7 @@ export function LiveFriendCard({ friend }: { friend: LiveFriend }) {
         <div className="min-w-0 flex-1">
           <p className="truncate font-montserrat text-[13px] font-bold text-white">{friend.name}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <span className="font-inter text-[11px] font-medium text-[#737373]">treinando</span>
+            <span className="font-inter text-[11px] font-medium text-[#8A8A8A]">treinando</span>
             {friend.groups.map((group) => {
               const style = getMuscleBadgeStyle(group, "accent");
               return (

@@ -36,8 +36,8 @@ export interface WorkoutCompletionDraft {
   selectedGroups: string[];
   elapsedSeconds: number;
   exercises: WorkoutExercise[];
-  idempotencyKey?: string;
-  finishedAt?: string;
+  idempotencyKey: string;
+  finishedAt: string;
   photoMediaId?: string | null;
 }
 
@@ -48,10 +48,17 @@ export interface WorkoutDraft {
   selectedGroups: string[];
   exercises: WorkoutExercise[];
   shouldPostWorkout: boolean;
-  shouldSaveTemplate: boolean;
+  shouldSaveTemplate?: boolean;
+  updatedAt: string | number;
+  startedAt?: number;
+  // Estado da finalizacao offline: o rascunho sobrevive ao fechamento do app e
+  // e retomado por WorkoutStartScreen quando ha conexao e sessao valida.
+  pendingFinish?: boolean;
   idempotencyKey?: string;
   finishedAt?: string;
-  updatedAt: string;
+  photoUrl?: string | null;
+  photoFileName?: string | null;
+  photoMediaId?: string | null;
 }
 
 export interface WorkoutCompletionSummary {
@@ -61,15 +68,16 @@ export interface WorkoutCompletionSummary {
   totalVolume: number;
 }
 
+export interface WorkoutCard {
+  id: string;
+  attackPower: number;
+  rarity: string;
+  muscleGroup: string;
+  isPersonalRecord: boolean;
+}
+
 export interface WorkoutCompletionResult extends WorkoutCompletionSummary {
-  card?: {
-    id: string;
-    attackPower: number;
-    rarity: string;
-    muscleGroup: string;
-    muscleIntensities: Record<string, number>;
-    isPersonalRecord: boolean;
-  } | null;
+  card: WorkoutCard | null;
 }
 
 export interface WorkoutRecoveryResult extends WorkoutCompletionResult {

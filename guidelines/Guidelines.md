@@ -36,26 +36,30 @@ Diretrizes para manter consistência de produto, UI e implementação nas próxi
 - Ajustes pequenos de posicionamento e comportamento importam tanto quanto a feature em si.
 - Quando houver toggle, menu ou drawer, o comportamento deve ser previsível e consistente com o app.
 
-## Estilo visual
+## Estilo visual e tipografia
 
-- Fundo base do app: `#0A0A0A`.
-- Superfícies principais: tons próximos de `#141414`, `#171717`, `#1A1A1A`.
-- Bordas padrão: `#2D2D2D` ou variações discretas no mesmo eixo.
-- Destaque da marca: amarelo/dourado `#FFD700`.
-- Texto principal: `#FFFFFF`.
-- Texto secundário: `#A3A3A3`, `#8F8F8F` ou `#737373`.
+> **Os valores não moram aqui.** Paleta, escala tipográfica, raios, sombras e as
+> especificações de componente ficam em
+> [`src/imports/beefit_styleguide_resumo.txt`](../src/imports/beefit_styleguide_resumo.txt)
+> — apesar do caminho improvável, é documento puro, não é importado por código
+> nenhum. Consulte lá para qualquer cor ou medida.
+>
+> Este documento cuida de **prática**: quando usar o quê, fluxo, estado e
+> armadilha. Antes os dois repetiam os mesmos hex, e o resultado foi divergirem —
+> o cinza de texto secundário mudou no código e no styleguide e ficou defasado
+> aqui. Não traga valor de token de volta para cá.
+
+Regras de aplicação que não são valor, e por isso vivem aqui:
+
 - Bordas e glow coloridos devem ser usados como acento funcional, não como ruído decorativo.
-- Cards devem ter raio grande, normalmente entre `18px` e `24px`.
 - Sombras devem ser suaves e profundas, sem exagero.
 - O visual deve ser premium, limpo e levemente esportivo.
-
-## Tipografia
-
-- Títulos e números importantes: `Montserrat`.
-- Texto de apoio, campos e descrições: `Inter`.
 - Títulos costumam ser pesados, com alto contraste e tamanho generoso.
 - Labels auxiliares podem usar uppercase com tracking leve.
 - O contraste entre título, apoio e metadata deve ser sempre evidente.
+- **Amarelo é cor de marca, nunca de status** (styleguide §12.2). Título de tela é
+  texto principal e vai em branco; o dourado fica para CTA, ícone ativo e destaque
+  de identidade.
 
 ## Layout
 
@@ -64,6 +68,31 @@ Diretrizes para manter consistência de produto, UI e implementação nas próxi
 - As telas devem respeitar largura móvel próxima de `393px`.
 - Espaçamentos devem ser consistentes e respirar; evitar blocos muito comprimidos.
 - A composição deve parecer pensada para mobile, não desktop comprimido.
+
+### Responsividade
+
+Convivem dois conjuntos de breakpoints, e eles **não** coincidem (só `768px` é comum):
+
+| Origem | Breakpoints | Onde vale |
+| --- | --- | --- |
+| Ionic | `576 / 768 / 992 / 1200` | `<IonGrid fixed>`, `.beefit-shell-width`, `.beefit-sheet-width` |
+| Tailwind (default) | `640 / 768 / 1024 / 1280` | prefixos `sm:` `md:` `lg:` `xl:` |
+
+Regras:
+
+- **Largura de shell e de overlay** usa as classes `.beefit-*`, ancoradas nos tokens
+  `--ion-grid-width-*` de `src/styles/theme.css`. Use `.beefit-shell-width` para o que
+  acompanha o conteúdo da página (header, bottom nav) e `.beefit-sheet-width` para bottom
+  sheets — esta última é full-width no celular e só cresce a partir de `576px`.
+- **Prefixos Tailwind** ficam reservados ao layout *interno* de um componente.
+  Não misture os dois para a mesma decisão de largura.
+- **Safe area**: consuma `var(--ion-safe-area-top / -bottom / -left / -right, 0px)`, que o
+  Ionic já define em `html`. Não use `env(safe-area-inset-*)` direto nem instale plugin.
+  O recuo superior é aplicado nos `IonContent` de `App.tsx` e cobre todas as telas.
+- **Altura de viewport**: use `dvh`, nunca `vh` nem `min-h-screen` — a barra de URL do
+  navegador mobile colapsa e corta o topo de sheets altos.
+- **Alvos de toque** devem ter no mínimo `44x44px` de área clicável. Quando o desenho pede
+  um ícone menor, expanda a área com um pseudo-elemento em vez de aumentar o elemento.
 
 ## Componentes principais
 
@@ -74,17 +103,40 @@ Diretrizes para manter consistência de produto, UI e implementação nas próxi
 
 ### `BeeButton`
 
-- Botão principal do sistema.
-- `primary`: ação principal da tela.
-- `secondary`: ação secundária com destaque de marca.
-- `dark`: ação neutra ou de cancelamento.
-- Evitar criar novos botões inline se `BeeButton` resolver o caso.
+Botão principal do sistema; evite botão inline se ele resolver o caso. São **nove**
+variantes, e a escolha entre elas **não é estética** — as três cores de ação são
+semânticas e obrigatórias (styleguide §12.3). Usar verde para iniciar ou vermelho
+para confirmar quebra a leitura do app inteiro.
+
+| Variante | Quando usar |
+| --- | --- |
+| `primary` | ação principal da tela (dourado, cor de marca) |
+| `secondary` | ação alternativa com destaque de marca |
+| `dark` | ação neutra, terciária ou "voltar" |
+| `blue` | **sempre** iniciar / continuar / em progresso |
+| `green` | **sempre** concluir / finalizar / marcar feito |
+| `red` | **sempre** cancelar / sair / excluir |
+| `outline-blue`, `outline-green`, `outline-red` | mesma semântica, com peso visual menor |
+
+- **Não aceita `className`.** A prop existia declarada e era ignorada em silêncio;
+  foi removida. Se precisar de um recorte visual que as variantes não dão, o lugar
+  de resolver é o componente, não o call site.
+- Tamanhos `sm` / `md` / `lg` já entregam altura mínima de toque; não reduza por fora.
 
 ### `BeeInput`
 
-- Campo padrão para inputs do app.
-- Deve ser usado sempre que o caso não exigir algo muito específico.
-- Bordas, foco e erro devem seguir o padrão visual existente.
+- Campo padrão do app. Bordas, foco e erro já seguem o styleguide — não recrie.
+- **Todo campo passa `name`**, e `autoComplete` sempre que houver valor
+  correspondente: `email`, `username`, `name`, `current-password`, `new-password`.
+- **Campo numérico passa `inputMode`**: `numeric` para inteiro, `decimal` para peso.
+  Sem isso o celular abre teclado alfabético.
+- O porquê, para a regra não parecer burocracia: a versão anterior estendia
+  `InputHTMLAttributes` mas só desestruturava dez props, então `autoComplete`,
+  `name` e `inputMode` eram **descartados sem aviso** — nenhum formulário do app
+  funcionava com gerenciador de senha. Hoje a interface declara exatamente a
+  superfície aceita e traduz o nome React (`autoComplete`) para o do web component
+  (`autocomplete`); **prop nova precisa ser adicionada nos dois lugares**, senão
+  volta a sumir em silêncio.
 
 ### `BeeCard`
 
@@ -93,8 +145,12 @@ Diretrizes para manter consistência de produto, UI e implementação nas próxi
 
 ### `Sheet`
 
-- Usar para menus laterais e ações contextualizadas quando o fluxo pede uma sidebar.
-- Deve seguir o padrão já aplicado no perfil.
+- Usar para ações contextualizadas e detalhes que não merecem tela própria.
+- **O padrão do app é `side="bottom"`** — 10 dos 11 usos atuais. Sheet lateral é a
+  exceção, não a regra; num app mobile-first o gesto esperado vem de baixo.
+- A largura sai de `.beefit-sheet-width`: full-width no celular e crescendo só a
+  partir de `576px`. Com margem lateral em tela estreita o sheet passa a parecer um
+  modal centralizado em vez de ancorado na borda inferior.
 
 ### `MuscleTag`
 
@@ -119,6 +175,41 @@ Diretrizes para manter consistência de produto, UI e implementação nas próxi
 - Para eventos importantes, preferir callbacks com payload tipado.
 - Evitar acoplar decisões de persistência diretamente à UI.
 - Quando uma tela emitir dados que depois irão para backend, usar estruturas explícitas e semânticas.
+
+## Mensagens de erro
+
+- **O texto vem de `src/app/constants/messages.ts`**, não escrito à mão na tela. A mesma
+  regra tinha textos diferentes por tela antes disso; se a mensagem se repete em mais de
+  um lugar, ela pertence ao catálogo.
+- Estilo: frase completa, primeira letra maiúscula, **ponto final**, em português, dizendo
+  **o que fazer** em vez de só apontar o erro — "Informe um e-mail válido, como
+  nome@email.com." e não "E-mail inválido".
+- Falha de operação segue a família já consolidada: `Não foi possível <verbo> <objeto>.`
+- **Erro de campo** vai no `error` do `BeeInput`, que já cuida da borda vermelha e da
+  associação com leitor de tela. **Erro de tela** usa `BeeAlert`.
+- **Nunca use `window.alert`, `window.confirm` ou `window.prompt`**: no app empacotado eles
+  aparecem com a cara do sistema operacional e ignoram a identidade visual. Use `toast()`
+  do sonner para aviso passageiro e `useConfirm` para decisão.
+- Cores de estado saem dos tokens `--beefit-danger`, `--beefit-success` e `--beefit-info`
+  em `theme.css`. Não repita hex de vermelho na tela.
+
+## Dados locais e segurança
+
+- **Todo dado do usuário guardado no aparelho precisa sair no logout.** O ponto único é
+  `clearLocalUserData` (`src/app/services/sessionTeardown.ts`), chamado por
+  `clearStoredSession`. Ao criar um cache novo — variável de módulo, chave de storage,
+  object URL — acrescente a limpeza dele ali. Vale lembrar que caches de módulo
+  sobrevivem ao logout, porque a SPA não recarrega a página.
+- `beefit.auth.deviceId` é a única chave que sobrevive de propósito: identifica o
+  aparelho, não o usuário, e o backend a usa para vincular o refresh token e limitar
+  taxa por device.
+- A CSP é injetada no build por `beefitContentSecurityPolicy` em `vite.config.ts`, não
+  em `index.html`. Ao adicionar origem externa (fonte, imagem, API), libere a diretiva
+  correspondente e **valide com o build servido**: CSP errada não lança erro, só bloqueia
+  o recurso e deixa a tela quebrada.
+- **`frame-ancestors` não vale por `<meta>`** — o navegador ignora. Precisa ser servido
+  como header HTTP por quem hospeda a página; sem isso o app segue enquadrável em iframe.
+  Não há config de hospedagem neste repositório, então isso é passo de deploy.
 
 ## O que evitar
 

@@ -10,8 +10,19 @@ export interface ActiveWorkoutScreenProps {
   initialExercises?: ExerciseCatalogItem[];
   initialSessionExercises?: WorkoutExercise[];
   initialDraft?: WorkoutDraft | null;
+  catalogRevision?: number;
   bodyWeightKg?: number | null;
   ghostModeEnabled?: boolean;
+  // Estado de uma finalizacao ja iniciada e retomada do armazenamento local. A
+  // chave, o carimbo e o mediaId precisam ser reaproveitados intactos: o backend
+  // recusa a mesma Idempotency-Key com corpo divergente.
+  initialFinishPhotoFile?: File | null;
+  initialFinishIdempotencyKey?: string | null;
+  initialFinishFinishedAt?: string | null;
+  initialFinishPhotoMediaId?: string | null;
+  initialFinishTitle?: string | null;
+  initialShouldPostWorkout?: boolean;
+  pendingFinish?: boolean;
   onBack: () => void;
   onCancelWorkout?: () => Promise<boolean>;
   onSaveTemplate?: (groups: string[], exercises: WorkoutExercise[]) => Promise<boolean>;

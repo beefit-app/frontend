@@ -20,7 +20,7 @@ export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile:
     <WorkoutPostCardBase
       post={post}
       author={{ name: profile.displayName, initials, avatarUrl: profile.avatarUrl }}
-      bodyWeight={profile.weight}
+      bodyWeight={profile.weight ?? 0}
       liked={liked}
       likes={likes}
       templateSaved={templateSaved}

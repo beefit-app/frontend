@@ -33,7 +33,7 @@ export function PublicProfileSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto max-h-[94vh] max-w-[430px] overflow-y-auto rounded-t-[28px] border-[#2D2D2D] bg-[#0A0A0A] p-0 text-white">
+      <SheetContent side="bottom" className="beefit-sheet-width max-h-[94dvh] overflow-y-auto rounded-t-[28px] border-[#2D2D2D] bg-[#0A0A0A] p-0 text-white">
         <PublicProfileContent username={open ? username : null} onFriendshipChange={onFriendshipChange} />
       </SheetContent>
     </Sheet>

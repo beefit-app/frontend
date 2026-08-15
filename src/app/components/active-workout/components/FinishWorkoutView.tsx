@@ -1,10 +1,13 @@
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
+import { CameraSource } from "@capacitor/camera";
+import { Capacitor } from "@capacitor/core";
 import { Bookmark, Camera, ChevronLeft, Flame, ImageIcon, Weight } from "lucide-react";
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
 import { formatElapsedTime } from "../utils";
 import { SurfaceCard } from "./shared";
+import { BeeAlert } from "../../BeeAlert";
 import { captureWorkoutPhoto } from "../../../platform/workoutPhoto";
 
 export function FinishWorkoutView({
@@ -52,12 +55,13 @@ export function FinishWorkoutView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "32px 12px 24px", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ padding: "32px 12px 24px", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
             <button
               type="button"
               onClick={onBack}
+              className="beefit-tap-target"
               style={{
                 border: "none",
                 background: "transparent",
@@ -168,7 +172,11 @@ export function FinishWorkoutView({
 
               <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)">
                 <div style={{ display: "grid", gap: 18 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {/* Tres colunas fixas deixam 51px de conteudo por card a 320px, mas o
+                      maior valor ("1 kcal" a 24px) mede 87px e vaza da caixa. O piso de
+                      120px = 87 de conteudo + 28 de padding + folga, entao auto-fit so
+                      forma a terceira coluna quando ela cabe de verdade. */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
                     <div
                       style={{
                         borderRadius: 18,
@@ -188,7 +196,7 @@ export function FinishWorkoutView({
                             fontWeight: 700,
                             letterSpacing: "0.08em",
                             textTransform: "uppercase",
-                            color: "#737373",
+                            color: "#8A8A8A",
                           }}
                         >
                           Duração
@@ -226,7 +234,7 @@ export function FinishWorkoutView({
                             fontWeight: 700,
                             letterSpacing: "0.08em",
                             textTransform: "uppercase",
-                            color: "#737373",
+                            color: "#8A8A8A",
                           }}
                         >
                           Volume total
@@ -264,7 +272,7 @@ export function FinishWorkoutView({
                             fontWeight: 700,
                             letterSpacing: "0.08em",
                             textTransform: "uppercase",
-                            color: "#737373",
+                            color: "#8A8A8A",
                           }}
                         >
                           Calorias
@@ -309,7 +317,7 @@ export function FinishWorkoutView({
                       <span style={{ display: "block", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700, color: "#FFFFFF", marginBottom: 4 }}>
                         Postar treino no perfil
                       </span>
-                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#737373" }}>
+                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#8A8A8A" }}>
                         {ghostModeEnabled
                           ? "Modo fantasma ativo: a publicação começa desmarcada."
                           : "Seu treino pode aparecer no feed e no perfil."}
@@ -320,6 +328,7 @@ export function FinishWorkoutView({
                       type="button"
                       onClick={onTogglePost}
                       aria-pressed={shouldPostWorkout}
+                      className="beefit-tap-target"
                       style={{
                         width: 56,
                         height: 32,
@@ -365,7 +374,7 @@ export function FinishWorkoutView({
                       <span style={{ display: "block", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700, color: "#FFFFFF", marginBottom: 4 }}>
                         Salvar como template
                       </span>
-                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#737373" }}>
+                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#8A8A8A" }}>
                         Usa o título como nome e salva apenas grupos e exercícios.
                       </span>
                     </div>
@@ -375,6 +384,7 @@ export function FinishWorkoutView({
                       onClick={onToggleSaveTemplate}
                       aria-pressed={shouldSaveTemplate}
                       aria-label={shouldSaveTemplate ? "Não salvar template" : "Salvar template"}
+                      className="beefit-tap-target"
                       style={{
                         width: 42,
                         height: 42,
@@ -382,7 +392,7 @@ export function FinishWorkoutView({
                         border: "1px solid",
                         borderColor: shouldSaveTemplate ? "#FFD700" : "#404040",
                         background: shouldSaveTemplate ? "rgba(255,215,0,0.18)" : "#101010",
-                        color: shouldSaveTemplate ? "#FFD700" : "#737373",
+                        color: shouldSaveTemplate ? "#FFD700" : "#8A8A8A",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -404,41 +414,10 @@ export function FinishWorkoutView({
           <IonCol size="12">
             <div style={{ display: "grid", gap: 12 }}>
               {elapsedSeconds < 1800 && (
-                <div
-                  style={{
-                    borderRadius: 18,
-                    border: "1px solid rgba(239, 68, 68, 0.28)",
-                    background: "rgba(239, 68, 68, 0.08)",
-                    padding: "14px 16px",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 12,
-                    marginBottom: 4,
-                  }}
-                >
-                  <AlertTriangle size={18} color="#F87171" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <div style={{ display: "grid", gap: 3 }}>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-montserrat)",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: "#F87171",
-                      }}
-                    >
-                      Aviso de Ofensiva
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-inter)",
-                        fontSize: 12,
-                        lineHeight: 1.5,
-                        color: "#D4D4D4",
-                      }}
-                    >
-                      Treinos com menos de 30 minutos de duração não contabilizam para manter ou aumentar sua ofensiva de <strong>honeys</strong>.
-                    </span>
-                  </div>
+                <div style={{ marginBottom: 4 }}>
+                  <BeeAlert title="Aviso de Ofensiva">
+                    Treinos com menos de 30 minutos de duração não contabilizam para manter ou aumentar sua ofensiva de <strong>honeys</strong>.
+                  </BeeAlert>
                 </div>
               )}
               <BeeButton variant="primary" size="lg" fullWidth onClick={onFinish}>

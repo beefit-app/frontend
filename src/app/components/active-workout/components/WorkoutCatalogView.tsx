@@ -10,6 +10,7 @@ import { BeeInput } from "../../BeeInput";
 export function WorkoutCatalogView({
   groupedExercises,
   activeCatalogGroupId,
+  visibleCatalogItems,
   catalogLoadError,
   selectedCatalogIds,
   isLoadingCatalog,
@@ -20,6 +21,7 @@ export function WorkoutCatalogView({
 }: {
   groupedExercises: { groupId: string; group: string; items: ExerciseCatalogItem[] }[];
   activeCatalogGroupId: string;
+  visibleCatalogItems: ExerciseCatalogItem[];
   catalogLoadError: string;
   selectedCatalogIds: Set<string>;
   isLoadingCatalog: boolean;
@@ -85,12 +87,13 @@ export function WorkoutCatalogView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "32px 12px 0", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ padding: "32px 12px 0", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
             <button
               type="button"
               onClick={onBack}
+              className="beefit-tap-target"
               style={{
                 border: "none",
                 background: "transparent",
@@ -158,6 +161,12 @@ export function WorkoutCatalogView({
                       color: active ? "#FFFFFF" : "#8F8F8F",
                       borderRadius: 14,
                       padding: "11px 14px 10px",
+                      // A aba e um alvo de toque primario: cresce ate o minimo de
+                      // 44px em vez de usar pseudo-elemento, para o pilulo visivel
+                      // coincidir com a area clicavel.
+                      minHeight: 44,
+                      display: "inline-flex",
+                      alignItems: "center",
                       whiteSpace: "nowrap",
                       fontFamily: "var(--font-montserrat)",
                       fontSize: 12,
@@ -190,12 +199,7 @@ export function WorkoutCatalogView({
             </div>
 
             <div style={{ display: "grid", gap: 12 }}>
-              {isLoadingCatalog && (
-                <div style={{ color: "#A3A3A3", fontFamily: "var(--font-inter)", fontSize: 14 }}>
-                  Carregando exercícios...
-                </div>
-              )}
-              {(catalogLoadError || catalogError) && (
+              {catalogLoadError && (
                 <div
                   style={{
                     border: "1px solid rgba(239,68,68,0.35)",
@@ -208,10 +212,10 @@ export function WorkoutCatalogView({
                     lineHeight: 1.5,
                   }}
                 >
-                  {catalogLoadError || catalogError}
+                  {catalogLoadError}
                 </div>
               )}
-              {!isLoadingCatalog && !catalogLoadError && !catalogError && filteredItems.length === 0 && (
+              {!catalogLoadError && visibleCatalogItems.length === 0 && (
                 <div
                   style={{
                     border: "1px solid #2D2D2D",
@@ -227,7 +231,7 @@ export function WorkoutCatalogView({
                   Nenhum exercício encontrado para este grupo muscular.
                 </div>
               )}
-              {filteredItems.map((exercise) => {
+              {visibleCatalogItems.map((exercise) => {
                 const alreadyAdded = selectedCatalogIds.has(exercise.id);
                 const style = muscleStyle(exercise.group);
 

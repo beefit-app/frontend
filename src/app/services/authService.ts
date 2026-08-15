@@ -8,6 +8,7 @@ import type {
   RegisterInput,
 } from "../types/auth";
 import { ApiError, apiClient } from "./apiClient";
+import { clearLocalUserData } from "./sessionTeardown";
 
 const DEV_AUTH_BYPASS_ENABLED =
   import.meta.env?.DEV === true && import.meta.env?.VITE_DEV_AUTH_BYPASS === "true";
@@ -127,7 +128,7 @@ function mergeCurrentUserResponse(value: unknown, fallbackUser: AuthUser | null)
     typeof value.email === "string" &&
     typeof value.id === "string"
   ) {
-    return mapAuthApiUserToAuthUser(value as AuthApiUser);
+    return mapAuthApiUserToAuthUser(value as unknown as AuthApiUser);
   }
 
   if (isBackendProfileResponse(value)) {
@@ -183,10 +184,17 @@ async function persistSession(session: AuthSession) {
   return session;
 }
 
+// Desmonta a sessao inteira, nao so os tokens. Todo caminho de saida passa por
+// aqui — o logout explicito e o forcado por AUTH_UNAUTHORIZED_EVENT —, entao este
+// e o unico ponto que precisa saber apagar dado local.
 async function clearStoredSession() {
+  const cachedUser = await sessionStorage.getUser<AuthUser>();
+
   await sessionStorage.clearToken();
   await sessionStorage.clearRefreshToken();
   await sessionStorage.clearUser();
+
+  await clearLocalUserData(cachedUser?.id ?? null);
 }
 
 const mockAuthGateway: AuthGateway = {
@@ -284,11 +292,7 @@ async function createSessionFromToken(accessToken: string, refreshToken: string)
   }
 }
 
-async function createValidatedSession(
-  accessToken: string,
-  refreshToken: string,
-  fallbackUser: AuthUser | null,
-) {
+async function createValidatedSession(accessToken: string, refreshToken: string, fallbackUser: AuthUser | null) {
   if (fallbackUser) {
     await sessionStorage.setUser(fallbackUser);
   }
@@ -298,31 +302,24 @@ async function createValidatedSession(
 
 async function normalizeApiSession(response: unknown, credentials?: LoginInput): Promise<AuthSession> {
   if (isBackendAuthSessionResponse(response)) {
-    return createValidatedSession(
-      response.accessToken,
-      response.refreshToken,
-      mapAuthApiUserToAuthUser(response.user),
-    );
+    return createValidatedSession(response.accessToken, response.refreshToken, mapAuthApiUserToAuthUser(response.user));
   }
 
   if (isLegacyBackendAuthSessionResponse(response)) {
-    const legacyRefreshToken =
-      response.refreshToken ?? response.token.replace(/^jwt-/, "refresh-");
     return createValidatedSession(
       response.token,
-      legacyRefreshToken,
+      response.refreshToken ?? response.token,
       mapAuthApiUserToAuthUser(response.userResponseDTO),
     );
   }
 
   if (isBackendTokenOnlyResponse(response)) {
     const accessToken = response.accessToken ?? response.token;
-    const refreshToken = response.refreshToken ?? accessToken;
     if (!accessToken) {
       throw new Error("Resposta de autenticação inválida.");
     }
 
-    return createSessionFromToken(accessToken, refreshToken);
+    return createSessionFromToken(accessToken, response.refreshToken ?? accessToken);
   }
 
   if (credentials) {
@@ -388,7 +385,7 @@ const apiAuthGateway: AuthGateway = {
   },
 
   async getCurrentUser() {
-    return fetchCurrentUserFromApi(null);
+    return fetchCurrentUserFromApi(await sessionStorage.getUser<AuthUser>());
   },
 };
 

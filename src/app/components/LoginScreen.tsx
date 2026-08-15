@@ -5,6 +5,8 @@ import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
 import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
+import { BeeAlert } from "./BeeAlert";
+import { messages } from "../constants/messages";
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
@@ -19,9 +21,9 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
 
   function validate() {
     const e: typeof errors = {};
-    if (!email) e.email = "E-mail é obrigatório";
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = "E-mail inválido";
-    if (!password) e.password = "Senha é obrigatória";
+    if (!email) e.email = messages.required("seu e-mail");
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = messages.emailInvalid;
+    if (!password) e.password = messages.required("sua senha");
     return e;
   }
 
@@ -77,7 +79,7 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
     <PageBackground>
       <IonGrid fixed className="relative z-10 min-h-full px-3 py-5">
         <IonRow className="ion-justify-content-center ion-align-items-center">
-          <IonCol size="12" style={{ maxWidth: 393 }}>
+          <IonCol size="12">
             <div className="mb-8 flex flex-col items-center">
               <img
                 src={logoImg}
@@ -136,7 +138,7 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                 </h2>
                 <IonText
                   className="mb-8 block"
-                  style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#737373" }}
+                  style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#8A8A8A" }}
                 >
                   Entre na sua conta para continuar
                 </IonText>
@@ -145,6 +147,8 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                   <BeeInput
                     label="E-mail"
                     type="email"
+                    name="email"
+                    autoComplete="email"
                     placeholder="seu@email.com"
                     value={email}
                     onChange={(e) => {
@@ -159,6 +163,8 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                   <BeeInput
                     label="Senha"
                     type={showPassword ? "text" : "password"}
+                    name="password"
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => {
@@ -169,24 +175,13 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                     icon={<LockIcon />}
                     disabled={isSubmitting}
                     rightElement={
-                      <button type="button" aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)} className="flex items-center bg-transparent p-0 text-inherit">
+                      <button type="button" aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)} className="-m-2 flex items-center bg-transparent p-2 text-inherit">
                         <EyeIcon />
                       </button>
                     }
                   />
 
-                  {authError && (
-                    <IonText
-                      style={{
-                        fontFamily: "var(--font-inter)",
-                        fontSize: 13,
-                        color: "#F87171",
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {authError}
-                    </IonText>
-                  )}
+                  {authError && <BeeAlert>{authError}</BeeAlert>}
 
                   <div className="mt-2">
                     <BeeButton type="submit" variant="primary" fullWidth disabled={isSubmitting}>
@@ -226,7 +221,7 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
               </IonCardContent>
             </IonCard>
 
-            <p className="mt-5 text-center font-inter text-xs leading-5 text-[#737373]">
+            <p className="mt-5 text-center font-inter text-xs leading-5 text-[#8A8A8A]">
               Ao continuar, você concorda com os <a className="text-[#FFD700]" href="/terms">Termos de Uso</a> e a <a className="text-[#FFD700]" href="/privacy">Política de Privacidade</a>.
             </p>
 
@@ -236,11 +231,11 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                 style={{
                   fontFamily: "var(--font-inter)",
                   fontSize: 13,
-                  color: "#737373",
+                  color: "#8A8A8A",
                   transition: "color 0.2s",
                 }}
                 onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#FFD700")}
-                onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#737373")}
+                onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#8A8A8A")}
               >
                 Esqueceu sua senha?
               </button>

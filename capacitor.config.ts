@@ -4,7 +4,6 @@ const config: CapacitorConfig = {
   appId: "com.beefit.app",
   appName: "BeeFit",
   webDir: "dist",
-  bundledWebRuntime: false,
 };
 
 export default config;

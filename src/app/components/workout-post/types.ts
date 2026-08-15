@@ -19,7 +19,8 @@ export interface Comment {
 }
 
 export interface WorkoutPost {
-  id: number;
+  // A API devolve UUID; os mocks locais ainda usam numero sequencial.
+  id: string | number;
   date: string;
   title: string;
   duration: string;

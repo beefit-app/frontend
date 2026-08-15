@@ -24,7 +24,7 @@ export function SectionLabel({ icon, label }: { icon: ReactNode; label: string }
           fontFamily: "var(--font-montserrat)",
           fontSize: 11,
           fontWeight: 700,
-          color: "#737373",
+          color: "#8A8A8A",
           textTransform: "uppercase",
           letterSpacing: "0.1em",
         }}
@@ -76,7 +76,7 @@ export function StatCard({
         style={{
           fontFamily: "var(--font-inter)",
           fontSize: 10,
-          color: "#737373",
+          color: "#8A8A8A",
           textTransform: "uppercase",
           letterSpacing: "0.06em",
           fontWeight: 600,
@@ -173,7 +173,7 @@ export function TrainingCalendar({ trainedDays }: { trainedDays: number[] }) {
                       fontFamily: "var(--font-inter)",
                       fontSize: 11,
                       fontWeight: isToday ? 700 : 400,
-                      color: isToday ? "#FFD700" : isFuture ? "#2D2D2D" : "#737373",
+                      color: isToday ? "#FFD700" : isFuture ? "#2D2D2D" : "#8A8A8A",
                       lineHeight: 1,
                     }}
                   >
@@ -188,11 +188,11 @@ export function TrainingCalendar({ trainedDays }: { trainedDays: number[] }) {
       <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ width: 10, height: 11, clipPath: HEX_CLIP, background: "#FFD700" }} />
-          <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373" }}>Treinou</span>
+          <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#8A8A8A" }}>Treinou</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ width: 10, height: 11, clipPath: HEX_CLIP, background: "#2D2D2D" }} />
-          <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#737373" }}>Descansou</span>
+          <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "#8A8A8A" }}>Descansou</span>
         </div>
       </div>
     </div>
@@ -254,7 +254,7 @@ export function BeeTextarea({
             "--border-width": "2px",
             "--border-style": "solid",
             "--color": "#ffffff",
-            "--placeholder-color": "#737373",
+            "--placeholder-color": "#8A8A8A",
             "--inner-padding-end": "0",
             "--padding-start": "0",
             "--padding-end": "0",
@@ -276,7 +276,7 @@ export function BeeTextarea({
           style={
             {
               "--color": "#ffffff",
-              "--placeholder-color": "#737373",
+              "--placeholder-color": "#8A8A8A",
               "--placeholder-opacity": 1,
               "--background": "transparent",
               "--padding-start": "16px",

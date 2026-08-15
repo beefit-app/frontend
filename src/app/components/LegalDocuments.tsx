@@ -28,7 +28,7 @@ export function LegalDocuments({ document }: { document: LegalDocument }) {
   return (
     <PageBackground>
       <main className="mx-auto max-w-[720px] px-6 py-10 font-inter text-[#D4D4D4]">
-        <a href="/" className="text-sm text-[#FFD700]">Voltar ao BeeFit</a>
+        <a href="/" className="beefit-tap-target inline-flex items-center text-sm text-[#FFD700]">Voltar ao BeeFit</a>
         <h1 className="mt-6 font-montserrat text-3xl font-bold text-white">{content.title}</h1>
         <p className="mt-2 text-sm text-[#A3A3A3]">Última atualização: rascunho de pré-publicação.</p>
         {content.sections.map(([heading, text]) => (

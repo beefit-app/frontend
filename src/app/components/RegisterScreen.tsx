@@ -5,10 +5,25 @@ import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
 import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
+import { extractFieldErrors } from "../services/apiClient";
+import { BeeAlert } from "./BeeAlert";
+import { PASSWORD_MIN_LENGTH, WEIGHT_MAX_KG, WEIGHT_MIN_KG, messages } from "../constants/messages";
 
 interface RegisterScreenProps {
   onNavigateToLogin: () => void;
 }
+
+// O payload da API usa nomes proprios (ver mapRegisterInputToApi em
+// services/authService.ts); este e o caminho de volta, do campo que o servidor
+// acusou para o input que o usuario ve.
+const FORM_FIELD_BY_API_FIELD: Record<string, string> = {
+  fullName: "name",
+  username: "username",
+  email: "email",
+  password: "password",
+  bodyWeight: "weight",
+  weeklyGoal: "weeklyGoal",
+};
 
 export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
   const [form, setForm] = useState({
@@ -21,28 +36,42 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Quando o servidor devolve erro em todos os campos que a tela conhece, o aviso
+  // geral repetiria o texto que ja esta embaixo do input.
+  const [isAuthErrorHandled, setIsAuthErrorHandled] = useState(false);
   const { authError, clearAuthError, isSubmitting, register } = useAuth();
 
   function setField(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
     if (authError) clearAuthError();
+    setIsAuthErrorHandled(false);
   }
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "Nome completo é obrigatório";
-    if (!form.username.trim()) e.username = "Nome de usuário é obrigatório";
-    if (!form.email) e.email = "E-mail é obrigatório";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "E-mail inválido";
-    if (!form.password) e.password = "Senha é obrigatória";
-    else if (form.password.length < 6) e.password = "Mínimo de 6 caracteres";
-    if (!form.weeklyGoal) e.weeklyGoal = "Informe sua meta semanal";
-    else if (isNaN(Number(form.weeklyGoal)) || Number(form.weeklyGoal) < 1)
-      e.weeklyGoal = "Meta inválida (mínimo 1 dia)";
-    if (!form.weight) e.weight = "Peso é obrigatório";
-    else if (isNaN(Number(form.weight)) || Number(form.weight) <= 0 || Number(form.weight) > 300)
-      e.weight = "O peso deve ser de até 300 kg";
+    if (!form.name.trim()) e.name = messages.required("seu nome completo");
+    if (!form.username.trim()) e.username = "Escolha um nome de usuário.";
+    if (!form.email) e.email = messages.required("seu e-mail");
+    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = messages.emailInvalid;
+    if (!form.password) e.password = messages.passwordCreate;
+    else if (form.password.length < PASSWORD_MIN_LENGTH) e.password = messages.passwordMin;
+    if (!form.weeklyGoal) e.weeklyGoal = messages.required("sua meta semanal");
+    // O backend exige @Min(1) @Max(7); validar o teto aqui evita uma ida ao
+    // servidor para um erro que da para prever.
+    else if (
+      isNaN(Number(form.weeklyGoal)) ||
+      Number(form.weeklyGoal) < 1 ||
+      Number(form.weeklyGoal) > 7
+    )
+      e.weeklyGoal = messages.weeklyGoalRange;
+    if (!form.weight) e.weight = messages.required("seu peso");
+    else if (
+      isNaN(Number(form.weight)) ||
+      Number(form.weight) < WEIGHT_MIN_KG ||
+      Number(form.weight) > WEIGHT_MAX_KG
+    )
+      e.weight = messages.weightRange;
     return e;
   }
 
@@ -54,6 +83,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
     }
 
     setErrors({});
+    setIsAuthErrorHandled(false);
 
     try {
       await register({
@@ -64,8 +94,25 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
         weeklyGoal: Number(form.weeklyGoal),
         weight: Number(form.weight),
       });
-    } catch {
-      // O estado de erro já é tratado pelo AuthProvider.
+    } catch (error) {
+      const fieldErrors = extractFieldErrors(error);
+      const mapped: Record<string, string> = {};
+      let hasUnmappedField = false;
+
+      for (const [apiField, message] of Object.entries(fieldErrors)) {
+        const formField = FORM_FIELD_BY_API_FIELD[apiField];
+        // deviceId e qualquer campo que a tela nao mostra: sem input para marcar,
+        // a mensagem tem de continuar no aviso geral, senao o erro fica invisivel
+        // e o botao parece nao fazer nada.
+        if (formField) mapped[formField] = message;
+        else hasUnmappedField = true;
+      }
+
+      if (Object.keys(mapped).length > 0) {
+        setErrors(mapped);
+        setIsAuthErrorHandled(!hasUnmappedField);
+      }
+      // O restante do estado de erro ja e tratado pelo AuthProvider.
     }
   }
 
@@ -130,7 +177,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
     <PageBackground>
       <IonGrid fixed className="relative z-10 min-h-full px-3 py-5">
         <IonRow className="ion-justify-content-center ion-align-items-center">
-          <IonCol size="12" style={{ maxWidth: 393 }}>
+          <IonCol size="12">
             <div className="mb-7 flex flex-col items-center">
               <img
                 src={logoImg}
@@ -183,7 +230,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                 </h2>
                 <IonText
                   className="mb-8 block"
-                  style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#737373" }}
+                  style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#8A8A8A" }}
                 >
                   Comece sua jornada fitness hoje
                 </IonText>
@@ -192,6 +239,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   <BeeInput
                     label="Nome Completo"
                     type="text"
+                    name="name"
+                    autoComplete="name"
                     placeholder="Seu nome completo"
                     value={form.name}
                     onChange={(e) => setField("name", e.target.value)}
@@ -203,6 +252,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   <BeeInput
                     label="Nome de Usuário"
                     type="text"
+                    name="username"
+                    autoComplete="username"
                     placeholder="Seu username"
                     value={form.username}
                     onChange={(e) => setField("username", e.target.value)}
@@ -214,6 +265,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   <BeeInput
                     label="Endereço de E-mail"
                     type="email"
+                    name="email"
+                    autoComplete="email"
                     placeholder="seu@email.com"
                     value={form.email}
                     onChange={(e) => setField("email", e.target.value)}
@@ -225,6 +278,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   <BeeInput
                     label="Senha"
                     type={showPassword ? "text" : "password"}
+                    name="password"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={form.password}
                     onChange={(e) => setField("password", e.target.value)}
@@ -232,7 +287,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                     icon={<LockIcon />}
                     disabled={isSubmitting}
                     rightElement={
-                      <button type="button" aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)} className="flex items-center bg-transparent p-0 text-inherit">
+                      <button type="button" aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)} className="-m-2 flex items-center bg-transparent p-2 text-inherit">
                         <EyeIcon />
                       </button>
                     }
@@ -241,6 +296,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   <BeeInput
                     label="Meta de Exercício Semanal"
                     type="number"
+                    name="weeklyGoal"
+                    inputMode="numeric"
                     placeholder="Ex: 4 (dias por semana)"
                     value={form.weeklyGoal}
                     onChange={(e) => setField("weeklyGoal", e.target.value)}
@@ -255,6 +312,8 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                     <BeeInput
                       label="Peso Corporal (kg)"
                       type="number"
+                      name="weight"
+                      inputMode="decimal"
                       placeholder="Ex: 75.5"
                       value={form.weight}
                       onChange={(e) => setField("weight", e.target.value)}
@@ -279,7 +338,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                         style={{
                           fontFamily: "var(--font-inter)",
                           fontSize: 12,
-                          color: "#737373",
+                          color: "#8A8A8A",
                           lineHeight: 1.4,
                         }}
                       >
@@ -292,18 +351,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                     </div>
                   </div>
 
-                  {authError && (
-                    <IonText
-                      style={{
-                        fontFamily: "var(--font-inter)",
-                        fontSize: 13,
-                        color: "#F87171",
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {authError}
-                    </IonText>
-                  )}
+                  {authError && !isAuthErrorHandled && <BeeAlert>{authError}</BeeAlert>}
 
                   <div className="mt-2">
                     <BeeButton

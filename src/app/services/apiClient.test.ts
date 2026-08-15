@@ -113,8 +113,9 @@ describe("apiClient", () => {
 
   it("busca mídia como blob usando autenticação", async () => {
     window.localStorage.setItem("beefit.auth.accessToken", "media-token");
-    const expectedBlob = new Blob(["image"], { type: "image/png" });
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(expectedBlob, {
+    // Corpo como string, nao Blob: o Blob do jsdom nao implementa stream(), que o
+    // construtor Response do Node exige. O tipo do blob vem do Content-Type.
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("image", {
       status: 200,
       headers: { "Content-Type": "image/png" },
     }));
@@ -123,8 +124,59 @@ describe("apiClient", () => {
     const blob = await apiClient.getBlob("/api/media/media-id", { auth: true });
 
     expect(blob.type).toBe("image/png");
+    expect(await blob.text()).toBe("image");
     expect(vi.mocked(fetch).mock.calls[0]?.[1]).toMatchObject({
       headers: expect.objectContaining({ Authorization: "Bearer media-token" }),
+    });
+  });
+
+  describe("extractFieldErrors", () => {
+    it("mapeia cada campo acusado pelo servidor para sua mensagem", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(createJsonResponse({
+        status: 400,
+        error: "Erro de validação",
+        message: "Campos enviados inválidos",
+        fields: [
+          { field: "email", message: "Informe um e-mail válido, como nome@email.com." },
+          { field: "weeklyGoal", message: "A meta semanal deve ser de 1 a 7 dias." },
+        ],
+      }, { status: 400 }));
+
+      const { apiClient, extractFieldErrors } = await import("./apiClient");
+      const error = await apiClient.post("/auth/register", {}).catch((caught) => caught);
+
+      expect(extractFieldErrors(error)).toEqual({
+        email: "Informe um e-mail válido, como nome@email.com.",
+        weeklyGoal: "A meta semanal deve ser de 1 a 7 dias.",
+      });
+    });
+
+    it("fica com a primeira mensagem quando o mesmo campo viola duas regras", async () => {
+      const { extractFieldErrors } = await import("./apiClient");
+
+      const result = extractFieldErrors({
+        fields: [
+          { field: "bodyWeight", message: "O peso deve ser maior que zero." },
+          { field: "bodyWeight", message: "O peso deve ser de até 300 kg." },
+        ],
+      });
+
+      expect(result).toEqual({ bodyWeight: "O peso deve ser maior que zero." });
+    });
+
+    it("nao lanca com corpo inesperado", async () => {
+      const { extractFieldErrors } = await import("./apiClient");
+
+      // O corpo de erro pode ser qualquer coisa: HTML de proxy, texto solto,
+      // resposta sem fields. Isto roda dentro de tratamento de erro e nao pode
+      // virar uma segunda excecao.
+      expect(extractFieldErrors(null)).toEqual({});
+      expect(extractFieldErrors("<html>502</html>")).toEqual({});
+      expect(extractFieldErrors({ message: "sem fields" })).toEqual({});
+      expect(extractFieldErrors({ fields: [] })).toEqual({});
+      expect(extractFieldErrors({ fields: "nao e lista" })).toEqual({});
+      expect(extractFieldErrors({ fields: [null, { field: "", message: "x" }] })).toEqual({});
+      expect(extractFieldErrors({ fields: [{ field: "email" }] })).toEqual({});
     });
   });
 });

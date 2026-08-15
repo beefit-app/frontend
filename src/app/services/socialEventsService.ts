@@ -84,25 +84,51 @@ async function openSocialEventsConnection(signal: AbortSignal) {
   }
 }
 
+const RECONNECT_BASE_DELAY_MS = 1000;
+const RECONNECT_MAX_DELAY_MS = 30_000;
+
+// Backoff exponencial com jitter. Com um intervalo fixo, um backend fora do ar
+// vira uma requisicao por segundo por aparelho, indefinidamente — gasta bateria do
+// usuario e ainda castiga o servidor justamente enquanto ele tenta se recuperar.
+// O jitter evita que todos os clientes voltem no mesmo instante.
+function getReconnectDelay(attempt: number) {
+  const backoff = Math.min(RECONNECT_BASE_DELAY_MS * 2 ** attempt, RECONNECT_MAX_DELAY_MS);
+  return backoff / 2 + Math.random() * (backoff / 2);
+}
+
 function ensureConnection() {
   if (connectionPromise || listeners.size === 0) return;
 
   connectionAbortController = new AbortController();
   connectionPromise = (async () => {
+    let attempt = 0;
+
     while (!connectionAbortController?.signal.aborted && listeners.size > 0) {
       try {
         await openSocialEventsConnection(connectionAbortController.signal);
+        // Conectou e o stream terminou por conta propria: a proxima tentativa
+        // recomeca do delay base em vez de herdar a escalada anterior.
+        attempt = 0;
       } catch {
         if (connectionAbortController?.signal.aborted || listeners.size === 0) break;
+        attempt += 1;
       }
 
       if (connectionAbortController?.signal.aborted || listeners.size === 0) break;
-      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      await new Promise((resolve) => window.setTimeout(resolve, getReconnectDelay(attempt)));
     }
   })().finally(() => {
     connectionPromise = null;
     if (listeners.size > 0) ensureConnection();
   });
+}
+
+// Derruba o stream no logout. Sem isto o laco de reconexao continua tentando de
+// segundo em segundo com um token que ja nao vale.
+export function closeSocialEventsConnection() {
+  listeners.clear();
+  connectionAbortController?.abort();
+  connectionAbortController = null;
 }
 
 export async function subscribeSocialEvents(

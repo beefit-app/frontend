@@ -49,7 +49,7 @@ export function ProfileView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, position: "relative", padding: "0 0 32px", zIndex: 1 }}>
+      <IonGrid fixed style={{ position: "relative", padding: "0 0 32px", zIndex: 1 }}>
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <div style={{ position: "relative" }}>
@@ -81,6 +81,7 @@ export function ProfileView({
               {managementEnabled && (
                 <button
                   type="button"
+                  className="beefit-tap-target"
                   onClick={() => setIsProfileMenuOpen(true)}
                   style={{
                     position: "absolute",
@@ -111,7 +112,7 @@ export function ProfileView({
                     <SheetTitle className="font-montserrat text-[18px] font-bold text-white">
                       Opções do perfil
                     </SheetTitle>
-                    <SheetDescription className="font-inter text-[13px] text-[#737373]">
+                    <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
                       Escolha uma das opções abaixo.
                     </SheetDescription>
                   </SheetHeader>
@@ -130,7 +131,7 @@ export function ProfileView({
                           <span className="font-montserrat text-[14px] font-bold text-white">
                             Alterar informações do perfil
                           </span>
-                          <span className="font-inter text-[12px] text-[#737373]">
+                          <span className="font-inter text-[12px] text-[#8A8A8A]">
                             Editar nome, bio e peso.
                           </span>
                         </div>
@@ -149,7 +150,7 @@ export function ProfileView({
                           <span className="font-montserrat text-[14px] font-bold text-white">
                             Gerenciar configurações de conta
                           </span>
-                          <span className="font-inter text-[12px] text-[#737373]">
+                          <span className="font-inter text-[12px] text-[#8A8A8A]">
                             Alterar senha e controlar o modo fantasma.
                           </span>
                         </div>
@@ -229,7 +230,7 @@ export function ProfileView({
                     <h1 style={{ fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700, color: "#ffffff", margin: "0 0 4px" }}>
                       {profile.displayName}
                     </h1>
-                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "#737373", fontWeight: 500 }}>
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "#8A8A8A", fontWeight: 500 }}>
                       {profile.username}
                     </span>
                   </div>
@@ -302,7 +303,7 @@ export function ProfileView({
                 <div style={{ marginTop: 20 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                     <SectionLabel icon={<Dumbbell size={13} color="#FFD700" />} label="Posts de treino" />
-                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: "#737373" }}>
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: "#8A8A8A" }}>
                       {recentPosts.length} {recentPosts.length === 1 ? "post" : "posts"}
                     </span>
                   </div>
@@ -347,7 +348,7 @@ export function ProfileView({
                         textAlign: "center",
                         fontFamily: "var(--font-inter)",
                         fontSize: 13,
-                        color: "#737373",
+                        color: "#8A8A8A",
                       }}
                     >
                       Os treinos concluídos aparecerão aqui como posts.

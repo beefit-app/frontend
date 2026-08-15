@@ -43,7 +43,9 @@ describe("InventoryView", () => {
   it("renderiza o loading inicial sem quebrar", () => {
     render(<InventoryView {...baseProps} isLoading />);
 
-    expect(screen.getByText("Inventário")).toBeInTheDocument();
+    // Por papel e nao por texto exato: o titulo carrega um ponto final, e a
+    // assercao anterior so passava porque ele vivia num span separado.
+    expect(screen.getByRole("heading", { name: /Inventário/ })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /cartas/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /templates/i })).toBeInTheDocument();
     expect(screen.getByText("Filtrar")).toBeInTheDocument();

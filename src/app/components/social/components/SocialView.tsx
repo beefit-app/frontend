@@ -44,7 +44,7 @@ function SectionTitle({ icon, children }: { icon: ReactNode; children: ReactNode
   return (
     <div className="mb-3 flex items-center gap-2">
       {icon}
-      <h2 className="font-montserrat text-[11px] font-bold uppercase tracking-[0.1em] text-[#737373]">
+      <h2 className="font-montserrat text-[11px] font-bold uppercase tracking-[0.1em] text-[#8A8A8A]">
         {children}
       </h2>
     </div>
@@ -116,7 +116,7 @@ function PersonIdentity({ person }: { person: FriendProfile }) {
       <HexAvatar initials={person.initials} size={36} />
       <div className="min-w-0">
         <p className="truncate font-montserrat text-[13px] font-bold text-white">{person.name}</p>
-        <p className="truncate font-inter text-[11px] font-medium text-[#737373]">{person.username}</p>
+        <p className="truncate font-inter text-[11px] font-medium text-[#8A8A8A]">{person.username}</p>
       </div>
     </div>
   );
@@ -127,7 +127,7 @@ const EllipsisActionButton = forwardRef<HTMLButtonElement, React.ComponentProps<
     <button
       ref={ref}
       type={type}
-      className={`flex h-10 w-10 items-center justify-center rounded-[12px] border border-[#2D2D2D] bg-[#181818] text-[#A3A3A3] transition-colors hover:border-[#525252] hover:text-white ${className ?? ""}`}
+      className={`beefit-tap-target flex h-10 w-10 items-center justify-center rounded-[12px] border border-[#2D2D2D] bg-[#181818] text-[#A3A3A3] transition-colors hover:border-[#525252] hover:text-white ${className ?? ""}`}
       {...props}
     >
       <Ellipsis size={16} />
@@ -181,7 +181,7 @@ function FriendsPanel({
 
       {state.sentRequests.length > 0 && (
         <section>
-          <SectionTitle icon={<UserPlus size={14} color="#737373" />}>
+          <SectionTitle icon={<UserPlus size={14} color="#8A8A8A" />}>
             Solicitações enviadas
           </SectionTitle>
           <div className="flex flex-col gap-2.5">
@@ -234,12 +234,12 @@ function FriendsPanel({
       </section>
 
       <Sheet open={friendActionsOpen} onOpenChange={setFriendActionsOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+        <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
           <SheetHeader className="px-0 pb-3 pt-3 text-left">
             <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
               {selectedFriend?.name ?? "Ações do amigo"}
             </SheetTitle>
-            <SheetDescription className="font-inter text-[13px] text-[#737373]">
+            <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
               Escolha uma ação para este amigo.
             </SheetDescription>
           </SheetHeader>
@@ -299,7 +299,7 @@ function HiveCard({
             {hive.period}
           </span>
           <span className="block font-montserrat text-[15px] font-bold text-white">{hive.name}</span>
-          <span className="mt-1 block font-inter text-[11px] text-[#737373]">{hive.members.length} membros</span>
+          <span className="mt-1 block font-inter text-[11px] text-[#8A8A8A]">{hive.members.length} membros</span>
         </div>
         <div className="flex h-11 w-11 flex-col items-center justify-center rounded-[13px] border border-[rgba(255,215,0,0.24)] bg-[rgba(255,215,0,0.1)]">
           <span className="font-montserrat text-[16px] font-extrabold leading-none text-[#FFD700]">#{position}</span>
@@ -349,7 +349,7 @@ function RankingPanel({
     <div className="rounded-[22px] border border-[#2D2D2D] bg-[#141414] p-4">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <span className="font-inter text-[10px] font-bold uppercase tracking-[0.1em] text-[#737373]">
+          <span className="font-inter text-[10px] font-bold uppercase tracking-[0.1em] text-[#8A8A8A]">
             Ranking {hive.period.toLocaleLowerCase()}
           </span>
           <h3 className="mt-1 font-montserrat text-[17px] font-bold text-white">{hive.name}</h3>
@@ -369,27 +369,27 @@ function RankingPanel({
                 : "border-[#262626] bg-[#181818] hover:border-[#404040]"
             }`}
           >
-            <span className={`w-6 font-montserrat text-[13px] font-bold ${index === 0 ? "text-[#FFD700]" : "text-[#737373]"}`}>
+            <span className={`w-6 font-montserrat text-[13px] font-bold ${index === 0 ? "text-[#FFD700]" : "text-[#8A8A8A]"}`}>
               {index === 0 ? <Crown size={14} color="#FFD700" /> : index + 1}
             </span>
             <HexAvatar initials={member.initials} size={22} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-montserrat text-[12px] font-bold text-white">{member.name}</p>
-              <p className="font-inter text-[10px] text-[#737373]">{member.honeys} Honeys</p>
+              <p className="font-inter text-[10px] text-[#8A8A8A]">{member.honeys} Honeys</p>
             </div>
             <span className="font-montserrat text-[13px] font-bold text-[#FFD700]">{member.workouts}</span>
-            <span className="font-inter text-[10px] text-[#737373]">treinos</span>
+            <span className="font-inter text-[10px] text-[#8A8A8A]">treinos</span>
           </button>
         ))}
       </div>
 
       <Sheet open={hiveActionsOpen} onOpenChange={setHiveActionsOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+        <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
           <SheetHeader className="px-0 pb-3 pt-3 text-left">
             <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
               {hive.name}
             </SheetTitle>
-            <SheetDescription className="font-inter text-[13px] text-[#737373]">
+            <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
               Escolha uma ação para esta colmeia.
             </SheetDescription>
           </SheetHeader>
@@ -449,10 +449,10 @@ function HiveSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+      <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
         <SheetHeader className="px-0 pb-3 pt-3 text-left">
           <SheetTitle className="font-montserrat text-[20px] font-bold text-white">{title}</SheetTitle>
-          <SheetDescription className="font-inter text-[13px] text-[#737373]">
+          <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
             {mode === "create"
               ? "Defina a disputa e compartilhe o código com seus amigos."
               : "Use o código recebido para participar do ranking."}
@@ -551,10 +551,10 @@ function HivesPanel({ state, onOpenProfile }: { state: SocialState; onOpenProfil
       )}
 
       <Sheet open={actionOpen} onOpenChange={setActionOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+        <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
           <SheetHeader className="px-0 pb-3 pt-3 text-left">
             <SheetTitle className="font-montserrat text-[20px] font-bold text-white">Adicionar Colmeia</SheetTitle>
-            <SheetDescription className="font-inter text-[13px] text-[#737373]">
+            <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
               Escolha se você quer criar uma colmeia nova ou entrar com um convite.
             </SheetDescription>
           </SheetHeader>
@@ -585,10 +585,10 @@ function HivesPanel({ state, onOpenProfile }: { state: SocialState; onOpenProfil
       <HiveSheet mode="create" open={createOpen} onOpenChange={setCreateOpen} state={state} />
       <HiveSheet mode="join" open={joinOpen} onOpenChange={setJoinOpen} state={state} />
       <Sheet open={leaveConfirmationOpen} onOpenChange={setLeaveConfirmationOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-4 text-white">
+        <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-4 text-white">
           <SheetHeader className="px-0 text-left">
             <SheetTitle className="font-montserrat text-[18px] font-bold text-white">Sair da Colmeia?</SheetTitle>
-            <SheetDescription className="font-inter text-[13px] text-[#737373]">
+            <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
               {state.selectedHive?.creatorId === state.user?.id
                 ? (state.selectedHive?.members.length ?? 0) <= 1
                   ? "Como você é o criador e único membro, a Colmeia será excluída permanentemente."
@@ -667,7 +667,7 @@ export function SocialView({
 
   return (
     <PageBackground>
-      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-7" style={{ width: "100%", maxWidth: 393, margin: "0 auto" }}>
+      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-7">
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <header className="relative mb-6">
@@ -676,7 +676,7 @@ export function SocialView({
                   type="button"
                   onClick={() => openFriendsUtility()}
                   aria-label={searchOpen ? "Fechar busca de amigos" : "Pesquisar amigos"}
-                  className={`flex h-10 w-10 items-center justify-center rounded-[13px] border transition-colors ${
+                  className={`beefit-tap-target flex h-10 w-10 items-center justify-center rounded-[13px] border transition-colors ${
                     searchOpen
                       ? "border-[rgba(255,215,0,0.32)] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
                       : "border-[#2D2D2D] bg-[#141414] text-[#A3A3A3]"
@@ -688,7 +688,7 @@ export function SocialView({
 
               <div className="pr-[98px]">
                 <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
-                  Social<span className="text-[#FFD700]">.</span>
+                  Social.
                 </h1>
               </div>
               <p className="mt-2 max-w-[320px] font-inter text-[14px] leading-[1.45] text-[#A3A3A3]">
@@ -770,8 +770,8 @@ export function SocialView({
                   key={tab.id}
                   type="button"
                   onClick={() => state.setActiveSection(tab.id)}
-                  className={`relative flex items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
-                    state.activeSection === tab.id ? "text-[#0A0A0A]" : "text-[#737373]"
+                  className={`relative flex min-h-11 items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
+                    state.activeSection === tab.id ? "text-[#0A0A0A]" : "text-[#8A8A8A]"
                   }`}
                 >
                   {state.activeSection === tab.id && (

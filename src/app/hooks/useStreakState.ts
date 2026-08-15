@@ -45,6 +45,11 @@ function readPersistedStreak(): PersistedStreakState | null {
   }
 }
 
+export function clearPersistedStreak() {
+  if (typeof window === "undefined" || typeof window.localStorage === "undefined") return;
+  window.localStorage.removeItem(STREAK_STORAGE_KEY);
+}
+
 function persistStreak(streak: PersistedStreakState) {
   if (typeof window === "undefined" || typeof window.localStorage === "undefined") return;
   window.localStorage.setItem(STREAK_STORAGE_KEY, JSON.stringify(streak));
@@ -113,9 +118,30 @@ export function useStreakState(user: AuthUser | null) {
     }
   }
 
+  function clearPendingFeed() {
+    setStreak((current) => ({ ...current, burstToken: 0 }));
+  }
+
+  function syncStreakCount(nextCount: number) {
+    const todayKey = getTodayKey();
+
+    setStreak((current) => {
+      if (nextCount === current.count) {
+        return current;
+      }
+
+      return {
+        count: nextCount,
+        lastFedDate: nextCount > current.count ? todayKey : current.lastFedDate,
+        burstToken: nextCount > current.count ? current.burstToken + 1 : current.burstToken,
+      };
+    });
+  }
+
   return {
     streak,
     isStreakFedToday: streak.lastFedDate === getTodayKey(),
-    refreshStreak: (burstOnIncrease = false) => syncWithBackend(burstOnIncrease),
+    clearPendingFeed,
+    syncStreakCount,
   };
 }

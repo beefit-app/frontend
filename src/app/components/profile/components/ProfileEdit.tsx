@@ -1,12 +1,13 @@
 import { Scale } from "lucide-react";
 import { useEffect, useState } from "react";
-import { IonText } from "@ionic/react";
 import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import { BeeButton } from "../../BeeButton";
+import { BeeAlert } from "../../BeeAlert";
 import { BeeCard } from "../../BeeCard";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
 import type { ProfileData } from "../types";
+import { WEIGHT_MAX_KG, WEIGHT_MIN_KG, messages } from "../../../constants/messages";
 import { BeeTextarea, HexAvatar } from "./shared";
 import { profileService } from "../../../services/profileService";
 import { revokeObjectUrl, validateImageFile } from "../../../platform/mediaValidation";
@@ -38,13 +39,13 @@ export function ProfileEdit({
   function validate() {
     const nextErrors: Record<string, string> = {};
 
-    if (!displayName.trim()) nextErrors.displayName = "Nome é obrigatório";
-    if (displayName.trim().length > 40) nextErrors.displayName = "Máximo 40 caracteres";
-    if (bio.length > 200) nextErrors.bio = "Máximo 200 caracteres";
+    if (!displayName.trim()) nextErrors.displayName = messages.required("seu nome");
+    if (displayName.trim().length > 40) nextErrors.displayName = messages.maxLength(40);
+    if (bio.length > 200) nextErrors.bio = messages.maxLength(200);
 
     const parsedWeight = parseFloat(weight);
-    if (weight && (isNaN(parsedWeight) || parsedWeight < 30 || parsedWeight > 300)) {
-      nextErrors.weight = "Peso inválido (30–300 kg)";
+    if (weight && (isNaN(parsedWeight) || parsedWeight < WEIGHT_MIN_KG || parsedWeight > WEIGHT_MAX_KG)) {
+      nextErrors.weight = messages.weightRange;
     }
 
     return nextErrors;
@@ -72,7 +73,7 @@ export function ProfileEdit({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, padding: "20px 0 40px", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ padding: "20px 0 40px", position: "relative", zIndex: 1 }}>
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>
@@ -101,6 +102,8 @@ export function ProfileEdit({
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                   <BeeInput
                     label="Nome de Exibição"
+                    name="displayName"
+                    autoComplete="name"
                     value={displayName}
                     placeholder="Seu nome público"
                     onChange={(event) => {
@@ -125,7 +128,7 @@ export function ProfileEdit({
                       }}
                       error={errors.bio}
                     />
-                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: bioLeft < 20 ? "#F97316" : "#737373", textAlign: "right" }}>
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: bioLeft < 20 ? "#F97316" : "#8A8A8A", textAlign: "right" }}>
                       {bioLeft} restantes
                     </span>
                   </div>
@@ -133,6 +136,8 @@ export function ProfileEdit({
                     label="Peso Atual (kg)"
                     value={weight}
                     type="number"
+                    name="weight"
+                    inputMode="decimal"
                     placeholder="Ex: 82.5"
                     min="30"
                     max="300"
@@ -150,17 +155,9 @@ export function ProfileEdit({
               </BeeCard>
 
               {saveError && (
-                <IonText
-                  style={{
-                    fontFamily: "var(--font-inter)",
-                    fontSize: 13,
-                    color: "#F87171",
-                    lineHeight: 1.5,
-                    textAlign: "center",
-                  }}
-                >
-                  {saveError}
-                </IonText>
+                <div style={{ textAlign: "center" }}>
+                  <BeeAlert plain>{saveError}</BeeAlert>
+                </div>
               )}
 
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

@@ -2,10 +2,13 @@ import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import { ChevronLeft, Eye, EyeOff, Ghost, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { BeeButton } from "../../BeeButton";
+import { BeeAlert } from "../../BeeAlert";
 import { BeeCard } from "../../BeeCard";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
 import type { AccountSettingsSaveInput } from "../types";
+import { messages } from "../../../constants/messages";
+import { useConfirm } from "../../../hooks/useConfirm";
 import { SectionLabel } from "./shared";
 
 export function AccountSettingsScreen({
@@ -35,6 +38,7 @@ export function AccountSettingsScreen({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const EyeToggleIcon = ({ visible }: { visible: boolean }) => (visible ? <EyeOff size={18} /> : <Eye size={18} />);
 
@@ -43,15 +47,15 @@ export function AccountSettingsScreen({
     const isChangingPassword = Boolean(currentPassword || newPassword || confirmPassword);
 
     if (isChangingPassword) {
-      if (!currentPassword) nextErrors.currentPassword = "Digite sua senha atual";
-      if (!newPassword) nextErrors.newPassword = "Digite a nova senha";
+      if (!currentPassword) nextErrors.currentPassword = messages.required("sua senha atual");
+      if (!newPassword) nextErrors.newPassword = messages.required("a nova senha");
       else if (newPassword.length < 6) {
-        nextErrors.newPassword = "Mínimo de 6 caracteres";
+        nextErrors.newPassword = messages.passwordMin;
       }
-      if (!confirmPassword) nextErrors.confirmPassword = "Confirme a nova senha";
-      else if (confirmPassword !== newPassword) nextErrors.confirmPassword = "As senhas não coincidem";
+      if (!confirmPassword) nextErrors.confirmPassword = messages.required("a confirmação da nova senha");
+      else if (confirmPassword !== newPassword) nextErrors.confirmPassword = messages.passwordMismatch;
       if (currentPassword && newPassword && currentPassword === newPassword) {
-        nextErrors.newPassword = "A nova senha deve ser diferente da atual";
+        nextErrors.newPassword = messages.passwordSameAsCurrent;
       }
     }
 
@@ -87,7 +91,7 @@ export function AccountSettingsScreen({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ maxWidth: 393, padding: "20px 0 40px", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ padding: "20px 0 40px", position: "relative", zIndex: 1 }}>
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>
@@ -116,7 +120,7 @@ export function AccountSettingsScreen({
                 <h1 style={{ margin: 0, fontFamily: "var(--font-montserrat)", fontSize: 24, fontWeight: 700, color: "#ffffff" }}>
                   Configurações de conta
                 </h1>
-                <p style={{ margin: 0, fontFamily: "var(--font-inter)", fontSize: 14, lineHeight: 1.6, color: "#737373" }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-inter)", fontSize: 14, lineHeight: 1.6, color: "#8A8A8A" }}>
                   Gerencie sua senha e a forma como seu perfil aparece para outros usuários.
                 </p>
               </div>
@@ -128,6 +132,8 @@ export function AccountSettingsScreen({
                   <BeeInput
                     label="Senha atual"
                     type={showCurrentPassword ? "text" : "password"}
+                    name="currentPassword"
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     value={currentPassword}
                     onChange={(event) => {
@@ -148,6 +154,8 @@ export function AccountSettingsScreen({
                   <BeeInput
                     label="Nova senha"
                     type={showNewPassword ? "text" : "password"}
+                    name="newPassword"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={newPassword}
                     onChange={(event) => {
@@ -168,6 +176,8 @@ export function AccountSettingsScreen({
                   <BeeInput
                     label="Confirmar nova senha"
                     type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(event) => {
@@ -193,10 +203,19 @@ export function AccountSettingsScreen({
                   <p style={{ margin: 0, color: "#FCA5A5", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.55 }}>
                     Esta ação remove permanentemente seus treinos, posts, mídias, cartas e relações sociais.
                   </p>
-                  <BeeInput label="Confirme sua senha" type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} disabled={isSubmitting} />
+                  <BeeInput label="Confirme sua senha" type="password" name="deletePassword" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} disabled={isSubmitting} />
                   <BeeButton variant="dark" fullWidth disabled={isSubmitting || !deletePassword.trim()} onClick={() => {
-                    if (!window.confirm("Excluir permanentemente sua conta?")) return;
-                    void onDeleteAccount?.(deletePassword).then((deleted) => { if (deleted) setDeletePassword(""); });
+                    void (async () => {
+                      const confirmed = await confirm({
+                        title: "Excluir permanentemente sua conta?",
+                        description: "Seus treinos, posts, mídias, cartas e relações sociais serão removidos. Esta ação não pode ser desfeita.",
+                        confirmLabel: "Excluir conta",
+                        destructive: true,
+                      });
+                      if (!confirmed) return;
+                      const deleted = await onDeleteAccount?.(deletePassword);
+                      if (deleted) setDeletePassword("");
+                    })();
                   }}>
                     Excluir permanentemente
                   </BeeButton>
@@ -223,7 +242,7 @@ export function AccountSettingsScreen({
                       <span style={{ display: "block", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700, color: "#ffffff", marginBottom: 4 }}>
                         Modo fantasma
                       </span>
-                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#737373" }}>
+                      <span style={{ display: "block", fontFamily: "var(--font-inter)", fontSize: 12, lineHeight: 1.6, color: "#8A8A8A" }}>
                         Oculta sua presença e reduz a visibilidade das suas atividades públicas.
                       </span>
                     </div>
@@ -267,22 +286,7 @@ export function AccountSettingsScreen({
                 </div>
               </BeeCard>
 
-              {saveError && (
-                <div
-                  style={{
-                    borderRadius: 14,
-                    border: "1px solid rgba(248,113,113,0.24)",
-                    background: "rgba(127,29,29,0.18)",
-                    padding: "14px 16px",
-                    fontFamily: "var(--font-inter)",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "#FCA5A5",
-                  }}
-                >
-                  {saveError}
-                </div>
-              )}
+              {saveError && <BeeAlert>{saveError}</BeeAlert>}
 
               {successMessage && (
                 <div
@@ -313,6 +317,7 @@ export function AccountSettingsScreen({
           </IonCol>
         </IonRow>
       </IonGrid>
+      {confirmDialog}
     </PageBackground>
   );
 }

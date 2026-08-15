@@ -16,7 +16,9 @@ import { useAuth } from "./auth/AuthContext";
 import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
 import { useStreakState } from "./hooks/useStreakState";
 import { useWorkoutSessionState } from "./hooks/useWorkoutSessionState";
+import { profileService } from "./services/profileService";
 import type { WorkoutCompletionDraft, WorkoutCompletionSummary } from "./types/workout";
+import { Toaster } from "./components/ui/sonner";
 
 setupIonicReact({ mode: "md" });
 
@@ -24,6 +26,14 @@ const SocialFeedScreen = lazy(() => import("./components/SocialFeedScreen").then
 const SocialScreen = lazy(() => import("./components/SocialScreen").then(({ SocialScreen }) => ({ default: SocialScreen })));
 const InventoryScreen = lazy(() => import("./components/InventoryScreen").then(({ InventoryScreen }) => ({ default: InventoryScreen })));
 const AdminScreen = lazy(() => import("./components/admin/AdminScreen").then(({ AdminScreen }) => ({ default: AdminScreen })));
+
+// O app nao usa IonHeader/IonToolbar em nenhuma tela e todos os IonContent sao
+// fullscreen, entao o Ionic nao aplica o recuo do notch sozinho. Consumimos aqui
+// a variavel que o proprio Ionic ja define em html (core.css), que resolve para
+// 0px no browser desktop.
+const SAFE_AREA_TOP_PADDING = {
+  "--padding-top": "var(--ion-safe-area-top, 0px)",
+} as React.CSSProperties;
 
 function DeferredScreen({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div className="p-6 text-center font-inter text-sm text-[#A3A3A3]">Carregando…</div>}>{children}</Suspense>;
@@ -65,7 +75,7 @@ class ScreenErrorBoundary extends Component<
   { children: ReactNode; resetKey: string },
   { error: Error | null }
 > {
-  state = { error: null };
+  state: { error: Error | null } = { error: null };
 
   static getDerivedStateFromError(error: Error) {
     return { error };
@@ -104,8 +114,8 @@ export default function App() {
   const { authScreen, screen, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
-  const { streak, isStreakFedToday, refreshStreak } = useStreakState(
-    isAuthenticated ? (user ?? null) : null,
+  const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState(
+    isAuthenticated ? user : null,
   );
   const [accountSettings, setAccountSettings] = useState<AccountSettingsData>(DEFAULT_ACCOUNT_SETTINGS);
   const [feedRefreshToken, setFeedRefreshToken] = useState(0);
@@ -115,34 +125,37 @@ export default function App() {
   const isAdminRoute = pathname.startsWith("/admin");
   const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
 
-  useEffect(() => {
-    const handleLocationChange = () => setPathname(window.location.pathname);
-    window.addEventListener("popstate", handleLocationChange);
-    return () => window.removeEventListener("popstate", handleLocationChange);
-  }, []);
-
   if (legalDocument) {
-    return <IonApp><IonPage><IonContent fullscreen><LegalDocuments document={legalDocument} /></IonContent></IonPage></IonApp>;
+    return (
+      <IonApp>
+        <IonPage>
+          <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>
+            <LegalDocuments document={legalDocument} />
+          </IonContent>
+        </IonPage>
+      </IonApp>
+    );
   }
 
   function handleWorkoutCompleted(_draft: WorkoutCompletionDraft, _summary: WorkoutCompletionSummary) {
+    clearPendingFeed();
     completeWorkout();
     setScreen("feed");
-    setFeedRefreshToken((current) => current + 1);
-    setProfileRefreshToken((current) => current + 1);
-    void refreshStreak(true);
-    window.setTimeout(() => {
-      void contentRef.current?.scrollToTop(320);
-    }, 40);
+    void contentRef.current?.scrollToTop(320);
+    void (async () => {
+      try {
+        const profile = await profileService.getProfile(user);
+        syncStreakCount(profile.streak);
+      } catch {
+        // Mantem o valor atual quando o refresh do perfil falha.
+      }
+    })();
   }
 
   function openSocialProfile(username: string) {
-    setSocialProfileReturnScreen(screen === "feed" ? "feed" : "social");
     setSocialProfileUsername(username);
+    setSocialProfileReturnScreen("feed");
     setScreen("social");
-    window.setTimeout(() => {
-      void contentRef.current?.scrollToTop(0);
-    }, 40);
   }
 
   const activeWorkoutLabel = activeWorkout?.selectedGroups.join(" · ");
@@ -158,6 +171,7 @@ export default function App() {
               {
                 "--background": "#0A0A0A",
                 "--color": "#ffffff",
+                ...SAFE_AREA_TOP_PADDING,
               } as React.CSSProperties
             }
           >
@@ -204,6 +218,7 @@ export default function App() {
               "--background":
                 "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%) center var(--beefit-page-gradient-top) / 100% var(--beefit-page-gradient-height) no-repeat, #0A0A0A",
               "--color": "#ffffff",
+              ...SAFE_AREA_TOP_PADDING,
             } as React.CSSProperties
           }
         >
@@ -225,7 +240,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setScreen("workout")}
-                className="mx-auto flex w-full max-w-[393px] items-center justify-between gap-3 rounded-[20px] border border-[rgba(255,215,0,0.28)] bg-[linear-gradient(135deg,rgba(255,215,0,0.14)_0%,rgba(20,20,20,0.98)_34%,rgba(20,20,20,0.98)_100%)] px-4 py-3 text-left shadow-[0_12px_30px_rgba(0,0,0,0.24)]"
+                className="beefit-shell-width flex items-center justify-between gap-3 rounded-[20px] border border-[rgba(255,215,0,0.28)] bg-[linear-gradient(135deg,rgba(255,215,0,0.14)_0%,rgba(20,20,20,0.98)_34%,rgba(20,20,20,0.98)_100%)] px-4 py-3 text-left shadow-[0_12px_30px_rgba(0,0,0,0.24)]"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(255,215,0,0.24)] bg-[rgba(255,215,0,0.12)] text-[#FFD700]">
@@ -317,18 +332,16 @@ export default function App() {
             data-testid="bottom-navigation"
             style={{
               background: "#0A0A0A",
-              paddingBottom: "env(safe-area-inset-bottom)",
+              paddingBottom: "var(--ion-safe-area-bottom, 0px)",
             }}
           >
             <nav
               aria-label="Navegação principal"
+              className="beefit-shell-width"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-                width: "100%",
-                maxWidth: 393,
                 height: 68,
-                margin: "0 auto",
                 background: "#0A0A0A",
                 borderTop: "2px solid #FFD700",
                 borderLeft: "1px solid #2D2D2D",
@@ -351,7 +364,7 @@ export default function App() {
                       minWidth: 0,
                       border: "none",
                       background: "transparent",
-                      color: active ? "#FFD700" : "#737373",
+                      color: active ? "#FFD700" : "#8A8A8A",
                       opacity: implemented || id === "workout" ? 1 : 0.72,
                       display: "flex",
                       flexDirection: "column",
@@ -362,7 +375,7 @@ export default function App() {
                       fontFamily: "var(--font-montserrat)",
                       fontSize: 10,
                       fontWeight: 700,
-                      letterSpacing: "0.05em",
+                      letterSpacing: "0.02em",
                       textTransform: "uppercase",
                       cursor: "pointer",
                     }}
@@ -386,6 +399,7 @@ export default function App() {
           </IonFooter>
         )}
       </IonPage>
+      <Toaster />
     </IonApp>
   );
 }

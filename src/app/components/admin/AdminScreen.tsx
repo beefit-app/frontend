@@ -230,7 +230,7 @@ function DashboardView({
       <PageStatus loading={loading} error={error} empty={false} />
 
       {!loading && !error && (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
           {cards.map(({ label, value, Icon }) => (
             <div key={label} className="rounded-lg border border-[#2D2D2D] bg-[#141414] p-5">
               <div className="flex items-center justify-between gap-3">
@@ -283,8 +283,8 @@ function UsersView({
           <p className="mt-1 font-inter text-sm text-[#A3A3A3]">Busque contas e aplique ações de acesso.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <div className="relative min-w-[260px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#737373]" />
+          <div className="relative w-full sm:min-w-[260px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8A8A8A]" />
             <Input
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
@@ -340,7 +340,7 @@ function UsersView({
                   <TableRow key={user.id} className="border-[#2D2D2D] hover:bg-[#191919]">
                     <TableCell className="px-4 font-medium text-white">{user.fullName}</TableCell>
                     <TableCell className="px-4 text-[#D4D4D4]">@{user.username}</TableCell>
-                    <TableCell className="px-4 text-[#D4D4D4]">{user.email}</TableCell>
+                    <TableCell className="max-w-[240px] truncate px-4 text-[#D4D4D4]">{user.email}</TableCell>
                     <TableCell className="px-4 text-[#D4D4D4]">{user.weeklyGoal ?? "-"}x/semana</TableCell>
                     <TableCell className="px-4">
                       <Badge
@@ -456,7 +456,7 @@ function PostsView({
                       <span className="text-xs text-[#A3A3A3]">@{post.username}</span>
                     </TableCell>
                     <TableCell className="px-4 text-[#D4D4D4]">{formatDate(post.publishedAt)}</TableCell>
-                    <TableCell className="px-4 text-[#D4D4D4]">
+                    <TableCell className="max-w-[220px] truncate px-4 text-[#D4D4D4]">
                       {formatDuration(post.durationSeconds)} · {formatWeight(post.totalVolume)} · {post.totalLikes} likes
                     </TableCell>
                     <TableCell className="px-4">
@@ -648,8 +648,8 @@ export function AdminScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col lg:flex-row">
+    <div className="min-h-dvh bg-[#0A0A0A] text-white">
+      <div className="mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col lg:flex-row">
         <aside className="border-b border-[#2D2D2D] bg-[#101010] px-4 py-4 lg:w-64 lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
           <div className="flex items-center justify-between gap-3 lg:block">
             <div>
@@ -703,9 +703,9 @@ export function AdminScreen() {
           </Button>
         </aside>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main className="flex-1 px-4 py-6 pb-[calc(1.5rem+var(--ion-safe-area-bottom,0px))] sm:px-6 lg:px-8 lg:py-8">
           {isPermissionError ? (
-            <div className="flex min-h-[60vh] items-center justify-center">
+            <div className="flex min-h-[60dvh] items-center justify-center">
               <div className="max-w-md rounded-lg border border-[#5F3B3B] bg-[#141414] p-6 text-center">
                 <AlertCircle className="mx-auto size-8 text-[#FCA5A5]" />
                 <h1 className="mt-4 font-montserrat text-xl font-bold text-white">Acesso restrito</h1>

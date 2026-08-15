@@ -62,45 +62,47 @@ interface BackendWorkoutSession {
   muscleGroups: string[];
   isPrivate: boolean;
   exercises: BackendSessionExercise[];
+  // WorkoutCardResponseDTO nao expoe muscleIntensities; esse campo so chega pelo
+  // evento SSE CARD_GENERATED.
   card?: {
     id: string;
     attackPower: number;
     rarity: string;
     muscleGroup: string;
-    muscleIntensities: Record<string, number>;
     isPersonalRecord: boolean;
   } | null;
 }
 
-const GROUP_LABEL_BY_ID: Record<string, string> = {
-  peito: "Peito",
-  costas: "Costas",
-  pernas: "Pernas",
-  ombros: "Ombros",
-  bracos: "Braços",
-  core: "Core",
-};
-
-const GROUP_ID_BY_BACKEND: Record<string, string> = {
+// /api/exercises serializa a entidade CatalogExercise crua, entao devolve o nome do
+// enum ("CHEST"). /api/workout e /api/templates passam pelo WorkoutMuscleGroupMapper
+// e falam o slug ("peito"). Ler os dois formatos e obrigatorio; escrever, nunca:
+// o mapper do backend so aceita o slug e lanca InvalidMuscleGroupException no resto.
+const GROUP_ID_BY_ENUM: Record<string, string> = {
   CHEST: "peito",
   BACK: "costas",
   LEGS: "pernas",
+  GLUTES: "gluteos",
   SHOULDERS: "ombros",
   ARMS: "bracos",
   CORE: "core",
+  TRAPS: "trapezio",
 };
 
-const BACKEND_GROUP_BY_ID: Record<string, string> = {
-  peito: "CHEST",
-  costas: "BACK",
-  pernas: "LEGS",
-  ombros: "SHOULDERS",
-  bracos: "ARMS",
-  core: "CORE",
-};
+// O catalogo tem ~873 exercicios e e o mesmo para todo mundo. Duas telas o pedem
+// na montagem (WorkoutStartScreen e useActiveWorkoutSession), entao abrir um treino
+// disparava dois downloads completos em sequencia.
+const CATALOG_TTL_MS = 15 * 60 * 1000;
 
 let catalogCache: ExerciseCatalogItem[] = [];
+let catalogLoadedAt = 0;
+let catalogRequest: Promise<ExerciseCatalogItem[]> | null = null;
 let templatesCache: WorkoutTemplate[] = [];
+
+// O logout nao cancela requisicao em voo: ela resolve depois e grava no cache que
+// acabou de ser limpo. Para templates isso e vazamento entre contas, porque
+// getTemplates e lido de forma sincrona na montagem da tela de treino. O contador
+// marca de qual sessao e cada requisicao; quem volta com o numero velho e descartado.
+let cacheGeneration = 0;
 
 function extractList<T>(response: T[] | BackendPage<T>) {
   if (Array.isArray(response)) return response;
@@ -111,7 +113,7 @@ function normalizeGroupId(value: string | null | undefined) {
   if (!value) return "core";
   const cleanValue = value.trim();
   return (
-    GROUP_ID_BY_BACKEND[cleanValue] ??
+    GROUP_ID_BY_ENUM[cleanValue.toUpperCase()] ??
     cleanValue
       .toLowerCase()
       .normalize("NFD")
@@ -120,12 +122,13 @@ function normalizeGroupId(value: string | null | undefined) {
 }
 
 function getGroupLabel(groupId: string) {
-  return GROUP_LABEL_BY_ID[groupId] ?? groupId;
+  return workoutDataSource.getMuscleGroups().find((group) => group.id === groupId)?.label ?? groupId;
 }
 
-function toBackendGroup(value: string) {
-  const groupId = normalizeGroupId(value);
-  return BACKEND_GROUP_BY_ID[groupId] ?? value;
+// Aceita id ("peito") ou rotulo ("Bra\u00e7os"): selectedGroups carrega id enquanto o
+// usuario seleciona e rotulo depois que a sessao comeca.
+function toApiMuscleGroup(value: string) {
+  return normalizeGroupId(value);
 }
 
 function normalizeCatalogExercise(exercise: BackendCatalogExercise): ExerciseCatalogItem {
@@ -192,26 +195,42 @@ function normalizeStartedSession(response: BackendWorkoutSession) {
 }
 
 function normalizeCompletionSummary(response: BackendWorkoutSession): WorkoutCompletionSummary {
-  const summary: WorkoutCompletionResult = {
+  return {
     workoutId: response.id,
     durationSeconds: response.durationSeconds ?? 0,
     estimatedCalories: response.estimatedCalories ?? 0,
     totalVolume: response.totalVolume ?? 0,
   };
+}
 
-  if (response.card) summary.card = response.card;
-  return summary;
+function normalizeWorkoutResult(response: BackendWorkoutSession): WorkoutCompletionResult {
+  return {
+    ...normalizeCompletionSummary(response),
+    card: response.card
+      ? {
+          id: response.card.id,
+          attackPower: response.card.attackPower,
+          rarity: response.card.rarity,
+          muscleGroup: normalizeGroupId(response.card.muscleGroup),
+          isPersonalRecord: response.card.isPersonalRecord,
+        }
+      : null,
+  };
 }
 
 function toFinishPayload(draft: WorkoutCompletionDraft) {
   return {
-    finishedAt: draft.finishedAt ?? new Date().toISOString(),
+    // O backend guarda um hash deste corpo junto da Idempotency-Key e recusa a
+    // mesma chave com conteudo divergente, entao o carimbo vem do rascunho e
+    // nao pode ser recalculado a cada tentativa.
+    finishedAt: draft.finishedAt,
     title: draft.title,
     shouldPostWorkout: draft.shouldPostWorkout,
-    muscleGroups: draft.selectedGroups.map(toBackendGroup),
+    muscleGroups: draft.selectedGroups.map(toApiMuscleGroup),
     exercises: draft.exercises.map((exercise, exerciseIndex) => ({
       sessionExerciseId: exercise.sessionExerciseId ?? null,
       catalogExerciseId: exercise.catalogId,
+      catalogExerciseName: exercise.name,
       order: exerciseIndex + 1,
       sets: exercise.sets.map((set, setIndex) => ({
         id: set.backendId ?? null,
@@ -226,7 +245,7 @@ function toFinishPayload(draft: WorkoutCompletionDraft) {
 function toTemplatePayload(draft: WorkoutCompletionDraft) {
   return {
     name: draft.title,
-    muscleGroups: draft.selectedGroups.map(toBackendGroup),
+    muscleGroups: draft.selectedGroups.map(toApiMuscleGroup),
     exercises: draft.exercises.map((exercise, exerciseIndex) => ({
       catalogExerciseId: exercise.catalogId,
       order: exerciseIndex + 1,
@@ -245,13 +264,47 @@ export const workoutService = {
     return catalogCache.length > 0;
   },
 
-  async loadCatalog() {
-    const response = await apiClient.get<BackendCatalogExercise[] | BackendPage<BackendCatalogExercise>>(
-      "/api/exercises?size=1000",
-      { auth: true, suppressUnauthorizedEvent: true },
-    );
-    catalogCache = extractList(response).map(normalizeCatalogExercise);
-    return catalogCache;
+  // Caches de modulo sobrevivem a troca de usuario porque a SPA nao recarrega no
+  // logout. templatesCache e por usuario e getTemplates() e lido de forma sincrona
+  // na montagem da tela de treino, entao sem este reset o proximo usuario ve os
+  // templates do anterior ate o refetch responder.
+  resetCaches() {
+    cacheGeneration += 1;
+    catalogCache = [];
+    catalogLoadedAt = 0;
+    catalogRequest = null;
+    templatesCache = [];
+  },
+
+  async loadCatalog(options?: { force?: boolean }) {
+    const isFresh = catalogCache.length > 0 && Date.now() - catalogLoadedAt < CATALOG_TTL_MS;
+    if (!options?.force && isFresh) return catalogCache;
+
+    // Duas telas pedem o catalogo quase ao mesmo tempo; sem esta deduplicacao a
+    // segunda dispara um download identico enquanto a primeira ainda esta em voo.
+    if (catalogRequest) return catalogRequest;
+
+    const generationAoPedir = cacheGeneration;
+    catalogRequest = (async () => {
+      const response = await apiClient.get<BackendCatalogExercise[] | BackendPage<BackendCatalogExercise>>(
+        "/api/exercises?size=1000",
+        { auth: true },
+      );
+      const catalog = extractList(response).map(normalizeCatalogExercise);
+
+      // O catalogo e o mesmo para todo mundo, entao chegar tarde nao vaza dado de
+      // conta — mas gravar num cache ja limpo deixaria catalogLoadedAt mentindo
+      // sobre a validade da entrada.
+      if (generationAoPedir !== cacheGeneration) return catalog;
+
+      catalogCache = catalog;
+      catalogLoadedAt = Date.now();
+      return catalogCache;
+    })().finally(() => {
+      catalogRequest = null;
+    });
+
+    return catalogRequest;
   },
 
   getGroupOrder() {
@@ -267,16 +320,17 @@ export const workoutService = {
   },
 
   async loadTemplates() {
+    const generationAoPedir = cacheGeneration;
     const response = await apiClient.get<BackendTemplate[] | null>("/api/templates", {
       auth: true,
-      suppressUnauthorizedEvent: true,
     });
-    if (!response) {
-      templatesCache = [];
-      return templatesCache;
-    }
+    const templates = response ? response.map(normalizeTemplate) : [];
 
-    templatesCache = response.map(normalizeTemplate);
+    // Chegou depois de um resetCaches: devolve ao chamador, que ja esta
+    // desmontando, mas nao grava — o cache pertence a sessao seguinte.
+    if (generationAoPedir !== cacheGeneration) return templates;
+
+    templatesCache = templates;
     return templatesCache;
   },
 
@@ -305,13 +359,17 @@ export const workoutService = {
   },
 
   getGroupedCatalog(exercises: ExerciseCatalogItem[] = catalogCache) {
-    const groups = workoutDataSource.getMuscleGroups();
+    const groupOrder: readonly string[] = workoutDataSource.getGroupOrder();
 
-    return groups.map((group) => ({
-      groupId: group.id,
-      group: group.label,
-      items: exercises.filter((exercise) => exercise.groupId === group.id),
-    }));
+    return workoutDataSource
+      .getMuscleGroups()
+      .slice()
+      .sort((first, second) => groupOrder.indexOf(first.label) - groupOrder.indexOf(second.label))
+      .map((group) => ({
+        groupId: group.id,
+        group: group.label,
+        items: exercises.filter((exercise) => exercise.groupId === group.id),
+      }));
   },
 
   getCatalogByGroupId(groupId: string, exercises: ExerciseCatalogItem[] = catalogCache) {
@@ -342,7 +400,7 @@ export const workoutService = {
     const response = await apiClient.post<BackendWorkoutSession>(
       "/api/workout/start",
       {
-        muscleGroups: input.selectedGroups.map(toBackendGroup),
+        muscleGroups: input.selectedGroups.map(toApiMuscleGroup),
         isPrivate: input.isPrivate,
         templateId: input.templateId ?? null,
         exercises: [],
@@ -356,7 +414,6 @@ export const workoutService = {
   async getActiveWorkout() {
     const response = await apiClient.get<BackendWorkoutSession | null>("/api/workout/active", {
       auth: true,
-      suppressUnauthorizedEvent: true,
     });
     if (!response) return null;
     return normalizeStartedSession(response);
@@ -365,49 +422,46 @@ export const workoutService = {
   async finishWorkout(
     draft: WorkoutCompletionDraft,
     onPrepared?: (preparedDraft: WorkoutCompletionDraft) => Promise<void>,
-  ) {
+  ): Promise<WorkoutCompletionResult> {
     if (!draft.workoutId) {
       throw new Error("Sessão de treino sem ID do backend.");
     }
 
-    let photoMediaId = draft.photoMediaId ?? null;
-    if (!photoMediaId && draft.photoFile && draft.shouldPostWorkout) {
-      photoMediaId = await this.uploadWorkoutPhoto(draft.photoFile);
-    }
-
-    const idempotencyKey = draft.idempotencyKey ?? crypto.randomUUID();
-    const preparedDraft = { ...draft, photoMediaId, idempotencyKey };
+    // O mediaId entra no hash de idempotencia do backend: a foto sobe uma vez so e
+    // o id resultante e devolvido ao chamador antes do POST, para que uma retomada
+    // reproduza o mesmo corpo em vez de subir a foto de novo.
+    const photoMediaId =
+      draft.photoMediaId ?? (draft.photoFile ? await this.uploadWorkoutPhoto(draft.photoFile) : null);
+    const preparedDraft: WorkoutCompletionDraft = { ...draft, photoMediaId };
     await onPrepared?.(preparedDraft);
-    const payload = {
-      ...toFinishPayload(preparedDraft),
-      ...(photoMediaId ? { photoMediaId } : {}),
-    };
+
     const response = await apiClient.post<BackendWorkoutSession>(
       `/api/workout/${draft.workoutId}/finish`,
-      payload,
-      { auth: true, headers: { "Idempotency-Key": idempotencyKey } },
+      { ...toFinishPayload(preparedDraft), photoMediaId },
+      { auth: true, headers: { "Idempotency-Key": draft.idempotencyKey } },
     );
 
+    // shouldSaveTemplate nao existe no FinishWorkoutSnapshotRequestDTO; salvar o
+    // template e uma chamada separada.
     if (draft.shouldSaveTemplate) {
       const createdTemplate = await apiClient.post<BackendTemplate>(
         "/api/templates",
-        toTemplatePayload(draft),
+        toTemplatePayload(preparedDraft),
         { auth: true },
       );
-      const normalizedTemplate = normalizeTemplate(createdTemplate);
       templatesCache = [
-        normalizedTemplate,
-        ...templatesCache.filter((template) => template.id !== normalizedTemplate.id),
+        normalizeTemplate(createdTemplate),
+        ...templatesCache.filter((template) => template.id !== createdTemplate.id),
       ];
     }
 
-    return normalizeCompletionSummary(response);
+    return normalizeWorkoutResult(response);
   },
 
   async getWorkout(workoutId: string): Promise<WorkoutRecoveryResult> {
     const response = await apiClient.get<BackendWorkoutSession>(`/api/workout/${workoutId}`, { auth: true });
     return {
-      ...normalizeCompletionSummary(response),
+      ...normalizeWorkoutResult(response),
       status: response.status,
       startedAt: new Date(response.startedAt).getTime(),
       muscleGroups: response.muscleGroups.map((group) => getGroupLabel(normalizeGroupId(group))),
@@ -417,7 +471,7 @@ export const workoutService = {
 
   async addMuscleGroup(workoutId: string, groupId: string) {
     return apiClient.post<BackendWorkoutSession>(
-      `/api/workout/${workoutId}/muscle-groups/${encodeURIComponent(groupId)}`,
+      `/api/workout/${workoutId}/muscle-groups/${encodeURIComponent(toApiMuscleGroup(groupId))}`,
       undefined,
       { auth: true },
     );
@@ -436,7 +490,7 @@ export const workoutService = {
       "/api/templates",
       {
         name: input.name,
-        muscleGroups: input.groups.map(toBackendGroup),
+        muscleGroups: input.groups.map(toApiMuscleGroup),
         exercises: input.exerciseIds.map((catalogExerciseId, index) => ({ catalogExerciseId, order: index + 1 })),
       },
       { auth: true },
@@ -451,7 +505,7 @@ export const workoutService = {
       `/api/templates/${templateId}`,
       {
         name: input.name,
-        muscleGroups: input.groups.map(toBackendGroup),
+        muscleGroups: input.groups.map(toApiMuscleGroup),
         exercises: input.exerciseIds.map((catalogExerciseId, index) => ({ catalogExerciseId, order: index + 1 })),
       },
       { auth: true },

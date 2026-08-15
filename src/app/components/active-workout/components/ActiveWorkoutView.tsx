@@ -8,6 +8,7 @@ import type { WorkoutExercise } from "../../../types/workout";
 import { ACTIVE_WORKOUT_CARD_STYLE, ACTIVE_WORKOUT_SLIDE_STYLE } from "../constants";
 import { formatElapsedTime } from "../utils";
 import { MuscleTag, SurfaceCard } from "./shared";
+import { BeeAlert } from "../../BeeAlert";
 
 function EllipsisActionButton({
   className = "",
@@ -17,7 +18,7 @@ function EllipsisActionButton({
   return (
     <button
       type={type}
-      className={`flex h-10 w-10 items-center justify-center rounded-[12px] border border-[#2D2D2D] bg-[#181818] text-[#A3A3A3] transition-colors hover:border-[#525252] hover:text-white ${className}`}
+      className={`beefit-tap-target flex h-10 w-10 items-center justify-center rounded-[12px] border border-[#2D2D2D] bg-[#181818] text-[#A3A3A3] transition-colors hover:border-[#525252] hover:text-white ${className}`}
       {...props}
     >
       <Ellipsis size={16} />
@@ -109,7 +110,7 @@ export function ActiveWorkoutView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ width: "100%", maxWidth: 393, margin: "0 auto", padding: "24px 12px 0", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ padding: "24px 12px 0", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "flex-end", gap: 10, marginBottom: 12 }}>
@@ -124,10 +125,10 @@ export function ActiveWorkoutView({
                   onClick={onToggleWorkoutMenu}
                   aria-label="Abrir ações do treino"
                 />
-                <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+                <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
                   <SheetHeader className="px-0 pb-3 pt-3 text-left">
                     <SheetTitle className="font-montserrat text-[20px] font-bold text-white">Ações do treino</SheetTitle>
-                    <SheetDescription className="font-inter text-[13px] text-[#737373]">
+                    <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
                       Escolha uma ação para o treino em andamento.
                     </SheetDescription>
                   </SheetHeader>
@@ -250,7 +251,10 @@ export function ActiveWorkoutView({
                       <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
                           <div style={{ display: "grid", gap: 8, minWidth: 0 }}>
-                            <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}>
+                            <span
+                              className="line-clamp-2"
+                              style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}
+                            >
                               {exercise.name}
                             </span>
                             <MuscleTag group={exercise.group} />
@@ -266,10 +270,10 @@ export function ActiveWorkoutView({
                               onClick={() => onToggleExerciseMenu(exercise.id)}
                               aria-label={`Abrir ações de ${exercise.name}`}
                             />
-                            <SheetContent side="bottom" className="mx-auto max-w-[430px] rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+                            <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
                               <SheetHeader className="px-0 pb-3 pt-3 text-left">
                                 <SheetTitle className="font-montserrat text-[20px] font-bold text-white">{exercise.name}</SheetTitle>
-                                <SheetDescription className="font-inter text-[13px] text-[#737373]">
+                                <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
                                   Escolha uma ação para este exercício.
                                 </SheetDescription>
                               </SheetHeader>
@@ -554,17 +558,9 @@ export function ActiveWorkoutView({
         <IonRow className="mt-6">
           <IonCol size="12">
             {finishValidationError && (
-              <p
-                style={{
-                  margin: "0 2px 10px",
-                  fontFamily: "var(--font-inter)",
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  color: "#F87171",
-                }}
-              >
-                {finishValidationError}
-              </p>
+              <div style={{ margin: "0 2px 10px" }}>
+                <BeeAlert plain>{finishValidationError}</BeeAlert>
+              </div>
             )}
             <BeeButton variant="primary" size="lg" fullWidth onClick={onOpenFinish}>
               Concluir treino

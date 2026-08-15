@@ -1,11 +1,32 @@
-import { InputHTMLAttributes, useId, useState, ReactNode } from "react";
+import { useId, useState, ReactNode, ComponentProps } from "react";
 import { IonInput, IonItem } from "@ionic/react";
 
-interface BeeInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> {
+// Os nomes das props do IonInput sao minusculos (autocomplete, inputmode), ao
+// contrario dos do React (autoComplete, inputMode). Derivar os tipos do proprio
+// IonInput mantem a traducao abaixo checada pelo compilador.
+type IonInputProps = ComponentProps<typeof IonInput>;
+
+// Declara so o que e de fato repassado. A versao anterior estendia
+// InputHTMLAttributes e desestruturava dez props, entao tudo o mais —
+// autoComplete, name, inputMode — era descartado em silencio: por isso nenhum
+// formulario do app funcionava com gerenciador de senha.
+interface BeeInputProps {
   label?: string;
   error?: string;
   icon?: ReactNode;
   rightElement?: ReactNode;
+  value?: string | number | null;
+  type?: IonInputProps["type"];
+  placeholder?: string;
+  min?: number | string;
+  max?: number | string;
+  step?: string;
+  disabled?: boolean;
+  name?: string;
+  autoComplete?: IonInputProps["autocomplete"];
+  inputMode?: IonInputProps["inputmode"];
+  maxLength?: number;
+  required?: boolean;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -22,6 +43,11 @@ export function BeeInput({
   max,
   step,
   disabled,
+  name,
+  autoComplete,
+  inputMode,
+  maxLength,
+  required,
 }: BeeInputProps) {
   const [focused, setFocused] = useState(false);
   const inputId = useId();
@@ -72,7 +98,7 @@ export function BeeInput({
             "--border-width": "2px",
             "--border-style": "solid",
             "--color": "#ffffff",
-            "--placeholder-color": "#737373",
+            "--placeholder-color": "#8A8A8A",
             "--highlight-color-focused": "#FFD700",
             "--inner-padding-end": "0",
             "--padding-start": "0",
@@ -88,7 +114,7 @@ export function BeeInput({
           <span
             slot="start"
             style={{
-              color: "#737373",
+              color: "#8A8A8A",
               display: "flex",
               alignItems: "center",
               paddingLeft: "16px",
@@ -102,23 +128,31 @@ export function BeeInput({
 
         <IonInput
           id={inputId}
-          type={type as any}
-          value={value as string}
+          type={type}
+          value={value}
           placeholder={placeholder}
           disabled={disabled}
-          min={min as string}
-          max={max as string}
-          step={step as string}
+          min={min}
+          max={max}
+          step={step}
+          name={name}
+          autocomplete={autoComplete}
+          inputmode={inputMode}
+          maxlength={maxLength}
+          required={required}
           onIonInput={handleIonChange}
           onIonChange={handleIonChange}
           onIonFocus={() => setFocused(true)}
           onIonBlur={() => setFocused(false)}
-          aria-invalid={Boolean(error)}
+          // String, nao booleano: IonInput e um custom element e o React nao
+          // serializa `aria-invalid={true}` como atributo nele — verificado em
+          // browser real, onde o aria-describedby aparecia e o aria-invalid nao.
+          aria-invalid={error ? "true" : undefined}
           aria-describedby={error ? errorId : undefined}
           style={
             {
               "--color": "#ffffff",
-              "--placeholder-color": "#737373",
+              "--placeholder-color": "#8A8A8A",
               "--placeholder-opacity": 1,
               "--background": "transparent",
               "--padding-start": icon ? "8px" : "16px",
@@ -135,7 +169,7 @@ export function BeeInput({
           <span
             slot="end"
             style={{
-              color: "#737373",
+              color: "#8A8A8A",
               display: "flex",
               alignItems: "center",
               paddingRight: "16px",

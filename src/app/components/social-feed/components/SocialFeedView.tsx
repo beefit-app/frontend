@@ -46,7 +46,7 @@ export function SocialFeedView({
     return () => observer.disconnect();
   }, [error, hasMore, isLoading, isLoadingMore, onLoadMore]);
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0A0A0A] pb-8">
+    <div className="relative min-h-full overflow-hidden bg-[#0A0A0A] pb-8">
       <div
         style={{
           position: "absolute",
@@ -58,7 +58,7 @@ export function SocialFeedView({
           pointerEvents: "none",
         }}
       />
-      <IonGrid fixed className="relative z-10 px-3 py-5" style={{ width: "100%", maxWidth: 393, margin: "0 auto" }}>
+      <IonGrid fixed className="relative z-10 px-3 py-5">
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <div className="flex flex-col gap-6">
@@ -130,7 +130,7 @@ export function SocialFeedView({
                   />
                 ))}
                 {error && <div className="rounded-2xl border border-[rgba(248,113,113,0.28)] px-4 py-4 text-center font-inter text-sm text-[#FCA5A5]">{error}<button type="button" onClick={onRetry} className="ml-2 font-bold underline">Tentar novamente</button></div>}
-                {!error && hasMore && <div ref={sentinelRef} className="py-4 text-center font-inter text-xs text-[#737373]">{isLoadingMore ? "Buscando mais treinos..." : ""}</div>}
+                {!error && hasMore && <div ref={sentinelRef} className="py-4 text-center font-inter text-xs text-[#8A8A8A]">{isLoadingMore ? "Buscando mais treinos..." : ""}</div>}
               </section>
             </div>
           </IonCol>

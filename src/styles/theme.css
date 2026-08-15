@@ -6,6 +6,19 @@
   --font-inter: 'Inter', sans-serif;
   --beefit-page-gradient-top: -180px;
   --beefit-page-gradient-height: 540px;
+
+  /* Cores de estado dos avisos (BeeAlert e toasts). Substituem os tres vermelhos
+     soltos que estavam espalhados pelas telas. Nao usam o --destructive do
+     shadcn: aquele token e calibrado para fundo claro e some no fundo #0A0A0A. */
+  --beefit-danger: #F87171;
+  --beefit-danger-border: rgba(239, 68, 68, 0.28);
+  --beefit-danger-surface: rgba(239, 68, 68, 0.08);
+  --beefit-success: #4ADE80;
+  --beefit-success-border: rgba(34, 197, 94, 0.28);
+  --beefit-success-surface: rgba(34, 197, 94, 0.08);
+  --beefit-info: #FFD700;
+  --beefit-info-border: rgba(255, 215, 0, 0.28);
+  --beefit-info-surface: rgba(255, 215, 0, 0.08);
   --ion-font-family: var(--font-inter);
   --ion-background-color: #0A0A0A;
   --ion-background-color-rgb: 10, 10, 10;
@@ -27,9 +40,101 @@
   --ion-toolbar-color: #ffffff;
   --ion-tab-bar-background: #0A0A0A;
   --ion-tab-bar-border-color: #2D2D2D;
-  --ion-tab-bar-color: #737373;
+  --ion-tab-bar-color: #8A8A8A;
   --ion-tab-bar-color-selected: #FFD700;
   --ion-border-color: #2D2D2D;
+
+  /* Responsive width for the app's single-column mobile-card shell.
+     xs matches the original fixed mobile design; larger breakpoints
+     grow gradually instead of staying pinned to phone width. */
+  --ion-grid-width-xs: 393px;
+  --ion-grid-width-sm: 480px;
+  --ion-grid-width-md: 560px;
+  /* Em tela grande o app nao precisa continuar com a largura de celular; 640px
+     deixavam dois tercos de um monitor de 1920 vazios. .beefit-shell-width e
+     .beefit-sheet-width leem estes mesmos tokens, entao nav e sheets acompanham. */
+  --ion-grid-width-lg: 800px;
+  --ion-grid-width-xl: 960px;
+}
+
+/* O .grid-fixed do Ionic centraliza por margem automatica, mas ela chega zerada
+   aqui — a largura passa e a margem nao. O resultado era a coluna de conteudo
+   colada a esquerda enquanto a barra inferior, que declara margin-inline abaixo,
+   ficava no centro: 320px de desalinhamento num monitor de 1280. */
+ion-grid.grid-fixed {
+  margin-inline: auto;
+}
+
+/* Shared responsive shell width for elements outside ion-grid (header, bottom nav)
+   so they scale in step with the ion-grid content below/above them. */
+.beefit-shell-width {
+  width: 100%;
+  max-width: var(--ion-grid-width-xs);
+  margin-inline: auto;
+}
+@media (min-width: 576px) {
+  .beefit-shell-width { max-width: var(--ion-grid-width-sm); }
+}
+@media (min-width: 768px) {
+  .beefit-shell-width { max-width: var(--ion-grid-width-md); }
+}
+@media (min-width: 992px) {
+  .beefit-shell-width { max-width: var(--ion-grid-width-lg); }
+}
+/* O ion-grid passa a usar o token xl a partir de 1200px; sem este degrau a barra
+   inferior ficava 160px mais estreita que o conteudo que ela acompanha. */
+@media (min-width: 1200px) {
+  .beefit-shell-width { max-width: var(--ion-grid-width-xl); }
+}
+
+/* Bottom sheets follow the shell width from tablet up, but stay full-width on
+   phones: a sheet with side gutters on a narrow screen reads as a centered
+   modal instead of a sheet anchored to the bottom edge. */
+.beefit-sheet-width {
+  width: 100%;
+  margin-inline: auto;
+}
+@media (min-width: 576px) {
+  .beefit-sheet-width { max-width: var(--ion-grid-width-sm); }
+}
+@media (min-width: 768px) {
+  .beefit-sheet-width { max-width: var(--ion-grid-width-md); }
+}
+@media (min-width: 992px) {
+  .beefit-sheet-width { max-width: var(--ion-grid-width-lg); }
+}
+@media (min-width: 1200px) {
+  .beefit-sheet-width { max-width: var(--ion-grid-width-xl); }
+}
+
+/* Teto medido, nao inferido: com o Toaster ja configurado com offset e
+   mobileOffset, o container do toast continuava chegando a 16px alem da borda em
+   320, 360, 390 e 430 — a auditoria acusou o sangramento nos quatro. Nao investiguei
+   qual regra da lib perde a disputa; o teto abaixo resolve independente disso.
+   Se um dia o sonner mudar, vale reconferir se isto ainda e necessario. */
+[data-sonner-toaster] {
+  max-width: calc(100vw - 32px);
+}
+
+/* Expands a control's hit area to the 44x44 minimum without touching its
+   drawing. The icon buttons in this design are 40px or smaller by intent, so
+   growing the element itself would change the layout on every card.
+
+   Do not apply this to an element that is already absolutely positioned: this
+   rule sits outside any @layer and unlayered declarations beat layered ones, so
+   its position:relative would override Tailwind's .absolute utility. Size those
+   controls directly instead (see the sheet close button). */
+.beefit-tap-target {
+  position: relative;
+}
+.beefit-tap-target::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
 }
 
 /* Ionic button — apply Montserrat font into shadow DOM */
@@ -42,7 +147,7 @@ ion-button::part(native) {
 
 /* Ionic tab button font */
 ion-tab-button {
-  --color: #737373;
+  --color: #8A8A8A;
   --color-selected: #FFD700;
 }
 
@@ -111,6 +216,19 @@ ion-app {
   background-size: 100% var(--beefit-page-gradient-height);
 }
 
+/* Paleta do shadcn. ATENCAO: e a paleta CLARA, e ela e a que vale — nada no app
+   adiciona a classe `dark` ao documento, entao o bloco .dark abaixo e as ~20
+   utilidades `dark:` de components/ui/ nunca casam.
+
+   Consequencia pratica: todo componente de components/ui/ tem de receber cor
+   explicita no call site (bg-[#141414], text-white...), como ja fazem sheet,
+   alert-dialog e AdminScreen. Um componente novo usado sem override renderiza
+   CLARO sobre o app preto.
+
+   Nao basta marcar <html class="dark"> para consertar: `dark:` compila com
+   :is(.dark *), que tem especificidade maior que uma utility comum, entao os
+   overrides ja escritos nos call sites passariam a perder para o token. Trocar
+   isto exige revisar os call sites junto. */
 :root {
   --font-size: 16px;
   --background: #ffffff;
