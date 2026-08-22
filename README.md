@@ -91,7 +91,7 @@ Use /v2/users com autenticação via Bearer token.
 | ----------------------- | ---------------------------- | -------------------------------------- |
 | Decisões de arquitetura | `docs/architecture/`         | Evita repetir discussões já resolvidas |
 | Endpoints da API        | `docs/api/` ou Swagger       | Facilita integrações                   |
-| Variáveis de ambiente   | `.env.example` + comentários | Evita erros silenciosos em produção    |
+| Variáveis de ambiente   | `.env.development` versionado; `.env.example` documenta | Evita erros silenciosos em produção |
 | Fluxos complexos        | Comentários no código        | Economiza horas de leitura             |
 | Decisões não-óbvias     | Comentários `// Por que:`    | Preserva o contexto                    |
 
