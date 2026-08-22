@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import type { UpdatePostMetadataRequest } from "../types/api";
 
 export interface AdminDashboardMetrics {
   totalActiveUsers: number;
@@ -95,7 +96,7 @@ export const adminService = {
   },
 
   async updatePostTitle(postId: string, title: string) {
-    return apiClient.patch(`/api/admin/posts/${postId}`, { newTitle: title }, { auth: true });
+    return apiClient.patch(`/api/admin/posts/${postId}`, { newTitle: title } satisfies UpdatePostMetadataRequest, { auth: true });
   },
 
   async removePost(postId: string) {

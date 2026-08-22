@@ -25,12 +25,7 @@ interface BackendPublicProfileResponse extends BackendProfileResponse {
   friendshipId?: string | null;
 }
 
-interface UpdateProfileRequest {
-  fullName: string;
-  biography: string;
-  bodyWeight: number | null;
-  profilePicture: string | null;
-}
+import type { UpdateProfileRequest } from "../types/api";
 
 interface BackendProfilePost {
   postId: string;
@@ -158,14 +153,22 @@ function publicProfileFromResponse(response: BackendPublicProfileResponse): Publ
 }
 
 function buildUpdatePayload(currentProfile: UserProfile, update: UserProfileUpdate): UpdateProfileRequest {
+  const bodyWeight = typeof update.weight === "number" ? update.weight : currentProfile.weight;
+
+  // UpdateProfileRequestDTO marca bodyWeight como @NotNull: mandar null devolve
+  // 400 com a mensagem de peso, num salvamento em que o usuario nem tocou no
+  // campo. Todo cadastro exige peso, entao ausencia aqui e perfil ainda nao
+  // carregado — e melhor nao salvar do que salvar e falhar no servidor.
+  if (typeof bodyWeight !== "number") {
+    throw new Error("O peso do perfil ainda não foi carregado; tente novamente em instantes.");
+  }
+
   return {
     fullName: update.displayName?.trim() || currentProfile.displayName,
     biography: update.bio ?? currentProfile.bio,
-    bodyWeight:
-      typeof update.weight === "number"
-        ? update.weight
-        : currentProfile.weight,
-    profilePicture: update.avatarUrl ?? currentProfile.avatarUrl,
+    bodyWeight,
+    // O DTO nao aceita null nesses dois; ausencia se representa omitindo o campo.
+    profilePicture: update.avatarUrl ?? currentProfile.avatarUrl ?? undefined,
   };
 }
 
@@ -253,12 +256,14 @@ export const profileService = {
     const payload = buildUpdatePayload(currentProfile, update);
     await apiClient.put("/api/profile/me", payload, { auth: true });
 
+    // O payload omite biography/profilePicture quando vazios; o perfil local usa
+    // string e null, entao a conversao acontece aqui em vez de vazar undefined.
     const nextProfile: UserProfile = {
       ...currentProfile,
       displayName: payload.fullName,
-      bio: payload.biography,
+      bio: payload.biography ?? "",
       weight: payload.bodyWeight,
-      avatarUrl: payload.profilePicture,
+      avatarUrl: payload.profilePicture ?? null,
     };
 
     await persistAuthUserUpdate(authUser, nextProfile);

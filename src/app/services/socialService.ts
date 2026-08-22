@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import type { CreateHiveRequest } from "../types/api";
 import type { FriendProfile, FriendRequest, Hive, HiveMember, HiveRankingPeriod } from "../components/social/types";
 
 interface ApiUser { id: string; fullName: string; username: string; profilePicture?: string | null }
@@ -52,7 +53,7 @@ export const socialService = {
   },
   async createHive(name: string, rankingPeriod: HiveRankingPeriod, currentUserId: string) {
     const dates = datesForPeriod(rankingPeriod);
-    await apiClient.post<ApiHive>("/api/hives/", { name, ...dates }, { auth: true });
+    await apiClient.post<ApiHive>("/api/hives/", { name, ...dates } satisfies CreateHiveRequest, { auth: true });
     return this.loadHives(currentUserId);
   },
   async joinHive(code: string, currentUserId: string) { await apiClient.post(`/api/hives/${encodeURIComponent(code)}/join`, undefined, { auth: true }); return this.loadHives(currentUserId); },

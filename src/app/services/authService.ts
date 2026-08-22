@@ -7,6 +7,7 @@ import type {
   RegisterApiInput,
   RegisterInput,
 } from "../types/auth";
+import type { LoginRequest, LogoutRequest, RegisterRequest } from "../types/api";
 import { ApiError, apiClient } from "./apiClient";
 import { clearLocalUserData } from "./sessionTeardown";
 
@@ -15,7 +16,7 @@ const DEV_AUTH_BYPASS_ENABLED =
 const MOCK_TOKEN_PREFIX = "beefit-dev-token";
 const AUTH_LOGIN_PATH = "/auth/login";
 const AUTH_REGISTER_PATH = "/auth/register";
-const CURRENT_USER_PATHS = ["/auth/me", "/api/profile/me", "/users/me"] as const;
+const CURRENT_USER_PATHS = ["/auth/me", "/api/profile/me"] as const;
 
 interface BackendAuthSessionResponse {
   accessToken: string;
@@ -174,6 +175,8 @@ function mapRegisterInputToApi(input: RegisterInput): RegisterApiInput {
     password: input.password,
     weeklyGoal: input.weeklyGoal,
     bodyWeight: input.weight,
+    acceptedTermsVersion: input.acceptedTermsVersion,
+    acceptedPrivacyVersion: input.acceptedPrivacyVersion,
   };
 }
 
@@ -334,16 +337,17 @@ async function normalizeApiSession(response: unknown, credentials?: LoginInput):
 const apiAuthGateway: AuthGateway = {
   async login(input) {
     const deviceId = await sessionStorage.ensureDeviceId();
-    const response = await apiClient.post<unknown>(AUTH_LOGIN_PATH, { ...input, deviceId });
+    const body: LoginRequest = { ...input, deviceId };
+    const response = await apiClient.post<unknown>(AUTH_LOGIN_PATH, body);
     return normalizeApiSession(response);
   },
 
   async register(input) {
     const deviceId = await sessionStorage.ensureDeviceId();
-    const response = await apiClient.post<unknown>(AUTH_REGISTER_PATH, {
-      ...mapRegisterInputToApi(input),
-      deviceId,
-    });
+    // Tipado pelo contrato do backend: campo obrigatorio esquecido aqui vira erro
+    // de compilacao, e nao 400 em producao.
+    const body: RegisterRequest = { ...mapRegisterInputToApi(input), deviceId };
+    const response = await apiClient.post<unknown>(AUTH_REGISTER_PATH, body);
     return normalizeApiSession(response, {
       email: input.email,
       password: input.password,
@@ -375,7 +379,7 @@ const apiAuthGateway: AuthGateway = {
 
     if (refreshToken && deviceId) {
       try {
-        await apiClient.post("/auth/logout", { refreshToken, deviceId });
+        await apiClient.post("/auth/logout", { refreshToken, deviceId } satisfies LogoutRequest);
       } catch {
         // O logout local deve prosseguir mesmo se a sessão já estiver inválida no servidor.
       }

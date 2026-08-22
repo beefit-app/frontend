@@ -184,7 +184,7 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                   {authError && <BeeAlert>{authError}</BeeAlert>}
 
                   <div className="mt-2">
-                    <BeeButton type="submit" variant="primary" fullWidth disabled={isSubmitting}>
+                    <BeeButton type="submit" variant="primary" shape="soft" fullWidth disabled={isSubmitting}>
                       {isSubmitting ? "Entrando..." : "Entrar"}
                     </BeeButton>
                   </div>
@@ -211,6 +211,7 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                   <BeeButton
                     type="button"
                     variant="dark"
+                    shape="soft"
                     fullWidth
                     onClick={onNavigateToRegister}
                     disabled={isSubmitting}
@@ -222,7 +223,7 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
             </IonCard>
 
             <p className="mt-5 text-center font-inter text-xs leading-5 text-[#8A8A8A]">
-              Ao continuar, você concorda com os <a className="text-[#FFD700]" href="/terms">Termos de Uso</a> e a <a className="text-[#FFD700]" href="/privacy">Política de Privacidade</a>.
+              Ao continuar, você concorda com os <a className="underline" href="/terms">Termos de Uso</a> e a <a className="underline" href="/privacy">Política de Privacidade</a>.
             </p>
 
             <div className="mt-8 text-center">

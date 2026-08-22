@@ -3,18 +3,14 @@ import type {
   AccountSettingsSaveInput,
 } from "../components/profile/types";
 import { apiClient } from "./apiClient";
+import type {
+  ChangePasswordRequest,
+  DeleteAccountRequest,
+  UpdateAccountSettingsRequest,
+} from "../types/api";
 
 interface BackendProfileResponse {
   ghostMode?: boolean | null;
-}
-
-interface UpdateAccountSettingsRequest {
-  ghostMode: boolean;
-}
-
-interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
 }
 
 export const accountSettingsService = {
@@ -53,11 +49,10 @@ export const accountSettingsService = {
   },
 
   async deleteAccount(password: string) {
-    await apiClient.delete("/api/profile/me", undefined, {
+    // A senha vai no corpo, e nao em header: DeleteUserRequestDTO a exige la, e
+    // header customizado vaza para log de proxy com muito mais facilidade.
+    await apiClient.delete("/api/profile/me", { password } satisfies DeleteAccountRequest, {
       auth: true,
-      headers: {
-        "X-Confirm-Password": password,
-      },
     });
   },
 };

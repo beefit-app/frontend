@@ -21,6 +21,11 @@ export interface LoginInput {
   password: string;
 }
 
+export interface LegalVersions {
+  termsVersion: string;
+  privacyVersion: string;
+}
+
 export interface RegisterInput {
   name: string;
   username: string;
@@ -28,6 +33,11 @@ export interface RegisterInput {
   password: string;
   weeklyGoal: number;
   weight: number;
+  // O servidor recusa versao diferente da vigente, entao estes valores vem de
+  // /auth/legal-versions e nunca de constante local: e o registro de que o
+  // usuario aceitou exatamente o documento que lhe foi apresentado.
+  acceptedTermsVersion: string;
+  acceptedPrivacyVersion: string;
 }
 
 export interface RegisterApiInput {
@@ -37,6 +47,8 @@ export interface RegisterApiInput {
   password: string;
   weeklyGoal: number;
   bodyWeight: number;
+  acceptedTermsVersion: string;
+  acceptedPrivacyVersion: string;
 }
 
 export interface AuthTokenResponse {

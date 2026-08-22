@@ -34,6 +34,14 @@ export const messages = {
 
   maxLength: (limite: number) => `Use no máximo ${limite} caracteres.`,
 
+  legalConsentRequired: "Aceite os Termos de Uso e a Política de Privacidade para continuar.",
+  /**
+   * O cadastro fica bloqueado enquanto as versões vigentes não carregam: registrar
+   * aceite de um documento que não foi apresentado não vale como consentimento.
+   */
+  legalVersionsUnavailable:
+    "Não foi possível carregar os Termos de Uso. Tente novamente para criar sua conta.",
+
   /**
    * Falha de operação. Esta família já era consistente no app — "Não foi possível
    * <verbo> <objeto>." — e virou o padrão; `acao` completa a frase.
