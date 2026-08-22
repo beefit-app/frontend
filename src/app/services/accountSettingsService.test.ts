@@ -66,4 +66,34 @@ describe("accountSettingsService", () => {
       }),
     });
   });
+
+  it("exclui a conta mandando a senha no corpo", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    const { accountSettingsService } = await import("./accountSettingsService");
+    await accountSettingsService.deleteAccount("Atual123!");
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0] ?? [];
+    expect(url).toBe(`${API_URL}/api/profile/me`);
+    // DeleteUserRequestDTO exige a senha no corpo. Ja esteve em um header
+    // X-Confirm-Password que o backend nunca leu e que o preflight de CORS barrava.
+    expect(init).toMatchObject({
+      method: "DELETE",
+      body: JSON.stringify({ password: "Atual123!" }),
+    });
+  });
+
+  it("nao manda a senha em header na exclusao", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    const { accountSettingsService } = await import("./accountSettingsService");
+    await accountSettingsService.deleteAccount("Atual123!");
+
+    // Header customizado vaza para log de proxy e ainda precisaria estar na
+    // allowlist de CORS do backend.
+    const headers = (vi.mocked(fetch).mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>;
+    const nomes = Object.keys(headers).map((nome) => nome.toLowerCase());
+    expect(nomes).not.toContain("x-confirm-password");
+    expect(JSON.stringify(headers)).not.toContain("Atual123!");
+  });
 });
