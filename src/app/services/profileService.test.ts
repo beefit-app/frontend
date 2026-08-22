@@ -116,11 +116,12 @@ describe("profileService", () => {
         Authorization: "Bearer jwt-backend",
         "Content-Type": "application/json",
       }),
+      // profilePicture sai do corpo quando nao ha foto: UpdateProfileRequestDTO
+      // declara o campo como opcional, nao como nulavel.
       body: JSON.stringify({
         fullName: "Bee Prime",
         biography: "Bio nova",
         bodyWeight: 81.2,
-        profilePicture: null,
       }),
     });
     expect(nextProfile.displayName).toBe("Bee Prime");

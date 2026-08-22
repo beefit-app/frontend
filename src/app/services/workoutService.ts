@@ -9,6 +9,7 @@ import type {
 } from "../types/workout";
 import { workoutDataSource } from "./workoutDataSource";
 import { apiClient } from "./apiClient";
+import type { StartWorkoutRequest, WorkoutTemplateRequest } from "../types/api";
 
 interface BackendPage<T> {
   content?: T[];
@@ -402,9 +403,9 @@ export const workoutService = {
       {
         muscleGroups: input.selectedGroups.map(toApiMuscleGroup),
         isPrivate: input.isPrivate,
-        templateId: input.templateId ?? null,
+        templateId: input.templateId ?? undefined,
         exercises: [],
-      },
+      } satisfies StartWorkoutRequest,
       { auth: true },
     );
 
@@ -492,7 +493,7 @@ export const workoutService = {
         name: input.name,
         muscleGroups: input.groups.map(toApiMuscleGroup),
         exercises: input.exerciseIds.map((catalogExerciseId, index) => ({ catalogExerciseId, order: index + 1 })),
-      },
+      } satisfies WorkoutTemplateRequest,
       { auth: true },
     );
     const template = normalizeTemplate(response);
