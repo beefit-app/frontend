@@ -931,6 +931,7 @@ export function WorkoutStartScreen({
               <BeeButton
                 variant={canStartWorkout ? "primary" : "dark"}
                 size="lg"
+                shape="soft"
                 fullWidth
                 onClick={handleStartWorkout}
                 disabled={!canStartWorkout || isStartingWorkout}

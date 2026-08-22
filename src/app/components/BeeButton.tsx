@@ -15,9 +15,22 @@ export type BeeButtonVariant =
 
 export type BeeButtonSize = "sm" | "md" | "lg";
 
+/**
+ * `pill` e o padrao do styleguide (§4). `soft` existe para as telas de entrada,
+ * onde o botao fica encostado nos campos do formulario e a pilula destoava do
+ * canto de 12px do BeeInput.
+ */
+export type BeeButtonShape = "pill" | "soft";
+
+const SHAPE_RADIUS: Record<BeeButtonShape, string> = {
+  pill: "100px",
+  soft: "12px",
+};
+
 interface BeeButtonProps {
   variant?: BeeButtonVariant;
   size?: BeeButtonSize;
+  shape?: BeeButtonShape;
   children: ReactNode;
   fullWidth?: boolean;
   onClick?: React.MouseEventHandler;
@@ -117,6 +130,7 @@ const SIZE_PADDING: Record<BeeButtonSize, React.CSSProperties> = {
 export function BeeButton({
   variant = "primary",
   size = "md",
+  shape = "pill",
   children,
   fullWidth = false,
   onClick,
@@ -124,6 +138,9 @@ export function BeeButton({
   disabled = false,
 }: BeeButtonProps) {
   const v = VARIANTS[variant];
+  // O wrapper recorta com overflow: hidden, entao os dois raios saem do mesmo
+  // valor; mudar so o do IonButton deixaria a pilula recortando por cima.
+  const radius = SHAPE_RADIUS[shape];
 
   return (
     <Motion.div
@@ -132,7 +149,7 @@ export function BeeButton({
       transition={{ type: "spring", stiffness: 400, damping: 17 }}
       style={{
         width: fullWidth ? "100%" : "fit-content",
-        borderRadius: "100px",
+        borderRadius: radius,
         overflow: "hidden",
         display: fullWidth ? "block" : "inline-block",
       }}
@@ -151,7 +168,7 @@ export function BeeButton({
             "--background-hover": v.bg,
             "--background-activated-opacity": "0.9",
             "--color": v.color,
-            "--border-radius": "100px",
+            "--border-radius": radius,
             "--border-color": v.border ?? "transparent",
             "--border-width": v.border ? "1px" : "0",
             "--border-style": v.border ? "solid" : "none",
