@@ -116,6 +116,8 @@ describe("authService API integration", () => {
       password: "123456",
       weight: 68,
       weeklyGoal: 5,
+      acceptedTermsVersion: "2026-08-18",
+      acceptedPrivacyVersion: "2026-08-18",
     });
 
     expect(fetch).toHaveBeenCalledWith(
@@ -129,6 +131,8 @@ describe("authService API integration", () => {
           password: "123456",
           weeklyGoal: 5,
           bodyWeight: 68,
+          acceptedTermsVersion: "2026-08-18",
+          acceptedPrivacyVersion: "2026-08-18",
           deviceId: window.localStorage.getItem("beefit.auth.deviceId"),
         }),
       }),

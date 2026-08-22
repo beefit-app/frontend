@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { IonCard, IonCardContent, IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
+import { useCallback, useEffect, useState } from "react";
+import { IonCard, IonCardContent, IonCheckbox, IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 import logoImg from "../../imports/logo.png";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
 import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { extractFieldErrors } from "../services/apiClient";
+import { fetchLegalVersions } from "../services/legalService";
+import type { LegalVersions } from "../types/auth";
 import { BeeAlert } from "./BeeAlert";
 import { PASSWORD_MIN_LENGTH, WEIGHT_MAX_KG, WEIGHT_MIN_KG, messages } from "../constants/messages";
 
@@ -23,6 +25,11 @@ const FORM_FIELD_BY_API_FIELD: Record<string, string> = {
   password: "password",
   bodyWeight: "weight",
   weeklyGoal: "weeklyGoal",
+  // Os dois documentos sao aceitos por um unico controle, entao ambos apontam
+  // para ele: sem isto a recusa do servidor cairia no aviso geral e o checkbox
+  // ficaria sem marcacao, como se o problema fosse outro.
+  acceptedTermsVersion: "legalConsent",
+  acceptedPrivacyVersion: "legalConsent",
 };
 
 export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
@@ -35,11 +42,38 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
     weight: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [hasAcceptedLegal, setHasAcceptedLegal] = useState(false);
+  const [legalVersions, setLegalVersions] = useState<LegalVersions | null>(null);
+  const [isLoadingLegalVersions, setIsLoadingLegalVersions] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   // Quando o servidor devolve erro em todos os campos que a tela conhece, o aviso
   // geral repetiria o texto que ja esta embaixo do input.
   const [isAuthErrorHandled, setIsAuthErrorHandled] = useState(false);
   const { authError, clearAuthError, isSubmitting, register } = useAuth();
+
+  const loadLegalVersions = useCallback(async () => {
+    setIsLoadingLegalVersions(true);
+    try {
+      setLegalVersions(await fetchLegalVersions());
+      setErrors((prev) => ({ ...prev, legalConsent: "" }));
+    } catch {
+      setLegalVersions(null);
+      setErrors((prev) => ({ ...prev, legalConsent: messages.legalVersionsUnavailable }));
+    } finally {
+      setIsLoadingLegalVersions(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLegalVersions();
+  }, [loadLegalVersions]);
+
+  function setLegalConsent(accepted: boolean) {
+    setHasAcceptedLegal(accepted);
+    if (errors.legalConsent && legalVersions) setErrors((prev) => ({ ...prev, legalConsent: "" }));
+    if (authError) clearAuthError();
+    setIsAuthErrorHandled(false);
+  }
 
   function setField(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -72,6 +106,10 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
       Number(form.weight) > WEIGHT_MAX_KG
     )
       e.weight = messages.weightRange;
+    // Sem as versoes vigentes nao ha o que registrar como aceite, entao o bloqueio
+    // vale mesmo com o checkbox marcado.
+    if (!legalVersions) e.legalConsent = messages.legalVersionsUnavailable;
+    else if (!hasAcceptedLegal) e.legalConsent = messages.legalConsentRequired;
     return e;
   }
 
@@ -93,6 +131,10 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
         password: form.password,
         weeklyGoal: Number(form.weeklyGoal),
         weight: Number(form.weight),
+        // `validate` ja garantiu que nao e nulo; as versoes sao as que o usuario
+        // viu na tela, nao um valor recarregado agora.
+        acceptedTermsVersion: legalVersions!.termsVersion,
+        acceptedPrivacyVersion: legalVersions!.privacyVersion,
       });
     } catch (error) {
       const fieldErrors = extractFieldErrors(error);
@@ -343,12 +385,70 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                         }}
                       >
                         Seu peso é fundamental para o{" "}
-                        <span style={{ color: "#FFD700", fontWeight: 600 }}>
+                        <span style={{ fontWeight: 600 }}>
                           sistema de raridade das cartas
                         </span>
                         . Quanto mais peso você levanta em relação ao seu corpo, mais rara fica sua carta de recorde!
                       </IonText>
                     </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <IonCheckbox
+                        aria-label="Aceito os Termos de Uso e a Política de Privacidade"
+                        checked={hasAcceptedLegal}
+                        disabled={isLoadingLegalVersions || !legalVersions}
+                        onIonChange={(ev) => setLegalConsent(ev.detail.checked)}
+                        style={{ "--size": "20px", marginTop: 2 } as React.CSSProperties}
+                      />
+                      <IonText
+                        style={{
+                          fontFamily: "var(--font-inter)",
+                          fontSize: 13,
+                          color: "#8A8A8A",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Li e aceito os{" "}
+                        {/* Sem cor propria, o sublinhado e a unica pista de que sao links. */}
+                        <a className="underline" href="/terms" target="_blank" rel="noreferrer">
+                          Termos de Uso
+                        </a>{" "}
+                        e a{" "}
+                        <a className="underline" href="/privacy" target="_blank" rel="noreferrer">
+                          Política de Privacidade
+                        </a>
+                        .
+                      </IonText>
+                    </label>
+
+                    {isLoadingLegalVersions && (
+                      <IonText
+                        style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A" }}
+                      >
+                        Carregando os documentos...
+                      </IonText>
+                    )}
+
+                    {errors.legalConsent && (
+                      <IonText
+                        role="alert"
+                        style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#FF4D4D" }}
+                      >
+                        {errors.legalConsent}
+                      </IonText>
+                    )}
+
+                    {!isLoadingLegalVersions && !legalVersions && (
+                      <button
+                        type="button"
+                        className="self-start text-[#FFD700] text-xs underline"
+                        onClick={() => void loadLegalVersions()}
+                      >
+                        Tentar novamente
+                      </button>
+                    )}
                   </div>
 
                   {authError && !isAuthErrorHandled && <BeeAlert>{authError}</BeeAlert>}
@@ -357,8 +457,9 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                     <BeeButton
                       type="button"
                       variant="primary"
+                      shape="soft"
                       fullWidth
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isLoadingLegalVersions}
                       onClick={() => void submitRegistration()}
                     >
                       {isSubmitting ? "Criando conta..." : "Criar Conta"}
@@ -387,6 +488,7 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                   <BeeButton
                     type="button"
                     variant="dark"
+                    shape="soft"
                     fullWidth
                     onClick={onNavigateToLogin}
                     disabled={isSubmitting}

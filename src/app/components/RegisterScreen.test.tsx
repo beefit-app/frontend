@@ -5,6 +5,8 @@ const registerMock = vi.hoisted(() => vi.fn());
 const clearAuthError = vi.hoisted(() => vi.fn());
 const authState = vi.hoisted(() => ({ authError: null as string | null }));
 
+const fetchLegalVersionsMock = vi.hoisted(() => vi.fn());
+
 vi.mock("../auth/AuthContext", () => ({
   useAuth: () => ({
     authError: authState.authError,
@@ -14,13 +16,31 @@ vi.mock("../auth/AuthContext", () => ({
   }),
 }));
 
+vi.mock("../services/legalService", () => ({
+  fetchLegalVersions: fetchLegalVersionsMock,
+}));
+
+const LEGAL_VERSIONS = { termsVersion: "2026-08-18", privacyVersion: "2026-08-18" };
+
 let container: HTMLElement;
 
 async function renderScreen() {
   const { RegisterScreen } = await import("./RegisterScreen");
   const result = render(<RegisterScreen onNavigateToLogin={() => {}} />);
   container = result.container;
+  // A tela busca as versoes vigentes ao montar e mantem o aceite desabilitado ate
+  // chegarem; sem esperar, todo submit cairia no bloqueio em vez do caso testado.
+  await waitFor(() => {
+    expect(screen.queryByText("Carregando os documentos...")).not.toBeInTheDocument();
+  });
   return result;
+}
+
+/** IonCheckbox emite ionChange com detail.checked, nao o change nativo. */
+function acceptLegal() {
+  const checkbox = container.querySelector("ion-checkbox");
+  if (!checkbox) throw new Error("checkbox de aceite nao encontrado");
+  fireEvent(checkbox, new CustomEvent("ionChange", { detail: { checked: true } }));
 }
 
 /** BeeInput usa IonInput, que so escuta ionInput/ionChange — nao o change nativo. */
@@ -34,13 +54,14 @@ function setValue(placeholder: string, value: string) {
   fireEvent(field(placeholder), new CustomEvent("ionInput", { detail: { value } }));
 }
 
-function fillValidForm() {
+function fillValidForm({ withLegalConsent = true } = {}) {
   setValue("Seu nome completo", "Bee Fit");
   setValue("Seu username", "beefit");
   setValue("seu@email.com", "bee@email.com");
   setValue("••••••••", "senha123");
   setValue("Ex: 4 (dias por semana)", "4");
   setValue("Ex: 75.5", "75");
+  if (withLegalConsent) acceptLegal();
 }
 
 function submit() {
@@ -66,6 +87,7 @@ describe("RegisterScreen", () => {
     vi.resetModules();
     registerMock.mockReset().mockResolvedValue(undefined);
     clearAuthError.mockReset();
+    fetchLegalVersionsMock.mockReset().mockResolvedValue(LEGAL_VERSIONS);
     authState.authError = null;
   });
 
@@ -162,5 +184,73 @@ describe("RegisterScreen", () => {
     await waitFor(() => {
       expect(screen.queryByText("Este e-mail já está cadastrado.")).not.toBeInTheDocument();
     });
+  });
+
+  it("nao envia o cadastro sem o aceite dos documentos", async () => {
+    await renderScreen();
+    fillValidForm({ withLegalConsent: false });
+    submit();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Aceite os Termos de Uso e a Política de Privacidade para continuar."),
+      ).toBeInTheDocument();
+    });
+    expect(registerMock).not.toHaveBeenCalled();
+  });
+
+  it("envia as versoes vigentes que vieram do servidor", async () => {
+    await renderScreen();
+    fillValidForm();
+    submit();
+
+    await waitFor(() => {
+      expect(registerMock).toHaveBeenCalledTimes(1);
+    });
+    // O servidor recusa versao diferente da vigente, entao o valor tem de ser o
+    // que /auth/legal-versions devolveu, e nunca uma constante do frontend.
+    expect(registerMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        acceptedTermsVersion: "2026-08-18",
+        acceptedPrivacyVersion: "2026-08-18",
+      }),
+    );
+  });
+
+  it("bloqueia o cadastro quando nao consegue carregar as versoes", async () => {
+    fetchLegalVersionsMock.mockRejectedValue(new Error("rede indisponivel"));
+
+    await renderScreen();
+    fillValidForm({ withLegalConsent: false });
+    submit();
+
+    // Registrar aceite de um documento que nao foi apresentado nao vale como
+    // consentimento, entao o bloqueio vem antes de qualquer ida ao servidor.
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          "Não foi possível carregar os Termos de Uso. Tente novamente para criar sua conta.",
+        ),
+      ).toBeInTheDocument();
+    });
+    expect(registerMock).not.toHaveBeenCalled();
+  });
+
+  it("leva a recusa do servidor para o controle de aceite, e nao para o aviso geral", async () => {
+    authState.authError = "Aceite os Termos de Uso vigentes.";
+    registerMock.mockRejectedValue(
+      apiError(400, "Campos enviados inválidos", [
+        { field: "acceptedTermsVersion", message: "Aceite os Termos de Uso vigentes." },
+      ]),
+    );
+
+    await renderScreen();
+    fillValidForm();
+    submit();
+
+    await waitFor(() => {
+      expect(screen.getByText("Aceite os Termos de Uso vigentes.")).toBeInTheDocument();
+    });
+    expect(screen.getAllByText("Aceite os Termos de Uso vigentes.")).toHaveLength(1);
   });
 });
