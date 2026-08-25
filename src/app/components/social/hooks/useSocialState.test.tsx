@@ -2,6 +2,8 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
 const subscribeSocialEvents = vi.hoisted(() => vi.fn());
+const getCachedRelationships = vi.hoisted(() => vi.fn());
+const setCachedValue = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../auth/AuthContext", () => ({ useAuth: () => ({ user: { id: "me" } }) }));
 vi.mock("../../../services/socialService", () => ({ socialService: {
@@ -25,11 +27,17 @@ vi.mock("../../../services/socialService", () => ({ socialService: {
   createHive: vi.fn().mockResolvedValue([]), joinHive: vi.fn().mockResolvedValue([]), leaveHive: vi.fn().mockResolvedValue({}),
 } }));
 vi.mock("../../../services/socialEventsService", () => ({ subscribeSocialEvents }));
+vi.mock("../../../storage/pageCacheStorage", () => ({ pageCacheStorage: {
+  get: getCachedRelationships, set: setCachedValue, remove: vi.fn(),
+} }));
 import { useSocialState } from "./useSocialState";
 
 describe("useSocialState", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     subscribeSocialEvents.mockReset().mockResolvedValue(undefined);
+    getCachedRelationships.mockReset().mockResolvedValue(null);
+    setCachedValue.mockReset();
   });
 
   it("carrega amigos e solicitações pela API", async () => {
@@ -37,6 +45,53 @@ describe("useSocialState", () => {
     await waitFor(() => expect(result.current.friends).toHaveLength(1));
     expect(result.current.friendRequests).toHaveLength(1);
     expect(result.current.sentRequests).toHaveLength(1);
+  });
+
+  it("hidrata relacionamentos frescos sem requisitar amigos novamente", async () => {
+    const { socialService } = await import("../../../services/socialService");
+    getCachedRelationships.mockImplementation(async (_userId, key) => key === "social.relationships" ? {
+      friends: [{ id: "cached", name: "Cache", username: "@cache", initials: "CA", status: "friend", friendshipId: "f-cache" }],
+      friendRequests: [],
+      sentRequests: [],
+    } : null);
+
+    const { result } = renderHook(() => useSocialState(true));
+
+    await waitFor(() => expect(result.current.friends[0]?.id).toBe("cached"));
+    expect(socialService.loadFriends).not.toHaveBeenCalled();
+  });
+
+  it("hidrata Colmeias frescas sem requisitar a lista e sem persistir inviteCode", async () => {
+    const { socialService } = await import("../../../services/socialService");
+    getCachedRelationships.mockImplementation(async (_userId, key) => {
+      if (key === "social.hives") {
+        return [{
+          id: "hive-1", name: "Cache Hive", period: "Semanal", creatorId: "me", members: [],
+        }];
+      }
+      return null;
+    });
+
+    const { result } = renderHook(() => useSocialState(true));
+
+    await waitFor(() => expect(result.current.hives[0]?.id).toBe("hive-1"));
+    expect(result.current.hives[0]?.inviteCode).toBeUndefined();
+    expect(socialService.loadHives).not.toHaveBeenCalled();
+  });
+
+  it("persiste Colmeias sem o código de convite", async () => {
+    const { socialService } = await import("../../../services/socialService");
+    vi.mocked(socialService.loadHives).mockResolvedValueOnce([{
+      id: "hive-1", name: "Hive", period: "Semanal", inviteCode: "SECRET-CODE", creatorId: "me", members: [],
+    }]);
+
+    renderHook(() => useSocialState(true));
+
+    await waitFor(() => expect(setCachedValue).toHaveBeenCalledWith(
+      "me",
+      "social.hives",
+      [{ id: "hive-1", name: "Hive", period: "Semanal", creatorId: "me", members: [] }],
+    ));
   });
   it("executa aceite e recarrega os dados sociais", async () => {
     const { result } = renderHook(() => useSocialState());

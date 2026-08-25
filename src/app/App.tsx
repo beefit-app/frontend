@@ -17,6 +17,7 @@ import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
 import { useStreakState } from "./hooks/useStreakState";
 import { useWorkoutSessionState } from "./hooks/useWorkoutSessionState";
 import { profileService } from "./services/profileService";
+import { pageCacheStorage } from "./storage/pageCacheStorage";
 import type { WorkoutCompletionDraft, WorkoutCompletionSummary } from "./types/workout";
 import { Toaster } from "./components/ui/sonner";
 
@@ -140,6 +141,8 @@ export default function App() {
   function handleWorkoutCompleted(_draft: WorkoutCompletionDraft, _summary: WorkoutCompletionSummary) {
     clearPendingFeed();
     completeWorkout();
+    void pageCacheStorage.remove(user?.id, "profile.posts");
+    void pageCacheStorage.remove(user?.id, "profile.trained-days");
     setScreen("feed");
     void contentRef.current?.scrollToTop(320);
     void (async () => {

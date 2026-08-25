@@ -13,6 +13,8 @@ const {
   createTemplate,
   updateTemplate,
   deleteTemplate,
+  hydrateCatalog,
+  hydrateTemplates,
 } = vi.hoisted(() => ({
   getCatalog: vi.fn(),
   getTemplates: vi.fn(),
@@ -21,6 +23,8 @@ const {
   createTemplate: vi.fn(),
   updateTemplate: vi.fn(),
   deleteTemplate: vi.fn(),
+  hydrateCatalog: vi.fn(),
+  hydrateTemplates: vi.fn(),
 }));
 
 vi.mock("../../../services/inventoryService", () => ({
@@ -38,8 +42,15 @@ vi.mock("../../../services/workoutService", () => ({
     createTemplate,
     updateTemplate,
     deleteTemplate,
+    hydrateCatalog,
+    hydrateTemplates,
   },
 }));
+
+vi.mock("../../../auth/AuthContext", () => ({ useAuth: () => ({ user: { id: "user-1" } }) }));
+vi.mock("../../../storage/pageCacheStorage", () => ({ pageCacheStorage: {
+  get: vi.fn().mockResolvedValue(null), set: vi.fn(), remove: vi.fn(),
+} }));
 
 import { useInventoryScreenState } from "./useInventoryScreenState";
 
@@ -53,6 +64,8 @@ describe("useInventoryScreenState", () => {
     createTemplate.mockReset();
     updateTemplate.mockReset();
     deleteTemplate.mockReset();
+    hydrateCatalog.mockReset();
+    hydrateTemplates.mockReset();
     getCatalog.mockReturnValue([]);
     getTemplates.mockReturnValue([]);
     loadCatalog.mockResolvedValue([]);

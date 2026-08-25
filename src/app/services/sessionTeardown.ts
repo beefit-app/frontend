@@ -1,5 +1,6 @@
 import { clearPersistedStreak } from "../hooks/useStreakState";
 import { appStorage } from "../storage/appStorage";
+import { pageCacheStorage } from "../storage/pageCacheStorage";
 import { socialFeedStorage } from "../storage/socialFeedStorage";
 import { workoutDraftStorage } from "../storage/workoutDraftStorage";
 import { clearMediaCache } from "./mediaCache";
@@ -27,6 +28,7 @@ export async function clearLocalUserData(userId: string | null | undefined) {
     ["amigos ao vivo", () => socialFeedStorage.clearLiveFriends()],
     ["ofensiva", () => clearPersistedStreak()],
     ["perfil legado", () => appStorage.removeItem(LEGACY_PROFILE_STORAGE_KEY)],
+    ["cache de paginas", () => pageCacheStorage.clearUser(userId)],
     ["stream de eventos", () => closeSocialEventsConnection()],
   ];
 

@@ -16,6 +16,7 @@ import {
 import { subscribeSocialEvents, type CardGeneratedEvent } from "../services/socialEventsService";
 import { workoutService } from "../services/workoutService";
 import { workoutDraftStorage } from "../storage/workoutDraftStorage";
+import { pageCacheStorage } from "../storage/pageCacheStorage";
 import type { ActiveWorkoutBannerState } from "../hooks/useWorkoutSessionState";
 import type {
   ExerciseCatalogItem,
@@ -27,6 +28,7 @@ import type {
 } from "../types/workout";
 
 const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
+const WORKOUT_DATA_TTL_MS = 15 * 60 * 1000;
 
 function HexIcon({
   icon,
@@ -239,15 +241,36 @@ export function WorkoutStartScreen({
     async function loadWorkoutData() {
       let latestError = "";
 
+      const [cachedCatalog, cachedTemplates] = await Promise.all([
+        pageCacheStorage.get<ExerciseCatalogItem[]>(user?.id, "workout.catalog", WORKOUT_DATA_TTL_MS),
+        pageCacheStorage.get<typeof workoutTemplates>(user?.id, "workout.templates", WORKOUT_DATA_TTL_MS),
+      ]);
+      if (!active) return;
+      if (cachedCatalog) {
+        workoutService.hydrateCatalog(cachedCatalog);
+        setCatalogRevision((current) => current + 1);
+      }
+      if (cachedTemplates) {
+        workoutService.hydrateTemplates(cachedTemplates);
+        setWorkoutTemplates(cachedTemplates);
+      }
+
       try {
-        await workoutService.loadCatalog();
+        const catalog = cachedCatalog ?? await workoutService.loadCatalog({ force: true });
+        if (active && !cachedCatalog) {
+          setCatalogRevision((current) => current + 1);
+          void pageCacheStorage.set(user?.id, "workout.catalog", catalog);
+        }
       } catch (error) {
         latestError = error instanceof Error ? error.message : messages.actionFailed("carregar o catálogo");
       }
 
       try {
-        const templates = await workoutService.loadTemplates();
-        if (active) setWorkoutTemplates(templates);
+        const templates = cachedTemplates ?? await workoutService.loadTemplates();
+        if (active && !cachedTemplates) {
+          setWorkoutTemplates(templates);
+          void pageCacheStorage.set(user?.id, "workout.templates", templates);
+        }
       } catch (error) {
         latestError = error instanceof Error ? error.message : messages.actionFailed("carregar os templates");
       }
@@ -263,7 +286,7 @@ export function WorkoutStartScreen({
     return () => {
       active = false;
     };
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     let active = true;
@@ -613,7 +636,9 @@ export function WorkoutStartScreen({
               groups,
               exerciseIds: exercises.map((exercise) => exercise.catalogId),
             });
-            setWorkoutTemplates(await workoutService.loadTemplates());
+            const templates = await workoutService.loadTemplates();
+            setWorkoutTemplates(templates);
+            void pageCacheStorage.set(user?.id, "workout.templates", templates);
             toast.success("Template salvo.");
             return true;
           } catch (error) {
