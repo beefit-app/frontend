@@ -6,6 +6,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "dev:remote": "vite --mode remote",
     "lint": "eslint src --max-warnings 200",
     "typecheck": "tsc --noEmit",
     "api:types": "openapi-typescript http://localhost:8080/v3/api-docs -o src/app/types/api.generated.ts",
