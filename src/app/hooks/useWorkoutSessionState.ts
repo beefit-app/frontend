@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { resetActiveWorkoutMemory } from "../components/WorkoutStartScreen";
 
 export interface ActiveWorkoutBannerState {
   workoutId?: string | null;
@@ -28,6 +29,7 @@ export function useWorkoutSessionState() {
   }, [activeWorkout]);
 
   function resetWorkoutFlow() {
+    resetActiveWorkoutMemory();
     setActiveWorkout(null);
     setWorkoutScreenInstance((current) => current + 1);
   }

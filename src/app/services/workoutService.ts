@@ -265,6 +265,11 @@ export const workoutService = {
     return catalogCache.length > 0;
   },
 
+  hydrateCatalog(catalog: ExerciseCatalogItem[]) {
+    catalogCache = catalog;
+    catalogLoadedAt = Date.now();
+  },
+
   // Caches de modulo sobrevivem a troca de usuario porque a SPA nao recarrega no
   // logout. templatesCache e por usuario e getTemplates() e lido de forma sincrona
   // na montagem da tela de treino, entao sem este reset o proximo usuario ve os
@@ -318,6 +323,10 @@ export const workoutService = {
 
   getTemplates() {
     return templatesCache;
+  },
+
+  hydrateTemplates(templates: WorkoutTemplate[]) {
+    templatesCache = templates;
   },
 
   async loadTemplates() {

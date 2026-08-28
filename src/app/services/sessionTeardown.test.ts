@@ -22,6 +22,11 @@ function seedLocalData() {
   window.localStorage.setItem("beefit.feed.live-friends", JSON.stringify([{ id: "amigo-1" }]));
   window.localStorage.setItem("beefit.feed.streak", JSON.stringify({ count: 4, lastFedDate: null }));
   window.localStorage.setItem("beefit.profile.current", JSON.stringify({ fullName: "Bee Fit" }));
+  window.localStorage.setItem("beefit.page-cache.user-1.feed.page-0", JSON.stringify({
+    version: 1,
+    savedAt: Date.now(),
+    value: { posts: [] },
+  }));
   window.localStorage.setItem(
     `beefit.workoutDraft.${USER_ID}.workout-1`,
     JSON.stringify({ userId: USER_ID, workoutId: "workout-1", photoFileName: "web:foto-1" }),

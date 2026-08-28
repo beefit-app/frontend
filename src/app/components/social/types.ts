@@ -30,7 +30,7 @@ export interface Hive {
   id: string;
   name: string;
   period: HiveRankingPeriod;
-  inviteCode: string;
+  inviteCode?: string;
   creatorId: string;
   members: HiveMember[];
 }

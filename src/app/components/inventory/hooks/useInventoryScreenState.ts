@@ -2,17 +2,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { inventoryService } from "../../../services/inventoryService";
 import { workoutService } from "../../../services/workoutService";
 import { subscribeSocialEvents } from "../../../services/socialEventsService";
+import { pageCacheStorage } from "../../../storage/pageCacheStorage";
+import { useAuth } from "../../../auth/AuthContext";
 import type { ExerciseCatalogItem, WorkoutTemplate } from "../../../types/workout";
 import { DEFAULT_INVENTORY_FILTERS } from "../constants";
 import type { InventoryCard, InventoryFilters } from "../types";
 
 const PAGE_SIZE = 12;
+const INVENTORY_TTL_MS = 2 * 60 * 1000;
+const WORKOUT_DATA_TTL_MS = 15 * 60 * 1000;
 
 function mergeCards(current: InventoryCard[], incoming: InventoryCard[]) {
   return Array.from(new Map([...current, ...incoming].map((card) => [card.id, card])).values());
 }
 
 export function useInventoryScreenState() {
+  const { user } = useAuth();
   const [cards, setCards] = useState<InventoryCard[]>([]);
   const [templates, setTemplates] = useState<WorkoutTemplate[]>(() => workoutService.getTemplates());
   const [catalog, setCatalog] = useState<ExerciseCatalogItem[]>(() => workoutService.getCatalog());
@@ -27,11 +32,15 @@ export function useInventoryScreenState() {
   const [error, setError] = useState<string | null>(null);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
   const loadingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const requestGenerationRef = useRef(0);
 
   const loadPage = useCallback(
-    async (targetPage: number, nextFilters: InventoryFilters, replace = false) => {
-      if (loadingRef.current || (!replace && !hasMore)) return;
+    async (targetPage: number, nextFilters: InventoryFilters, replace = false, hydrateCache = false) => {
+      if ((loadingRef.current && !replace) || (!replace && !hasMoreRef.current)) return;
 
+      const requestGeneration = replace ? requestGenerationRef.current + 1 : requestGenerationRef.current;
+      if (replace) requestGenerationRef.current = requestGeneration;
       loadingRef.current = true;
       if (replace) {
         setIsLoading(true);
@@ -40,30 +49,53 @@ export function useInventoryScreenState() {
       }
       setError(null);
 
+      const cacheKey = `inventory.${targetPage}.${nextFilters.rarity ?? "all"}.${nextFilters.muscleGroup ?? "all"}`;
+      if (hydrateCache) {
+        const cached = await pageCacheStorage.get<Awaited<ReturnType<typeof inventoryService.loadPage>>>(user?.id, cacheKey, INVENTORY_TTL_MS);
+        if (requestGeneration !== requestGenerationRef.current) return;
+        if (cached) {
+          setCards((current) => (replace ? cached.cards : mergeCards(current, cached.cards)));
+          setPage(cached.page);
+          setTotalElements(cached.totalElements);
+          setHasMore(!cached.last);
+          hasMoreRef.current = !cached.last;
+          setIsLoading(false);
+          loadingRef.current = false;
+          return;
+        }
+      }
+
       try {
         const result = await inventoryService.loadPage({
           page: targetPage,
           size: PAGE_SIZE,
           filters: nextFilters,
         });
+        if (requestGeneration !== requestGenerationRef.current) return;
 
         setCards((current) => (replace ? result.cards : mergeCards(current, result.cards)));
         setPage(result.page);
         setTotalElements(result.totalElements);
         setHasMore(!result.last);
+        hasMoreRef.current = !result.last;
+        void pageCacheStorage.set(user?.id, cacheKey, result);
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : "Não foi possível carregar o inventário.");
+        if (requestGeneration === requestGenerationRef.current) {
+          setError(cause instanceof Error ? cause.message : "Não foi possível carregar o inventário.");
+        }
       } finally {
-        loadingRef.current = false;
-        setIsLoading(false);
-        setIsLoadingMore(false);
+        if (requestGeneration === requestGenerationRef.current) {
+          loadingRef.current = false;
+          setIsLoading(false);
+          setIsLoadingMore(false);
+        }
       }
     },
-    [hasMore],
+    [user?.id],
   );
 
   useEffect(() => {
-    void loadPage(0, filters, true);
+    void loadPage(0, filters, true, true);
   }, [filters, loadPage]);
 
   const loadTemplates = useCallback(async () => {
@@ -71,18 +103,36 @@ export function useInventoryScreenState() {
     setTemplatesError(null);
 
     try {
-      const [loadedCatalog, loadedTemplates] = await Promise.all([
-        workoutService.loadCatalog(),
-        workoutService.loadTemplates(),
+      const [cachedCatalog, cachedTemplates] = await Promise.all([
+        pageCacheStorage.get<ExerciseCatalogItem[]>(user?.id, "workout.catalog", WORKOUT_DATA_TTL_MS),
+        pageCacheStorage.get<WorkoutTemplate[]>(user?.id, "workout.templates", WORKOUT_DATA_TTL_MS),
       ]);
-      setCatalog(loadedCatalog);
-      setTemplates(loadedTemplates);
+      if (cachedCatalog) {
+        workoutService.hydrateCatalog(cachedCatalog);
+        setCatalog(cachedCatalog);
+      }
+      if (cachedTemplates) {
+        workoutService.hydrateTemplates(cachedTemplates);
+        setTemplates(cachedTemplates);
+      }
+      const [loadedCatalog, loadedTemplates] = await Promise.all([
+        cachedCatalog ? Promise.resolve(cachedCatalog) : workoutService.loadCatalog({ force: true }),
+        cachedTemplates ? Promise.resolve(cachedTemplates) : workoutService.loadTemplates(),
+      ]);
+      if (!cachedCatalog) {
+        setCatalog(loadedCatalog);
+        void pageCacheStorage.set(user?.id, "workout.catalog", loadedCatalog);
+      }
+      if (!cachedTemplates) {
+        setTemplates(loadedTemplates);
+        void pageCacheStorage.set(user?.id, "workout.templates", loadedTemplates);
+      }
     } catch (cause) {
       setTemplatesError(cause instanceof Error ? cause.message : "Não foi possível carregar os templates.");
     } finally {
       setIsLoadingTemplates(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     void loadTemplates();
@@ -95,20 +145,26 @@ export function useInventoryScreenState() {
         try {
           const loadedTemplates = await workoutService.loadTemplates();
           setTemplates(loadedTemplates);
+          void pageCacheStorage.set(user?.id, "workout.templates", loadedTemplates);
         } catch {
           // A próxima abertura da tela recarrega os templates pela API.
         }
+      }
+      if (type === "CARD_GENERATED") {
+        void pageCacheStorage.remove(user?.id, `inventory.0.${filters.rarity ?? "all"}.${filters.muscleGroup ?? "all"}`);
+        void loadPage(0, filters, true);
       }
     }, controller.signal);
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [filters, loadPage, user?.id]);
 
   const updateFilters = useCallback((nextFilters: Partial<InventoryFilters>) => {
     setCards([]);
     setPage(0);
     setTotalElements(0);
+    hasMoreRef.current = true;
     setHasMore(true);
     setFilters((current) => ({ ...current, ...nextFilters }));
   }, []);
@@ -117,6 +173,7 @@ export function useInventoryScreenState() {
     setCards([]);
     setPage(0);
     setTotalElements(0);
+    hasMoreRef.current = true;
     setHasMore(true);
     setFilters(DEFAULT_INVENTORY_FILTERS);
   }, []);
@@ -155,6 +212,7 @@ export function useInventoryScreenState() {
           exerciseIds: input.exerciseIds,
         });
         setTemplates(workoutService.getTemplates());
+        void pageCacheStorage.set(user?.id, "workout.templates", workoutService.getTemplates());
         return template;
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : "Não foi possível salvar o template.";
@@ -164,7 +222,7 @@ export function useInventoryScreenState() {
         setIsSavingTemplate(false);
       }
     },
-    [catalog],
+    [catalog, user?.id],
   );
 
   const updateTemplate = useCallback(
@@ -179,6 +237,7 @@ export function useInventoryScreenState() {
           exerciseIds: input.exerciseIds,
         });
         setTemplates(workoutService.getTemplates());
+        void pageCacheStorage.set(user?.id, "workout.templates", workoutService.getTemplates());
         return template;
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : "Não foi possível atualizar o template.";
@@ -188,7 +247,7 @@ export function useInventoryScreenState() {
         setIsSavingTemplate(false);
       }
     },
-    [catalog],
+    [catalog, user?.id],
   );
 
   const deleteTemplate = useCallback(async (templateId: string) => {
@@ -198,6 +257,7 @@ export function useInventoryScreenState() {
     try {
       await workoutService.deleteTemplate(templateId);
       setTemplates(workoutService.getTemplates());
+      void pageCacheStorage.set(user?.id, "workout.templates", workoutService.getTemplates());
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "Não foi possível excluir o template.";
       setTemplatesError(message);
@@ -205,7 +265,7 @@ export function useInventoryScreenState() {
     } finally {
       setIsSavingTemplate(false);
     }
-  }, []);
+  }, [user?.id]);
 
   return {
     cards,

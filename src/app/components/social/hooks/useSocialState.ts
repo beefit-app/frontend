@@ -2,9 +2,26 @@ import { useEffect, useState } from "react";
 import { socialService } from "../../../services/socialService";
 import { useAuth } from "../../../auth/AuthContext";
 import { subscribeSocialEvents, type FriendRemovedEvent, type FriendRequestAcceptedEvent, type FriendRequestPendingEvent } from "../../../services/socialEventsService";
+import { pageCacheStorage } from "../../../storage/pageCacheStorage";
 import type { FriendProfile, Hive, HiveRankingPeriod, SocialSection } from "../types";
 
 const MAX_HIVES = 2;
+const RELATIONSHIPS_TTL_MS = 2 * 60 * 1000;
+const RELATIONSHIPS_CACHE_KEY = "social.relationships";
+const HIVES_CACHE_KEY = "social.hives";
+const HIVES_TTL_MS = 2 * 60 * 1000;
+
+interface CachedRelationships {
+  friends: FriendProfile[];
+  friendRequests: Awaited<ReturnType<typeof socialService.loadIncomingRequests>>;
+  sentRequests: Awaited<ReturnType<typeof socialService.loadOutgoingRequests>>;
+}
+
+type CachedHive = Omit<Hive, "inviteCode">;
+
+function withoutInviteCodes(hives: Hive[]): CachedHive[] {
+  return hives.map(({ inviteCode: _inviteCode, ...hive }) => hive);
+}
 
 export function useSocialState(isActive = false) {
   const { user } = useAuth();
@@ -62,7 +79,17 @@ export function useSocialState(isActive = false) {
     return [nextFriend, ...current];
   }
 
-  async function refreshFriendships(surfaceError = false) {
+  async function refreshFriendships(surfaceError = false, useCache = false) {
+    if (useCache) {
+      const cached = await pageCacheStorage.get<CachedRelationships>(user?.id, RELATIONSHIPS_CACHE_KEY, RELATIONSHIPS_TTL_MS);
+      if (cached) {
+        setFriends(cached.friends);
+        setFriendRequests(cached.friendRequests);
+        setSentRequests(cached.sentRequests);
+        return;
+      }
+    }
+
     const [friendsResult, requestsResult, sentRequestsResult] = await Promise.allSettled([
       socialService.loadFriends(),
       socialService.loadIncomingRequests(),
@@ -79,6 +106,14 @@ export function useSocialState(isActive = false) {
       setSentRequests(sentRequestsResult.value);
     }
 
+    if (friendsResult.status === "fulfilled" && requestsResult.status === "fulfilled" && sentRequestsResult.status === "fulfilled") {
+      void pageCacheStorage.set(user?.id, RELATIONSHIPS_CACHE_KEY, {
+        friends: friendsResult.value,
+        friendRequests: requestsResult.value,
+        sentRequests: sentRequestsResult.value,
+      });
+    }
+
     if (surfaceError) {
       const firstError = [friendsResult, requestsResult, sentRequestsResult]
         .find((result) => result.status === "rejected");
@@ -88,7 +123,16 @@ export function useSocialState(isActive = false) {
     }
   }
 
-  async function refreshHives(surfaceError = false) {
+  async function refreshHives(surfaceError = false, useCache = false) {
+    if (useCache) {
+      const cached = await pageCacheStorage.get<CachedHive[]>(user?.id, HIVES_CACHE_KEY, HIVES_TTL_MS);
+      if (cached) {
+        setHives(cached);
+        setSelectedHiveId((current) => current ?? cached[0]?.id ?? null);
+        return;
+      }
+    }
+
     const hivesResult = await Promise.allSettled([
       socialService.loadHives(user?.id ?? ""),
     ]);
@@ -97,6 +141,7 @@ export function useSocialState(isActive = false) {
     if (result.status === "fulfilled") {
       setHives(result.value);
       setSelectedHiveId((current) => current ?? result.value[0]?.id ?? null);
+      void pageCacheStorage.set(user?.id, HIVES_CACHE_KEY, withoutInviteCodes(result.value));
       return;
     }
 
@@ -105,20 +150,16 @@ export function useSocialState(isActive = false) {
     }
   }
 
-  async function refresh() {
+  async function refresh(useCache = false) {
     try {
-      await refreshFriendships(false);
-      await refreshHives(false);
+      await refreshFriendships(false, useCache);
+      await refreshHives(false, useCache);
     } catch {
       // Background refresh should not surface unrelated errors on screen load.
     }
   }
 
-  useEffect(() => { void refresh(); }, [user?.id]);
-  useEffect(() => {
-    if (!isActive) return;
-    void refresh();
-  }, [isActive, user?.id]);
+  useEffect(() => { void refresh(true); }, [user?.id]);
   useEffect(() => {
     if (isActive) return;
     setSearchTerm("");
@@ -143,6 +184,9 @@ export function useSocialState(isActive = false) {
 
     const controller = new AbortController();
     void subscribeSocialEvents((type, data) => {
+      if (type === "FRIEND_REQUEST_PENDING" || type === "FRIEND_REQUEST_ACCEPTED" || type === "FRIEND_REMOVED") {
+        void pageCacheStorage.remove(user?.id, RELATIONSHIPS_CACHE_KEY);
+      }
       if (type === "FRIEND_REQUEST_PENDING") {
         const event = data as FriendRequestPendingEvent;
         setFriendRequests((current) => {
@@ -202,9 +246,16 @@ export function useSocialState(isActive = false) {
     };
   }, [user?.id]);
 
-  async function action(operation: () => Promise<unknown>, message: string, refreshAfter?: () => Promise<void>) {
+  async function action(
+    operation: () => Promise<unknown>,
+    message: string,
+    refreshAfter?: () => Promise<void>,
+    invalidatesHives = false,
+  ) {
     try {
       await operation();
+      void pageCacheStorage.remove(user?.id, RELATIONSHIPS_CACHE_KEY);
+      if (invalidatesHives) void pageCacheStorage.remove(user?.id, HIVES_CACHE_KEY);
       if (refreshAfter) {
         await refreshAfter();
       } else {
@@ -280,11 +331,27 @@ export function useSocialState(isActive = false) {
         person.id === response.user.id ? { ...person, status: "sent", friendshipId: response.id } : person
       )));
     }, "Solicitação enviada.", () => refreshFriendships(false)),
-    createHive: (name: string, period: HiveRankingPeriod) => { if (isHiveLimitReached) { setError("Você já participa de duas Colmeias."); return false; } void action(() => socialService.createHive(name, period, user?.id ?? ""), "Colmeia criada.", () => refreshHives(true)); return true; },
-    joinHive: (code: string) => { if (isHiveLimitReached) { setError("Você já participa de duas Colmeias."); return false; } void action(() => socialService.joinHive(code, user?.id ?? ""), "Você entrou na Colmeia.", () => refreshHives(true)); return true; },
+    createHive: (name: string, period: HiveRankingPeriod) => { if (isHiveLimitReached) { setError("Você já participa de duas Colmeias."); return false; } void action(() => socialService.createHive(name, period, user?.id ?? ""), "Colmeia criada.", () => refreshHives(true), true); return true; },
+    joinHive: (code: string) => { if (isHiveLimitReached) { setError("Você já participa de duas Colmeias."); return false; } void action(() => socialService.joinHive(code, user?.id ?? ""), "Você entrou na Colmeia.", () => refreshHives(true), true); return true; },
     showHiveLimitWarning: () => setError("Você já participa de duas Colmeias."),
-    leaveHive: (id: string) => void action(() => socialService.leaveHive(id), "Você saiu da Colmeia.", () => refreshHives(true)),
-    copyInviteCode: (hive: Hive) => { void navigator.clipboard?.writeText(hive.inviteCode); setFeedback("Código copiado."); },
+    leaveHive: (id: string) => void action(() => socialService.leaveHive(id), "Você saiu da Colmeia.", () => refreshHives(true), true),
+    copyInviteCode: (hive: Hive) => void (async () => {
+      try {
+        let inviteCode = hive.inviteCode;
+        if (!inviteCode) {
+          const loadedHives = await socialService.loadHives(user?.id ?? "");
+          const loadedHive = loadedHives.find((item) => item.id === hive.id);
+          if (!loadedHive?.inviteCode) throw new Error("Não foi possível obter o código da Colmeia.");
+          inviteCode = loadedHive.inviteCode;
+          setHives(loadedHives);
+          void pageCacheStorage.set(user?.id, HIVES_CACHE_KEY, withoutInviteCodes(loadedHives));
+        }
+        await navigator.clipboard?.writeText(inviteCode);
+        setFeedback("Código copiado.");
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "Não foi possível copiar o código.");
+      }
+    })(),
     rankMembers: (hive: Hive) => [...hive.members].sort((first, second) => second.workouts - first.workouts || second.honeys - first.honeys),
     clearMessage: () => { setFeedback(null); setError(null); },
   };

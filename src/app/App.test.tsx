@@ -7,6 +7,7 @@ const authState = vi.hoisted(() => ({
     isBootstrapping: false,
   },
 }));
+const removeCachedPage = vi.hoisted(() => vi.fn());
 
 vi.mock("./auth/AuthContext", () => ({
   useAuth: () => authState.current,
@@ -43,8 +44,12 @@ vi.mock("./components/SocialScreen", () => ({
 }));
 
 vi.mock("./components/WorkoutStartScreen", () => ({
-  WorkoutStartScreen: () => <div>workout-screen</div>,
+  WorkoutStartScreen: ({ onWorkoutCompleted }: { onWorkoutCompleted: (draft: never, summary: never) => void }) => (
+    <button type="button" onClick={() => onWorkoutCompleted({} as never, {} as never)}>complete-workout</button>
+  ),
+  resetActiveWorkoutMemory: vi.fn(),
 }));
+vi.mock("./storage/pageCacheStorage", () => ({ pageCacheStorage: { remove: removeCachedPage } }));
 
 vi.mock("./components/InventoryScreen", () => ({
   InventoryScreen: () => <div>inventory-screen</div>,
@@ -57,6 +62,7 @@ vi.mock("./components/ProfileScreen", () => ({
 
 describe("App", () => {
   beforeEach(() => {
+    removeCachedPage.mockReset();
     authState.current = {
       isAuthenticated: false,
       isBootstrapping: false,
@@ -125,5 +131,20 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Social" }));
     expect(await screen.findByText("social-screen")).toBeInTheDocument();
     expect(screen.queryByText("social-feed-screen")).not.toBeInTheDocument();
+  });
+
+  it("invalida posts e dias do perfil ao concluir um treino", () => {
+    authState.current = {
+      isAuthenticated: true,
+      isBootstrapping: false,
+    };
+    Object.assign(authState.current, { user: { id: "user-1" } });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Treino" }));
+    fireEvent.click(screen.getByRole("button", { name: "complete-workout" }));
+
+    expect(removeCachedPage).toHaveBeenCalledWith("user-1", "profile.posts");
+    expect(removeCachedPage).toHaveBeenCalledWith("user-1", "profile.trained-days");
   });
 });
