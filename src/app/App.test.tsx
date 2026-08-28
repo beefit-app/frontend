@@ -47,6 +47,7 @@ vi.mock("./components/WorkoutStartScreen", () => ({
   WorkoutStartScreen: ({ onWorkoutCompleted }: { onWorkoutCompleted: (draft: never, summary: never) => void }) => (
     <button type="button" onClick={() => onWorkoutCompleted({} as never, {} as never)}>complete-workout</button>
   ),
+  resetActiveWorkoutMemory: vi.fn(),
 }));
 vi.mock("./storage/pageCacheStorage", () => ({ pageCacheStorage: { remove: removeCachedPage } }));
 

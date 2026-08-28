@@ -1,3 +1,5 @@
+import { resetActiveWorkoutMemory } from "../components/WorkoutStartScreen";
+import { resetFeedCache } from "../components/social-feed/hooks/useSocialFeedState";
 import { clearPersistedStreak } from "../hooks/useStreakState";
 import { appStorage } from "../storage/appStorage";
 import { pageCacheStorage } from "../storage/pageCacheStorage";
@@ -26,6 +28,8 @@ export async function clearLocalUserData(userId: string | null | undefined) {
     ["fotos em memoria", () => clearMediaCache()],
     ["rascunhos e fotos", () => workoutDraftStorage.clearAllDrafts(userId)],
     ["amigos ao vivo", () => socialFeedStorage.clearLiveFriends()],
+    ["cache de feed em memoria", () => resetFeedCache()],
+    ["memoria de treino ativo", () => resetActiveWorkoutMemory()],
     ["ofensiva", () => clearPersistedStreak()],
     ["perfil legado", () => appStorage.removeItem(LEGACY_PROFILE_STORAGE_KEY)],
     ["cache de paginas", () => pageCacheStorage.clearUser(userId)],

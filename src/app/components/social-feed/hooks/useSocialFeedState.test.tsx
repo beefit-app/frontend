@@ -23,10 +23,11 @@ vi.mock("../../../storage/socialFeedStorage", () => ({ socialFeedStorage: {
   setLiveFriends,
   clearLiveFriends,
 } }));
-import { useSocialFeedState } from "./useSocialFeedState";
+import { resetFeedCache, useSocialFeedState } from "./useSocialFeedState";
 
 describe("useSocialFeedState", () => {
   beforeEach(() => {
+    resetFeedCache();
     getLiveFriends.mockReturnValue([]);
     setLiveFriends.mockReset();
     clearLiveFriends.mockReset();
@@ -63,5 +64,22 @@ describe("useSocialFeedState", () => {
     renderHook(() => useSocialFeedState());
 
     await waitFor(() => expect(loadFeed).toHaveBeenCalledWith(0));
+  });
+
+  it("mantém os posts em memória e não refaz requisição ao remontar", async () => {
+    const firstRender = renderHook(() => useSocialFeedState());
+    await waitFor(() => expect(firstRender.result.current.posts).toHaveLength(1));
+    expect(loadFeed).toHaveBeenCalledTimes(1);
+
+    // Simula desmontar a aba e voltar para ela
+    firstRender.unmount();
+    loadFeed.mockClear();
+
+    const secondRender = renderHook(() => useSocialFeedState());
+    // Posts aparecem imediatamente (sem loading)
+    expect(secondRender.result.current.isLoading).toBe(false);
+    expect(secondRender.result.current.posts[0]?.id).toBe("p-1");
+    // Nenhuma nova requisição de rede
+    expect(loadFeed).not.toHaveBeenCalled();
   });
 });

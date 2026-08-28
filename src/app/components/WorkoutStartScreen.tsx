@@ -69,6 +69,33 @@ function formatCompletionSummary(summary: WorkoutCompletionSummary) {
   return `Treino finalizado: ${minutes} min, ${calories} kcal, ${volume} kg.`;
 }
 
+export interface ActiveWorkoutConfig {
+  workoutId: string | null;
+  title: string;
+  subtitle: string;
+  selectedGroups: string[];
+  startedAt: number;
+  initialExerciseIds: string[];
+  initialSessionExercises: WorkoutExercise[];
+  initialDraft: WorkoutDraft | null;
+  initialFinishPhotoFile?: File | null;
+  initialFinishIdempotencyKey?: string | null;
+  initialFinishFinishedAt?: string | null;
+  initialFinishPhotoMediaId?: string | null;
+  initialFinishTitle?: string | null;
+  initialShouldPostWorkout?: boolean;
+  pendingFinish?: boolean;
+}
+
+let activeWorkoutMemoryConfig: {
+  userId: string | null;
+  config: ActiveWorkoutConfig;
+} | null = null;
+
+export function resetActiveWorkoutMemory() {
+  activeWorkoutMemoryConfig = null;
+}
+
 interface WorkoutStartScreenProps {
   ghostModeEnabled?: boolean;
   onActiveWorkoutChange?: (workout: ActiveWorkoutBannerState | null) => void;
@@ -91,23 +118,27 @@ export function WorkoutStartScreen({
   const [completionMessage, setCompletionMessage] = useState("");
   const [isStartingWorkout, setIsStartingWorkout] = useState(false);
   const [recoveryAttempt, setRecoveryAttempt] = useState(0);
-  const [activeWorkoutConfig, setActiveWorkoutConfig] = useState<{
-    workoutId: string | null;
-    title: string;
-    subtitle: string;
-    selectedGroups: string[];
-    startedAt: number;
-    initialExerciseIds: string[];
-    initialSessionExercises: WorkoutExercise[];
-    initialDraft: WorkoutDraft | null;
-    initialFinishPhotoFile?: File | null;
-    initialFinishIdempotencyKey?: string | null;
-    initialFinishFinishedAt?: string | null;
-    initialFinishPhotoMediaId?: string | null;
-    initialFinishTitle?: string | null;
-    initialShouldPostWorkout?: boolean;
-    pendingFinish?: boolean;
-  } | null>(null);
+
+  const initialActiveWorkoutConfig =
+    activeWorkoutMemoryConfig && activeWorkoutMemoryConfig.userId === (user?.id ?? null)
+      ? activeWorkoutMemoryConfig.config
+      : null;
+
+  const [activeWorkoutConfig, setActiveWorkoutConfigState] = useState<ActiveWorkoutConfig | null>(initialActiveWorkoutConfig);
+  const [isCheckingActiveWorkout, setIsCheckingActiveWorkout] = useState(() => initialActiveWorkoutConfig === null);
+
+  function setActiveWorkoutConfig(config: ActiveWorkoutConfig | null) {
+    if (config) {
+      activeWorkoutMemoryConfig = {
+        userId: user?.id ?? null,
+        config,
+      };
+    } else {
+      activeWorkoutMemoryConfig = null;
+    }
+    setActiveWorkoutConfigState(config);
+  }
+
   const isClosingWorkoutRef = useRef(false);
   const generatedCardEventRef = useRef<CardGeneratedEvent | null>(null);
   const generatedCardResolverRef = useRef<((event: CardGeneratedEvent) => void) | null>(null);
@@ -128,7 +159,8 @@ export function WorkoutStartScreen({
   function resetWorkoutState() {
     setSelectedGroups([]);
     setSelectedTemplateId(null);
-    setActiveWorkoutConfig(null);
+    activeWorkoutMemoryConfig = null;
+    setActiveWorkoutConfigState(null);
     generatedCardEventRef.current = null;
     generatedCardResolverRef.current = null;
   }
@@ -409,6 +441,10 @@ export function WorkoutStartScreen({
             ? "A finalização continua salva e será tentada automaticamente quando houver conexão e sessão válida."
             : error instanceof Error ? error.message : "Não foi possível recuperar o treino ativo.");
         }
+      } finally {
+        if (active) {
+          setIsCheckingActiveWorkout(false);
+        }
       }
     }
 
@@ -440,42 +476,38 @@ export function WorkoutStartScreen({
       return Promise.resolve(generatedCardEventRef.current);
     }
 
-    return new Promise<CardGeneratedEvent | null>((resolve) => {
-      let active = true;
-      const timeout = window.setTimeout(() => {
-        active = false;
-        generatedCardResolverRef.current = null;
-        resolve(null);
-      }, 1200);
-
-      generatedCardResolverRef.current = (event) => {
-        if (!active) return;
-        active = false;
-        window.clearTimeout(timeout);
-        generatedCardResolverRef.current = null;
-        resolve(event);
-      };
+    return new Promise<CardGeneratedEvent>((resolve) => {
+      generatedCardResolverRef.current = resolve;
     });
   }
 
-  function showGeneratedCardMessage(event: CardGeneratedEvent | null, result: WorkoutCompletionResult | null) {
-    const card = event ?? result?.card;
+  function showGeneratedCardMessage(cardEvent: CardGeneratedEvent | null, summary: WorkoutCompletionSummary) {
+    const card = cardEvent ?? (summary.card
+      ? {
+          workoutId: summary.workoutId,
+          cardId: summary.card.id,
+          attackPower: summary.card.attackPower,
+          rarity: summary.card.rarity,
+          muscleGroup: summary.card.muscleGroup,
+          isPersonalRecord: summary.card.isPersonalRecord,
+          occurredAt: new Date().toISOString(),
+        }
+      : null);
+
     if (!card) return;
 
-    const rarity = formatCardRarity(card.rarity);
-    const attackPower = Math.round(card.attackPower);
-    const recordMessage = card.isPersonalRecord ? " Novo recorde pessoal." : "";
-    toast.success(`Carta ${rarity} gerada`, {
-      description: `${attackPower} de poder.${recordMessage}`,
+    const title = card.isPersonalRecord ? "Novo Recorde Pessoal!" : "Card de Treino Gerado!";
+    const description = `Poder de Ataque: ${card.attackPower} · Raridade: ${card.rarity.toUpperCase()}`;
+
+    toast.success(title, {
+      description,
+      duration: 6000,
     });
   }
 
   async function handleStartWorkout() {
-    if (!canStartWorkout) return;
-    if (workoutService.getCatalog().length === 0) {
-      setStartError("O catálogo de exercícios ainda não foi carregado. Aguarde e tente novamente.");
-      return;
-    }
+    if (!canStartWorkout || isStartingWorkout) return;
+
     setIsStartingWorkout(true);
     setStartError("");
     setCompletionMessage("");
@@ -591,11 +623,26 @@ export function WorkoutStartScreen({
         }}
         onSessionGroupsChange={(groups) => {
           if (isClosingWorkoutRef.current) return;
+          if (activeWorkoutMemoryConfig && activeWorkoutMemoryConfig.userId === user?.id) {
+            activeWorkoutMemoryConfig.config = {
+              ...activeWorkoutMemoryConfig.config,
+              selectedGroups: groups,
+            };
+          }
           onActiveWorkoutChange?.({
             workoutId: activeWorkoutConfig.workoutId,
             selectedGroups: groups,
             startedAt: activeWorkoutConfig.startedAt,
           });
+        }}
+        onDraftChange={(draft) => {
+          if (activeWorkoutMemoryConfig && activeWorkoutMemoryConfig.userId === user?.id) {
+            activeWorkoutMemoryConfig.config = {
+              ...activeWorkoutMemoryConfig.config,
+              selectedGroups: draft.selectedGroups,
+              initialSessionExercises: draft.exercises,
+            };
+          }
         }}
         onCancelWorkout={async () => {
           if (!activeWorkoutConfig.workoutId) return false;
@@ -650,6 +697,23 @@ export function WorkoutStartScreen({
       />
       {confirmDialog}
       </>
+    );
+  }
+
+  if (isCheckingActiveWorkout && !activeWorkoutConfig) {
+    return (
+      <PageBackground>
+        <div className="flex min-h-[60vh] items-center justify-center p-6 text-center">
+          <div className="max-w-[280px]">
+            <span className="block font-montserrat text-[14px] font-bold uppercase tracking-[0.12em] text-[#B8A65A]">
+              BeeFit
+            </span>
+            <span className="mt-3 block font-inter text-[14px] text-[#A3A3A3]">
+              Carregando treino...
+            </span>
+          </div>
+        </div>
+      </PageBackground>
     );
   }
 

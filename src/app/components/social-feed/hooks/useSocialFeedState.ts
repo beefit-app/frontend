@@ -10,8 +10,25 @@ import { subscribeSocialEvents, type WorkoutPresenceEvent } from "../../../servi
 import { normalizeMuscleGroupLabels } from "../../../services/muscleGroups";
 import type { LiveFriend, SocialFeedPost } from "../types";
 
-const FEED_TTL_MS = 2 * 60 * 1000;
+const FEED_TTL_MS = 5 * 60 * 1000;
 const FEED_CACHE_KEY = "feed.page-0";
+const LIVE_FRIENDS_TTL_MS = 30 * 1000;
+
+interface FeedMemoryCache {
+  userId: string | null;
+  posts: SocialFeedPost[];
+  hasMore: boolean;
+  page: number;
+  savedAt: number;
+}
+
+let feedMemoryCache: FeedMemoryCache | null = null;
+let lastLiveFriendsFetchedAt = 0;
+
+export function resetFeedCache() {
+  feedMemoryCache = null;
+  lastLiveFriendsFetchedAt = 0;
+}
 
 function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
   return {
@@ -25,26 +42,45 @@ function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
 
 export function useSocialFeedState() {
   const { user } = useAuth();
+  const userId = user?.id ?? null;
   // O dialogo e devolvido para a view montar: este arquivo e .ts e nao renderiza.
   const { confirm, dialog: confirmDialog } = useConfirm();
-  const [posts, setPosts] = useState<SocialFeedPost[]>([]);
-  const [liveFriends, setLiveFriends] = useState<LiveFriend[]>(() => socialFeedStorage.getLiveFriends());
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
 
-  async function loadFirstPage({ hydrateCache = false } = {}) {
-    setIsLoading(!hydrateCache);
+  const isCacheForUser = feedMemoryCache !== null && feedMemoryCache.userId === userId;
+  const isMemoryFresh = isCacheForUser && Date.now() - feedMemoryCache!.savedAt < FEED_TTL_MS;
+
+  const initialPosts = isCacheForUser ? feedMemoryCache!.posts : [];
+  const initialHasMore = isCacheForUser ? feedMemoryCache!.hasMore : true;
+  const initialPage = isCacheForUser ? feedMemoryCache!.page : 0;
+  const initialLoading = initialPosts.length === 0;
+
+  const [posts, setPosts] = useState<SocialFeedPost[]>(initialPosts);
+  const [liveFriends, setLiveFriends] = useState<LiveFriend[]>(() => socialFeedStorage.getLiveFriends());
+  const [isLoading, setIsLoading] = useState(initialLoading);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(initialPage);
+
+  async function loadFirstPage({ hydrateCache = false, silent = false } = {}) {
+    if (!silent) {
+      setIsLoading(!hydrateCache);
+    }
     setError(null);
-    if (hydrateCache) {
-      const cached = await pageCacheStorage.get<{ posts: SocialFeedPost[]; last: boolean }>(user?.id, FEED_CACHE_KEY, FEED_TTL_MS);
-      if (cached) {
+    if (hydrateCache && posts.length === 0) {
+      const cached = await pageCacheStorage.get<{ posts: SocialFeedPost[]; last: boolean }>(userId, FEED_CACHE_KEY, FEED_TTL_MS);
+      if (cached && cached.posts.length > 0) {
         setPosts(cached.posts);
         setHasMore(!cached.last);
         setPage(0);
         setIsLoading(false);
+        feedMemoryCache = {
+          userId,
+          posts: cached.posts,
+          hasMore: !cached.last,
+          page: 0,
+          savedAt: Date.now(),
+        };
         return;
       }
     }
@@ -53,23 +89,42 @@ export function useSocialFeedState() {
       setPosts(response.posts);
       setHasMore(!response.last);
       setPage(0);
-      void pageCacheStorage.set(user?.id, FEED_CACHE_KEY, response);
+      feedMemoryCache = {
+        userId,
+        posts: response.posts,
+        hasMore: !response.last,
+        page: 0,
+        savedAt: Date.now(),
+      };
+      void pageCacheStorage.set(userId, FEED_CACHE_KEY, response);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível carregar o feed.");
+      if (!silent || posts.length === 0) {
+        setError(err instanceof Error ? err.message : "Não foi possível carregar o feed.");
+      }
     } finally {
       setIsLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadFirstPage({ hydrateCache: true });
-  }, []);
+    if (isMemoryFresh && posts.length > 0) {
+      return;
+    }
+    const silent = posts.length > 0;
+    void loadFirstPage({ hydrateCache: posts.length === 0, silent });
+  }, [userId]);
 
   useEffect(() => {
+    const now = Date.now();
+    if (now - lastLiveFriendsFetchedAt < LIVE_FRIENDS_TTL_MS && liveFriends.length > 0) {
+      return;
+    }
+
     let active = true;
     void socialFeedService.loadLive()
       .then((friends) => {
         if (!active) return;
+        lastLiveFriendsFetchedAt = Date.now();
         setLiveFriends(friends.map(normalizeLiveFriend));
       })
       .catch(() => {
@@ -94,7 +149,8 @@ export function useSocialFeedState() {
     const controller = new AbortController();
     void subscribeSocialEvents((type, data) => {
       if (type === "WORKOUT_FINISHED") {
-        void pageCacheStorage.remove(user?.id, FEED_CACHE_KEY);
+        resetFeedCache();
+        void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
         void loadFirstPage();
       }
       if (!("userId" in data)) return;
@@ -119,7 +175,7 @@ export function useSocialFeedState() {
       }
     }, controller.signal);
     return () => { controller.abort(); };
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const timer = window.setInterval(
@@ -131,8 +187,14 @@ export function useSocialFeedState() {
 
   async function toggleLike(id: string | number) {
     const result = await socialFeedService.toggleLike(id);
-    setPosts((current) => current.map((post) => (post.id === id ? { ...post, liked: result.liked, likes: result.likes_count } : post)));
-    void pageCacheStorage.remove(user?.id, FEED_CACHE_KEY);
+    setPosts((current) => {
+      const next = current.map((post) => (post.id === id ? { ...post, liked: result.liked, likes: result.likes_count } : post));
+      if (feedMemoryCache && feedMemoryCache.userId === userId) {
+        feedMemoryCache.posts = next;
+      }
+      return next;
+    });
+    void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
   }
 
   async function saveTemplate(id: string | number) {
@@ -146,8 +208,14 @@ export function useSocialFeedState() {
     if (!confirmed) return;
     try {
       await socialFeedService.importTemplate(id, templateName);
-      setPosts((current) => current.map((post) => (post.id === id ? { ...post, templateSaved: true } : post)));
-      void pageCacheStorage.remove(user?.id, "workout.templates");
+      setPosts((current) => {
+        const next = current.map((p) => (p.id === id ? { ...p, templateSaved: true } : p));
+        if (feedMemoryCache && feedMemoryCache.userId === userId) {
+          feedMemoryCache.posts = next;
+        }
+        return next;
+      });
+      void pageCacheStorage.remove(userId, "workout.templates");
     } catch {
       toast.error(messages.actionFailed("copiar o treino"));
     }
@@ -159,7 +227,16 @@ export function useSocialFeedState() {
     try {
       const nextPage = page + 1;
       const response = await socialFeedService.load(nextPage);
-      setPosts((current) => [...current, ...response.posts]);
+      setPosts((current) => {
+        const next = [...current, ...response.posts];
+        if (feedMemoryCache && feedMemoryCache.userId === userId) {
+          feedMemoryCache.posts = next;
+          feedMemoryCache.page = nextPage;
+          feedMemoryCache.hasMore = !response.last;
+          feedMemoryCache.savedAt = Date.now();
+        }
+        return next;
+      });
       setHasMore(!response.last);
       setPage(nextPage);
     } catch {
@@ -170,7 +247,7 @@ export function useSocialFeedState() {
   }
 
   function retry() {
-    void loadFirstPage();
+    void loadFirstPage({ hydrateCache: false, silent: false });
   }
 
   return {
