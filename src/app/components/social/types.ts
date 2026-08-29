@@ -7,6 +7,8 @@ export interface FriendProfile {
   name: string;
   username: string;
   initials: string;
+  avatarUrl: string | null;
+  isDeveloper?: boolean;
   status: FriendshipStatus;
   friendshipId?: string;
 }
@@ -21,6 +23,8 @@ export interface HiveMember {
   name: string;
   username: string;
   initials: string;
+  avatarUrl: string | null;
+  isDeveloper?: boolean;
   workouts: number;
   honeys: number;
   isCurrentUser?: boolean;

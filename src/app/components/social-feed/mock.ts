@@ -10,6 +10,7 @@ export const LIVE_FRIENDS: LiveFriend[] = [
 export const INITIAL_POSTS: SocialFeedPost[] = [
   {
     id: 1,
+    authorId: "rafa",
     author: "Rafa Mendes",
     username: "@rafamendes",
     initials: "RM",
@@ -40,6 +41,7 @@ export const INITIAL_POSTS: SocialFeedPost[] = [
   },
   {
     id: 2,
+    authorId: "bianca",
     author: "Bianca Reis",
     username: "@biareis",
     initials: "BR",
@@ -71,6 +73,7 @@ export const INITIAL_POSTS: SocialFeedPost[] = [
   },
   {
     id: 3,
+    authorId: "marina",
     author: "Marina Costa",
     username: "@maricosta",
     initials: "MC",
@@ -101,6 +104,7 @@ export const INITIAL_POSTS: SocialFeedPost[] = [
   },
   {
     id: 4,
+    authorId: "lucas",
     author: "Lucas Nunes",
     username: "@lucasnunes",
     initials: "LN",

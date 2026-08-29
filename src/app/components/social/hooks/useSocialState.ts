@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { socialService } from "../../../services/socialService";
 import { useAuth } from "../../../auth/AuthContext";
-import { subscribeSocialEvents, type FriendRemovedEvent, type FriendRequestAcceptedEvent, type FriendRequestPendingEvent } from "../../../services/socialEventsService";
+import { subscribeSocialEvents, type FriendRemovedEvent, type FriendRequestAcceptedEvent, type FriendRequestPendingEvent, type ProfileUpdatedEvent } from "../../../services/socialEventsService";
 import { pageCacheStorage } from "../../../storage/pageCacheStorage";
 import type { FriendProfile, Hive, HiveRankingPeriod, SocialSection } from "../types";
 
@@ -60,12 +60,14 @@ export function useSocialState(isActive = false) {
       .toUpperCase();
   }
 
-  function buildFriendProfile(user: { id: string; fullName: string; username: string }, status: FriendProfile["status"], friendshipId?: string) {
+  function buildFriendProfile(user: { id: string; fullName: string; username: string; profilePicture?: string | null; developer?: boolean }, status: FriendProfile["status"], friendshipId?: string) {
     return {
       id: user.id,
       name: user.fullName,
       username: `@${user.username.replace(/^@/, "")}`,
       initials: initials(user.fullName),
+      avatarUrl: user.profilePicture ?? null,
+      isDeveloper: user.developer === true,
       status,
       friendshipId,
     };
@@ -187,6 +189,25 @@ export function useSocialState(isActive = false) {
       if (type === "FRIEND_REQUEST_PENDING" || type === "FRIEND_REQUEST_ACCEPTED" || type === "FRIEND_REMOVED") {
         void pageCacheStorage.remove(user?.id, RELATIONSHIPS_CACHE_KEY);
       }
+      if (type === "PROFILE_UPDATED") {
+        const event = data as ProfileUpdatedEvent;
+        const updateAvatar = (person: FriendProfile) => person.id === event.userId
+          ? { ...person, name: event.fullName, username: `@${event.username.replace(/^@/, "")}`, initials: initials(event.fullName), avatarUrl: event.profilePicture }
+          : person;
+        setFriends((current) => current.map(updateAvatar));
+        setFriendRequests((current) => current.map((request) => ({ ...request, profile: updateAvatar(request.profile) })));
+        setSentRequests((current) => current.map((request) => ({ ...request, profile: updateAvatar(request.profile) })));
+        setDiscoverablePeople((current) => current.map(updateAvatar));
+        setHives((current) => current.map((hive) => ({
+          ...hive,
+          members: hive.members.map((member) => member.id === event.userId
+            ? { ...member, name: event.fullName, username: `@${event.username.replace(/^@/, "")}`, initials: initials(event.fullName), avatarUrl: event.profilePicture }
+            : member),
+        })));
+        void pageCacheStorage.remove(user?.id, RELATIONSHIPS_CACHE_KEY);
+        void pageCacheStorage.remove(user?.id, HIVES_CACHE_KEY);
+        return;
+      }
       if (type === "FRIEND_REQUEST_PENDING") {
         const event = data as FriendRequestPendingEvent;
         setFriendRequests((current) => {
@@ -199,6 +220,7 @@ export function useSocialState(isActive = false) {
                   id: event.requesterId,
                   fullName: event.requesterFullName,
                   username: event.requesterUsername,
+                  profilePicture: event.requesterProfilePicture,
                 },
                 "available",
               ),
@@ -216,6 +238,7 @@ export function useSocialState(isActive = false) {
             id: event.addresseeId,
             fullName: event.addresseeFullName,
             username: event.addresseeUsername,
+            profilePicture: event.addresseeProfilePicture,
           },
           "friend",
           event.friendshipId,
@@ -280,6 +303,7 @@ export function useSocialState(isActive = false) {
           id: response.user.id,
           fullName: response.user.fullName,
           username: response.user.username,
+          profilePicture: response.user.profilePicture,
         },
         "friend",
         response.id,
@@ -318,7 +342,8 @@ export function useSocialState(isActive = false) {
           {
             id: response.user.id,
             fullName: response.user.fullName,
-            username: response.user.username,
+          username: response.user.username,
+          profilePicture: response.user.profilePicture,
           },
           "sent",
           response.id,

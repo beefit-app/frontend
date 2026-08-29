@@ -1,12 +1,12 @@
 import { toast } from "sonner";
 import { messages } from "../../../constants/messages";
 import { useConfirm } from "../../../hooks/useConfirm";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
 import { socialFeedStorage } from "../../../storage/socialFeedStorage";
 import { pageCacheStorage } from "../../../storage/pageCacheStorage";
 import { useAuth } from "../../../auth/AuthContext";
-import { subscribeSocialEvents, type WorkoutPresenceEvent } from "../../../services/socialEventsService";
+import { subscribeSocialEvents, type PostLikedEvent, type ProfileUpdatedEvent, type WorkoutPresenceEvent } from "../../../services/socialEventsService";
 import { normalizeMuscleGroupLabels } from "../../../services/muscleGroups";
 import type { LiveFriend, SocialFeedPost } from "../types";
 
@@ -61,6 +61,16 @@ export function useSocialFeedState() {
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(initialPage);
+  // Um evento pode chegar enquanto a primeira página ainda está em trânsito. O
+  // contador pendente é aplicado à resposta para que ela não reverta o SSE.
+  const likeCountsByPostId = useRef(new Map<string, number>());
+
+  function withPendingLikeCounts(nextPosts: SocialFeedPost[]) {
+    return nextPosts.map((post) => {
+      const likes = likeCountsByPostId.current.get(String(post.id));
+      return likes === undefined ? post : { ...post, likes };
+    });
+  }
 
   async function loadFirstPage({ hydrateCache = false, silent = false } = {}) {
     if (!silent) {
@@ -70,13 +80,14 @@ export function useSocialFeedState() {
     if (hydrateCache && posts.length === 0) {
       const cached = await pageCacheStorage.get<{ posts: SocialFeedPost[]; last: boolean }>(userId, FEED_CACHE_KEY, FEED_TTL_MS);
       if (cached && cached.posts.length > 0) {
-        setPosts(cached.posts);
+        const postsWithLikes = withPendingLikeCounts(cached.posts);
+        setPosts(postsWithLikes);
         setHasMore(!cached.last);
         setPage(0);
         setIsLoading(false);
         feedMemoryCache = {
           userId,
-          posts: cached.posts,
+          posts: postsWithLikes,
           hasMore: !cached.last,
           page: 0,
           savedAt: Date.now(),
@@ -86,12 +97,13 @@ export function useSocialFeedState() {
     }
     try {
       const response = await socialFeedService.load(0);
-      setPosts(response.posts);
+      const postsWithLikes = withPendingLikeCounts(response.posts);
+      setPosts(postsWithLikes);
       setHasMore(!response.last);
       setPage(0);
       feedMemoryCache = {
         userId,
-        posts: response.posts,
+        posts: postsWithLikes,
         hasMore: !response.last,
         page: 0,
         savedAt: Date.now(),
@@ -148,6 +160,33 @@ export function useSocialFeedState() {
   useEffect(() => {
     const controller = new AbortController();
     void subscribeSocialEvents((type, data) => {
+      if (type === "POST_LIKED" && "postId" in data && "totalLikes" in data) {
+        const event = data as PostLikedEvent;
+        likeCountsByPostId.current.set(event.postId, event.totalLikes);
+        setPosts((current) => {
+          const next = current.map((post) =>
+            String(post.id) === event.postId ? { ...post, likes: event.totalLikes } : post,
+          );
+          if (feedMemoryCache?.userId === userId) feedMemoryCache.posts = next;
+          return next;
+        });
+        return;
+      }
+      if (type === "PROFILE_UPDATED") {
+        const event = data as ProfileUpdatedEvent;
+        setPosts((current) => {
+          const next = current.map((post) => post.authorId === event.userId
+            ? { ...post, author: event.username, username: `@${event.username.replace(/^@/, "")}`, initials: event.username.slice(0, 2).toUpperCase(), authorAvatarUrl: event.profilePicture }
+            : post);
+          if (feedMemoryCache?.userId === userId) feedMemoryCache.posts = next;
+          return next;
+        });
+        setLiveFriends((current) => current.map((friend) => String(friend.id) === event.userId
+          ? { ...friend, name: event.fullName, initials: event.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join(""), photoUrl: event.profilePicture }
+          : friend));
+        void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
+        return;
+      }
       if (type === "WORKOUT_FINISHED") {
         resetFeedCache();
         void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
@@ -166,7 +205,7 @@ export function useSocialFeedState() {
             id: event.userId,
             name: event.fullName,
             initials: event.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join(""),
-            photoUrl: existing?.photoUrl ?? null,
+            photoUrl: event.profilePicture ?? existing?.photoUrl ?? null,
             groups: event.muscleGroups ?? [],
             elapsedSeconds: existing?.elapsedSeconds ?? Math.max(0, Math.floor((Date.now() - new Date(event.occurredAt).getTime()) / 1000)),
           });
@@ -228,7 +267,7 @@ export function useSocialFeedState() {
       const nextPage = page + 1;
       const response = await socialFeedService.load(nextPage);
       setPosts((current) => {
-        const next = [...current, ...response.posts];
+        const next = [...current, ...withPendingLikeCounts(response.posts)];
         if (feedMemoryCache && feedMemoryCache.userId === userId) {
           feedMemoryCache.posts = next;
           feedMemoryCache.page = nextPage;

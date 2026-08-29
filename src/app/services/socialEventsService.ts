@@ -1,6 +1,12 @@
 import { sessionStorage } from "../storage/sessionStorage";
 
-export interface WorkoutPresenceEvent { workoutId: string; userId: string; username: string; fullName: string; status: string; occurredAt: string; muscleGroups: string[] }
+export interface WorkoutPresenceEvent { workoutId: string; userId: string; username: string; fullName: string; profilePicture?: string | null; status: string; occurredAt: string; muscleGroups: string[] }
+export interface ProfileUpdatedEvent {
+  userId: string;
+  fullName: string;
+  username: string;
+  profilePicture: string | null;
+}
 export interface CardGeneratedEvent {
   workoutId: string;
   cardId: string;
@@ -44,6 +50,10 @@ export interface TemplateImportedEvent {
     order: number;
   }[];
 }
+export interface PostLikedEvent {
+  postId: string;
+  totalLikes: number;
+}
 
 type SocialEventPayload =
   | WorkoutPresenceEvent
@@ -52,6 +62,8 @@ type SocialEventPayload =
   | FriendRequestAcceptedEvent
   | FriendRemovedEvent
   | TemplateImportedEvent
+  | PostLikedEvent
+  | ProfileUpdatedEvent
   | Record<string, unknown>;
 
 type SocialEventListener = (type: string, data: SocialEventPayload) => void;
