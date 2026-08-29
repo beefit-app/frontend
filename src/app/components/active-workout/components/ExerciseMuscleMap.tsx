@@ -60,9 +60,9 @@ export function ExerciseMuscleMap({
 
   return (
     <div className="grid justify-items-center gap-3" aria-label="Mapa muscular do exercício">
-      <div className="grid w-full grid-cols-2 gap-3 rounded-2xl bg-[#080808] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_28px_rgba(0,0,0,0.28)]">
+      <div className="grid w-full grid-cols-2 divide-x divide-white/10">
         {(["front", "back"] as const).map((side) => (
-          <div key={side} className="grid min-h-[250px] place-items-center overflow-hidden rounded-xl bg-[radial-gradient(circle_at_50%_38%,rgba(255,215,0,0.2),transparent_62%)]">
+          <div key={side} className="grid min-h-[250px] place-items-center overflow-hidden bg-[radial-gradient(circle_at_50%_38%,rgba(255,215,0,0.14),transparent_62%)]">
             <Body
               data={data}
               side={side}
@@ -73,7 +73,7 @@ export function ExerciseMuscleMap({
               border="none"
               defaultStroke="none"
             />
-            <span className="-mt-6 pb-3 font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#E2E2E2]">
+            <span className="-mt-6 pb-3 font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#B5B5B5]">
               {side === "front" ? "Frente" : "Costas"}
             </span>
           </div>
