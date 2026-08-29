@@ -796,21 +796,11 @@ export function SocialView({
               ))}
             </nav>
 
-            <AnimatePresence mode="wait" initial={false}>
-              <Motion.div
-                key={state.activeSection}
-                initial={{ opacity: 0, x: state.activeSection === "friends" ? -12 : 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: state.activeSection === "friends" ? -12 : 12 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-              >
-                {state.activeSection === "friends" ? (
-                  <FriendsPanel state={state} onOpenProfile={openProfileFromSocial} />
-                ) : (
-                  <HivesPanel state={state} onOpenProfile={openProfileFromSocial} />
-                )}
-              </Motion.div>
-            </AnimatePresence>
+            {state.activeSection === "friends" ? (
+              <FriendsPanel state={state} onOpenProfile={openProfileFromSocial} />
+            ) : (
+              <HivesPanel state={state} onOpenProfile={openProfileFromSocial} />
+            )}
           </IonCol>
         </IonRow>
       </IonGrid>

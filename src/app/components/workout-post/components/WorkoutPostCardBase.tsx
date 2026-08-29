@@ -62,10 +62,7 @@ export function WorkoutPostCardBase({
   };
 
   return (
-    <Motion.article
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+    <article
       style={{
         borderRadius: 18,
         overflow: "hidden",
@@ -422,6 +419,6 @@ export function WorkoutPostCardBase({
           <span>{likes} curtidas</span>
         </div>
       </div>
-    </Motion.article>
+    </article>
   );
 }
