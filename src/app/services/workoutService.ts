@@ -66,14 +66,19 @@ interface BackendWorkoutSession {
   muscleGroups: string[];
   isPrivate: boolean;
   exercises: BackendSessionExercise[];
-  // WorkoutCardResponseDTO nao expoe muscleIntensities; esse campo so chega pelo
-  // evento SSE CARD_GENERATED.
   card?: {
     id: string;
-    attackPower: number;
+    attackPower?: number;
     rarity: string;
     muscleGroup: string;
-    isPersonalRecord: boolean;
+    isPersonalRecord?: boolean;
+    exerciseId?: string | null;
+    exerciseName?: string | null;
+    bestSetWeightKg?: number | null;
+    bestSetReps?: number | null;
+    estimatedOneRepMax?: number | null;
+    improvementPercentage?: number | null;
+    muscleIntensities?: Record<string, number>;
   } | null;
 }
 
@@ -230,7 +235,17 @@ function normalizeWorkoutResult(response: BackendWorkoutSession): WorkoutComplet
           attackPower: response.card.attackPower,
           rarity: response.card.rarity,
           muscleGroup: normalizeGroupId(response.card.muscleGroup),
-          isPersonalRecord: response.card.isPersonalRecord,
+          isPersonalRecord: Boolean(
+            response.card.isPersonalRecord ??
+              (response.card.improvementPercentage != null && response.card.improvementPercentage > 0),
+          ),
+          exerciseId: response.card.exerciseId ?? null,
+          exerciseName: response.card.exerciseName ?? null,
+          bestSetWeightKg: response.card.bestSetWeightKg ?? null,
+          bestSetReps: response.card.bestSetReps ?? null,
+          estimatedOneRepMax: response.card.estimatedOneRepMax ?? null,
+          improvementPercentage: response.card.improvementPercentage ?? null,
+          muscleIntensities: response.card.muscleIntensities ?? undefined,
         }
       : null,
   };

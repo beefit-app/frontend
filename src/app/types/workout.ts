@@ -87,10 +87,17 @@ export interface WorkoutCompletionSummary {
 
 export interface WorkoutCard {
   id: string;
-  attackPower: number;
+  attackPower?: number;
   rarity: string;
   muscleGroup: string;
   isPersonalRecord: boolean;
+  exerciseId?: string | null;
+  exerciseName?: string | null;
+  bestSetWeightKg?: number | null;
+  bestSetReps?: number | null;
+  estimatedOneRepMax?: number | null;
+  improvementPercentage?: number | null;
+  muscleIntensities?: Record<string, number>;
 }
 
 export interface WorkoutCompletionResult extends WorkoutCompletionSummary {

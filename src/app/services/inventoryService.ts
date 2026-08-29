@@ -10,12 +10,18 @@ import { normalizeMuscleGroupEnum } from "./muscleGroups";
 interface BackendInventoryCard {
   id: string;
   workoutSessionId: string;
-  attackPower: number;
+  attackPower?: number;
   rarity: string;
   rarityLabel: string;
   muscleGroup: string;
   muscleIntensities?: Record<string, number> | null;
   isPersonalRecord: boolean;
+  exerciseId?: string | null;
+  exerciseName?: string | null;
+  bestSetWeightKg?: number | null;
+  bestSetReps?: number | null;
+  estimatedOneRepMax?: number | null;
+  improvementPercentage?: number | null;
   bodyWeightAtGeneration?: number | null;
   generatedAt: string;
 }
@@ -58,6 +64,12 @@ function normalizeCard(card: BackendInventoryCard): InventoryCard {
     muscleGroup,
     muscleIntensities,
     isPersonalRecord: Boolean(card.isPersonalRecord),
+    exerciseId: card.exerciseId ?? null,
+    exerciseName: card.exerciseName ?? null,
+    bestSetWeightKg: typeof card.bestSetWeightKg === "number" ? card.bestSetWeightKg : null,
+    bestSetReps: typeof card.bestSetReps === "number" ? card.bestSetReps : null,
+    estimatedOneRepMax: typeof card.estimatedOneRepMax === "number" ? card.estimatedOneRepMax : null,
+    improvementPercentage: typeof card.improvementPercentage === "number" ? card.improvementPercentage : null,
     bodyWeightAtGeneration:
       typeof card.bodyWeightAtGeneration === "number" ? card.bodyWeightAtGeneration : null,
     generatedAt: card.generatedAt,

@@ -75,6 +75,10 @@ describe("InventoryView", () => {
             rarity: "LEGENDARY",
             rarityLabel: "Lendário",
             muscleGroup: "BACK",
+            exerciseName: "Remada Curvada",
+            bestSetWeightKg: 80,
+            bestSetReps: 10,
+            improvementPercentage: 5.5,
             muscleIntensities: { "upper-back": 4, biceps: 2 },
             isPersonalRecord: true,
             bodyWeightAtGeneration: 80,
@@ -85,10 +89,10 @@ describe("InventoryView", () => {
       />,
     );
 
-    expect(screen.getByText("Carta de Costas")).toBeInTheDocument();
-    expect(screen.getByText("Poder de ataque")).toBeInTheDocument();
+    expect(screen.getByText("Remada Curvada")).toBeInTheDocument();
+    expect(screen.getByText("80 kg × 10")).toBeInTheDocument();
     expect(screen.getByText("PR")).toBeInTheDocument();
-    expect(screen.getByText("Quanto mais claro, maior a participação no treino")).toBeInTheDocument();
+    expect(screen.getByLabelText("Mapa muscular do exercício")).toBeInTheDocument();
   });
 
   it("mostra templates salvos na aba de templates", async () => {

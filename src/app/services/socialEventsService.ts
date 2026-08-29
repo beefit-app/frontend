@@ -11,9 +11,18 @@ export interface WorkoutPresenceEvent {
   muscleGroups: string[];
 }
 
-export interface ProfileUpdatedEvent { userId: string; fullName: string; username: string; profilePicture: string | null; }
-export interface CardGeneratedEvent { workoutId: string; cardId: string; attackPower: number; rarity: string; muscleGroup: string; muscleIntensities: Record<string, number>; isPersonalRecord: boolean; }
-export interface FriendRequestPendingEvent { friendshipId: string; requesterId: string; requesterFullName: string; requesterUsername: string; requesterProfilePicture?: string | null; sentAt: string; }
+export interface CardGeneratedEvent {
+  workoutId: string;
+  cardId: string;
+  attackPower?: number;
+  exerciseName?: string;
+  bestSetWeightKg?: number | null;
+  bestSetReps?: number | null;
+  rarity: string;
+  muscleGroup: string;
+  muscleIntensities: Record<string, number>;
+  isPersonalRecord: boolean;
+}
 export interface FriendRequestAcceptedEvent { friendshipId: string; addresseeId: string; addresseeFullName: string; addresseeUsername: string; addresseeProfilePicture?: string | null; acceptedAt: string; }
 export interface FriendRemovedEvent { friendshipId: string; friendId: string; friendFullName: string; friendUsername: string; friendProfilePicture?: string | null; removedAt: string; }
 export interface TemplateImportedEvent {

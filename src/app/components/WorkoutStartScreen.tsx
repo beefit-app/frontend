@@ -484,7 +484,9 @@ export function WorkoutStartScreen({
       ? {
           workoutId: summary.workoutId,
           cardId: summary.card.id,
-          attackPower: summary.card.attackPower,
+          exerciseName: summary.card.exerciseName,
+          bestSetWeightKg: summary.card.bestSetWeightKg,
+          bestSetReps: summary.card.bestSetReps,
           rarity: summary.card.rarity,
           muscleGroup: summary.card.muscleGroup,
           isPersonalRecord: summary.card.isPersonalRecord,
@@ -494,11 +496,22 @@ export function WorkoutStartScreen({
 
     if (!card) return;
 
-    const title = card.isPersonalRecord ? "Novo Recorde Pessoal!" : "Card de Treino Gerado!";
-    const description = `Poder de Ataque: ${card.attackPower} · Raridade: ${card.rarity.toUpperCase()}`;
+    const title = card.isPersonalRecord ? "Novo Recorde Pessoal!" : "Card de Exercício Gerado!";
+    const setPerformance = card.bestSetWeightKg && card.bestSetWeightKg > 0
+      ? `${card.bestSetWeightKg} kg × ${card.bestSetReps}`
+      : card.bestSetReps
+        ? `${card.bestSetReps} reps`
+        : null;
+    const details = [
+      card.exerciseName ?? "Exercício",
+      setPerformance,
+      `Raridade: ${card.rarity.toUpperCase()}`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
 
     toast.success(title, {
-      description,
+      description: details,
       duration: 6000,
     });
   }

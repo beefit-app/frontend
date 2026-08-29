@@ -12,7 +12,7 @@ import {
   Star,
   X,
 } from "lucide-react";
-import { AnimatePresence, motion as Motion } from "motion/react";
+import { motion as Motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { useState } from "react";
 import type { ExerciseCatalogItem, WorkoutTemplate } from "../../../types/workout";
@@ -45,8 +45,6 @@ const HEATMAP_PARTS: Record<InventoryMuscleGroup, readonly Slug[]> = {
 };
 
 const BEEFIT_HEATMAP_COLORS = ["#6B5200", "#A98200", "#D4AD00", "#FFD700"] as const;
-const BEEFIT_HEATMAP_BASE = "#292929";
-const BEEFIT_HEATMAP_STROKE = "rgba(255,215,0,0.22)";
 const HEATMAP_SLUGS = new Set<Slug>([
   "abs",
   "adductors",
@@ -65,7 +63,7 @@ const HEATMAP_SLUGS = new Set<Slug>([
   "upper-back",
 ]);
 
-function formatAttackPower(value: number) {
+function formatNumber(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
     maximumFractionDigits: 1,
@@ -355,7 +353,6 @@ function EmptyState({
 
 function InventoryCardTile({ card }: { card: InventoryCard }) {
   const rarity = RARITY_META[card.rarity] ?? RARITY_META.COMMON;
-  const muscle = MUSCLE_GROUP_META[card.muscleGroup] ?? MUSCLE_GROUP_META.CORE;
   const intensityByBodyPart = new Map<Slug, number>();
 
   Object.entries(card.muscleIntensities).forEach(([muscleKey, intensity]) => {
@@ -371,203 +368,148 @@ function InventoryCardTile({ card }: { card: InventoryCard }) {
     intensity,
   }));
 
+  const exerciseTitle = card.exerciseName?.trim() || "Exercício";
+  const bestSetText =
+    card.bestSetWeightKg && card.bestSetWeightKg > 0
+      ? `${formatNumber(card.bestSetWeightKg)} kg × ${card.bestSetReps ?? 0}`
+      : card.bestSetReps
+        ? `${card.bestSetReps} reps`
+        : null;
+
   return (
     <article
       style={{
         position: "relative",
         overflow: "hidden",
-        borderRadius: 22,
+        borderRadius: 20,
         border: `1px solid ${rarity.border}`,
-        background: `linear-gradient(135deg, ${rarity.background} 0%, #141414 68%)`,
-        padding: 16,
-        boxShadow: `0 12px 30px rgba(0,0,0,0.18), ${rarity.shadow}`,
+        background: `linear-gradient(155deg, ${rarity.background} 0%, #111111 62%)`,
+        padding: "14px 14px 10px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        boxShadow: `0 10px 28px rgba(0,0,0,0.35), ${rarity.shadow}`,
       }}
     >
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          top: -72,
-          right: -54,
-          width: 180,
-          height: 180,
-          opacity: card.rarity === "LEGENDARY" ? 0.12 : 0.07,
-          borderRadius: "50%",
-          clipPath: HEX_CLIP,
-          background: rarity.accent,
-        }}
-      />
-      {card.rarity === "LEGENDARY" && (
-        <div
-          aria-hidden="true"
+      {/* Header: Raridade + PR Compacto */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <span
           style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(100deg, transparent 0%, transparent 35%, rgba(255,255,255,0.05) 50%, transparent 65%, transparent 100%)",
-            transform: "translateX(-40%)",
-            pointerEvents: "none",
-          }}
-        />
-      )}
-      <div style={{ position: "relative", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 18, alignItems: "stretch" }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                borderRadius: 999,
-                border: `1px solid ${rarity.border}`,
-                background: rarity.badgeBackground,
-                padding: "5px 10px",
-                fontFamily: "var(--font-inter)",
-                fontSize: 11,
-                fontWeight: 700,
-                color: rarity.color,
-              }}
-            >
-              <span style={{ width: 8, height: 9, clipPath: HEX_CLIP, background: rarity.accent }} />
-              {card.rarityLabel}
-            </span>
-            {card.isPersonalRecord && (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,215,0,0.24)",
-                  background: "rgba(255,215,0,0.08)",
-                  padding: "5px 10px",
-                  fontFamily: "var(--font-inter)",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "#FFD700",
-                }}
-              >
-                <Star size={12} />
-                PR
-              </span>
-            )}
-          </div>
-
-          <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 12 }}>
-            <div
-              style={{
-                width: 42,
-                height: 48,
-                clipPath: HEX_CLIP,
-                background: rarity.badgeBackground,
-                border: `1px solid ${rarity.border}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: rarity.accent,
-                flexShrink: 0,
-              }}
-            >
-              <span style={{ fontFamily: "var(--font-montserrat)", fontSize: 15, fontWeight: 800 }}>{muscle.shortLabel}</span>
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 17, fontWeight: 700, color: "#FFFFFF" }}>
-                Carta de {muscle.label}
-              </div>
-              <div style={{ marginTop: 4, fontFamily: "var(--font-inter)", fontSize: 13, color: "#8A8A8A" }}>
-                {muscle.detail}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 18, fontFamily: "var(--font-montserrat)", fontSize: 32, fontWeight: 800, color: rarity.accent, lineHeight: 1 }}>
-            {formatAttackPower(card.attackPower)}
-          </div>
-          <div style={{ marginTop: 6, fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-            Poder de ataque
-          </div>
-
-          <div style={{ marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 12, display: "grid", gap: 6 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A" }}>Gerada em</span>
-              <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600, color: "#D4D4D4" }}>{formatDate(card.generatedAt)}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A" }}>Peso corporal</span>
-              <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600, color: "#D4D4D4" }}>
-                {card.bodyWeightAtGeneration == null ? "N/D" : `${formatAttackPower(card.bodyWeightAtGeneration)} kg`}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div
-          aria-label="Área reservada para o heatmap dos grupos musculares"
-          role="img"
-          style={{
-            gridColumn: "1 / -1",
-            borderTop: "1px solid rgba(255,255,255,0.08)",
-            paddingTop: 16,
-            display: "grid",
-            gap: 12,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            borderRadius: 999,
+            border: `1px solid ${rarity.border}`,
+            background: rarity.badgeBackground,
+            padding: "4px 10px",
+            fontFamily: "var(--font-inter)",
+            fontSize: 10,
+            fontWeight: 700,
+            color: rarity.color,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 11, fontWeight: 800, color: "#D4D4D4", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                Mapa muscular
-              </div>
-              <div style={{ marginTop: 3, color: "#8A8A8A", fontFamily: "var(--font-inter)", fontSize: 11 }}>
-                Quanto mais claro, maior a participação no treino
-              </div>
-            </div>
-            <span style={{ borderRadius: 999, border: `1px solid ${rarity.border}`, background: rarity.badgeBackground, color: rarity.color, padding: "5px 9px", fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>
-              {muscle.label}
-            </span>
-          </div>
+          <span style={{ width: 6, height: 7, clipPath: HEX_CLIP, background: rarity.accent }} />
+          {card.rarityLabel}
+        </span>
 
-          <div className="mx-auto max-w-[380px]" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-            <div style={{ position: "relative", minHeight: 230, overflow: "hidden", borderRadius: 16, border: `1px solid ${rarity.border}`, background: "linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015))", display: "grid", justifyItems: "center", alignItems: "center", padding: "12px 8px 10px" }}>
-              <span style={{ position: "absolute", top: 10, left: 10, borderRadius: 999, background: "rgba(255,255,255,0.08)", padding: "4px 7px", fontFamily: "var(--font-inter)", fontSize: 9, fontWeight: 700, color: "#A3A3A3", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                Página 1
-              </span>
-              <Body
-                data={heatmapData}
-                side="front"
-                gender="male"
-                scale={0.5}
-                colors={BEEFIT_HEATMAP_COLORS}
-                defaultFill={BEEFIT_HEATMAP_BASE}
-                defaultStroke={BEEFIT_HEATMAP_STROKE}
-                defaultStrokeWidth={0.5}
-                border="none"
-              />
-              <span style={{ position: "absolute", bottom: 9, fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 600, color: "#A3A3A3" }}>Frente</span>
-            </div>
-            <div style={{ position: "relative", minHeight: 230, overflow: "hidden", borderRadius: 16, border: `1px solid ${rarity.border}`, background: "linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015))", display: "grid", justifyItems: "center", alignItems: "center", padding: "12px 8px 10px" }}>
-              <span style={{ position: "absolute", top: 10, left: 10, borderRadius: 999, background: "rgba(255,255,255,0.08)", padding: "4px 7px", fontFamily: "var(--font-inter)", fontSize: 9, fontWeight: 700, color: "#A3A3A3", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                Página 2
-              </span>
-              <Body
-                data={heatmapData}
-                side="back"
-                gender="male"
-                scale={0.5}
-                colors={BEEFIT_HEATMAP_COLORS}
-                defaultFill={BEEFIT_HEATMAP_BASE}
-                defaultStroke={BEEFIT_HEATMAP_STROKE}
-                defaultStrokeWidth={0.5}
-                border="none"
-              />
-              <span style={{ position: "absolute", bottom: 9, fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 600, color: "#A3A3A3" }}>Costas</span>
-            </div>
+        {card.isPersonalRecord && (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 3,
+              borderRadius: 999,
+              border: "1px solid rgba(255,215,0,0.35)",
+              background: "rgba(255,215,0,0.12)",
+              padding: "3px 8px",
+              fontFamily: "var(--font-inter)",
+              fontSize: 10,
+              fontWeight: 800,
+              color: "#FFD700",
+              letterSpacing: "0.04em",
+            }}
+          >
+            <Star size={10} fill="#FFD700" />
+            PR
+          </span>
+        )}
+      </div>
+
+      {/* Exercise Title & Best Performance */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <h3
+          style={{
+            margin: 0,
+            fontFamily: "var(--font-montserrat)",
+            fontSize: 18,
+            fontWeight: 800,
+            lineHeight: 1.2,
+            letterSpacing: "-0.02em",
+            color: "#FFFFFF",
+            wordBreak: "break-word",
+          }}
+        >
+          {exerciseTitle}
+        </h3>
+        {bestSetText && (
+          <span
+            style={{
+              fontFamily: "var(--font-montserrat)",
+              fontSize: 15,
+              fontWeight: 800,
+              color: rarity.accent,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {bestSetText}
+          </span>
+        )}
+      </div>
+
+      {/* Enriched & Enlarged Muscle Map (Centerpiece) */}
+      <div
+        aria-label="Mapa muscular do exercício"
+        role="img"
+        style={{
+          borderRadius: 14,
+          background: "#0A0A0A",
+          border: "1px solid #1C1C1C",
+          padding: 4,
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 4,
+        }}
+      >
+        {(["front", "back"] as const).map((side) => (
+          <div
+            key={side}
+            style={{
+              minHeight: 195,
+              display: "grid",
+              placeItems: "center",
+              background: "#131313",
+              borderRadius: 10,
+              border: "1px solid #202020",
+              padding: "6px 0",
+            }}
+          >
+            <Body
+              data={heatmapData}
+              side={side}
+              gender="male"
+              scale={0.48}
+              colors={BEEFIT_HEATMAP_COLORS}
+              defaultFill="#3A3A3A"
+              defaultStroke="none"
+              border="none"
+            />
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#8A8A8A", fontFamily: "var(--font-inter)", fontSize: 9 }}>
-            <span>Baixa</span>
-            <span aria-hidden="true" style={{ width: 92, height: 5, borderRadius: 999, background: `linear-gradient(90deg, ${BEEFIT_HEATMAP_COLORS.join(", ")})` }} />
-            <span>Alta</span>
-          </div>
-        </div>
+        ))}
+      </div>
+
+      {/* Footer: Sutil Data */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", fontFamily: "var(--font-inter)", fontSize: 10, color: "#666666" }}>
+        <span>{formatDate(card.generatedAt)}</span>
       </div>
     </article>
   );
@@ -1203,16 +1145,8 @@ export function InventoryView({
                 })}
               </nav>
 
-              <AnimatePresence initial={false}>
-                <Motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, x: activeTab === "cards" ? -12 : 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: activeTab === "cards" ? -12 : 12 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                >
-                  {activeTab === "cards" && (
-                    <>
+              {activeTab === "cards" && (
+                <>
                   <FilterSection
                     filters={filters}
                     onResetFilters={onResetFilters}
@@ -1373,9 +1307,7 @@ export function InventoryView({
                     </div>
                   )}
                 </section>
-                  )}
-                </Motion.div>
-              </AnimatePresence>
+              )}
             </div>
           </IonCol>
         </IonRow>
