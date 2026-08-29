@@ -66,7 +66,7 @@ export function ProfileScreen({
         onClearSaveError={clearAccountSettingsError}
         onDeleteAccount={async (password) => {
           const deleted = await handleAccountDelete(password);
-          if (deleted) await logout();
+          if (deleted) await logout({ isAccountDeletion: true });
           return deleted;
         }}
       />

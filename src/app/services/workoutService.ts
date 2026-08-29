@@ -189,6 +189,8 @@ function normalizeSessionExercise(exercise: BackendSessionExercise): WorkoutExer
     group: catalogItem?.group ?? getGroupLabel(groupId),
     groupId,
     anatomicalMuscles: catalogItem?.anatomicalMuscles ?? [],
+    primaryAnatomicalMuscles: catalogItem?.primaryAnatomicalMuscles ?? [],
+    secondaryAnatomicalMuscles: catalogItem?.secondaryAnatomicalMuscles ?? [],
     sets: exercise.sets
       .slice()
       .sort((first, second) => first.order - second.order)

@@ -126,13 +126,11 @@ export function WorkoutCatalogDetailView({
                   </div>
                 </div>
 
-                <div style={{ borderRadius: 22, background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)", display: "grid", alignItems: "center", padding: 12 }}>
-                  <ExerciseMuscleMap
-                    muscles={exercise.anatomicalMuscles}
-                    primaryMuscles={exercise.primaryAnatomicalMuscles}
-                    secondaryMuscles={exercise.secondaryAnatomicalMuscles}
-                  />
-                </div>
+                <ExerciseMuscleMap
+                  muscles={exercise.anatomicalMuscles}
+                  primaryMuscles={exercise.primaryAnatomicalMuscles}
+                  secondaryMuscles={exercise.secondaryAnatomicalMuscles}
+                />
               </div>
             </SurfaceCard>
           </IonCol>

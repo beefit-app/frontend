@@ -38,6 +38,8 @@ export interface WorkoutExercise {
   group: string;
   groupId: string;
   anatomicalMuscles?: string[];
+  primaryAnatomicalMuscles?: string[];
+  secondaryAnatomicalMuscles?: string[];
   sets: WorkoutSet[];
 }
 

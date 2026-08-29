@@ -7,3 +7,4 @@ dist/
 .env.local
 # Override pessoal: vence o .env.development versionado.
 .env.*.local
+test-results/

@@ -4,12 +4,32 @@ import { Clock3, Ellipsis, Plus, ChevronRight, ChevronLeft } from "lucide-react"
 import { BeeButton } from "../../BeeButton";
 import { PageBackground } from "../../PageBackground";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
-import type { WorkoutExercise } from "../../../types/workout";
+import type { ExerciseHistory, WorkoutExercise } from "../../../types/workout";
 import { ACTIVE_WORKOUT_CARD_STYLE, ACTIVE_WORKOUT_SLIDE_STYLE } from "../constants";
 import { formatElapsedTime } from "../utils";
 import { MuscleTag, SurfaceCard } from "./shared";
 import { BeeAlert } from "../../BeeAlert";
 import { ExerciseMuscleMap } from "./ExerciseMuscleMap";
+import { workoutService } from "../../../services/workoutService";
+
+type HistoryState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "loaded"; history: ExerciseHistory }
+  | { kind: "error" };
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+}
+
+function formatHistoryPerformance(weight: number | null | undefined, reps: number | null | undefined) {
+  if (weight === null || weight === undefined || reps === null || reps === undefined) return "—";
+  return weight === 0 ? `${reps} reps` : `${weight} kg × ${reps}`;
+}
 
 function EllipsisActionButton({
   className = "",
@@ -66,7 +86,31 @@ export function ActiveWorkoutView({
 }) {
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
+  const [flippedExerciseId, setFlippedExerciseId] = useState<string | null>(null);
+  const [historyState, setHistoryState] = useState<HistoryState>({ kind: "idle" });
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const exercise = exercises.find((item) => item.id === flippedExerciseId);
+    if (!exercise) {
+      setHistoryState({ kind: "idle" });
+      return;
+    }
+
+    let active = true;
+    setHistoryState({ kind: "loading" });
+    void workoutService.getExerciseHistory(exercise.catalogId)
+      .then((history) => {
+        if (active) setHistoryState({ kind: "loaded", history });
+      })
+      .catch(() => {
+        if (active) setHistoryState({ kind: "error" });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [exercises, flippedExerciseId]);
 
   const handleScroll = () => {
     const container = scrollContainerRef.current;
@@ -110,123 +154,127 @@ export function ActiveWorkoutView({
   }, [exercises]);
 
   return (
-    <PageBackground>
-      <IonGrid fixed style={{ padding: "24px 12px 0", position: "relative", zIndex: 1 }}>
-        <IonRow>
-          <IonCol size="12">
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "flex-end", gap: 10, marginBottom: 12 }}>
-              <Sheet
-                open={isWorkoutMenuOpen}
-                onOpenChange={(open) => {
-                  if (!open && isWorkoutMenuOpen) onToggleWorkoutMenu();
-                }}
-              >
-                <EllipsisActionButton
-                  type="button"
-                  onClick={onToggleWorkoutMenu}
-                  aria-label="Abrir ações do treino"
-                />
-                <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
-                  <SheetHeader className="px-0 pb-3 pt-3 text-left">
-                    <SheetTitle className="font-montserrat text-[20px] font-bold text-white">Ações do treino</SheetTitle>
-                    <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
-                      Escolha uma ação para o treino em andamento.
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="flex flex-col gap-2.5">
-                    <BeeButton variant="dark" fullWidth onClick={onSaveTemplate}>
-                      Salvar como template
-                    </BeeButton>
-                    <BeeButton variant="red" fullWidth onClick={onCancelWorkout}>
-                      Cancelar treino
-                    </BeeButton>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-            <div style={{ display: "grid", gap: 8 }}>
-              {sessionGroups.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {sessionGroups.map((group) => (
-                    <MuscleTag key={group} group={group} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </IonCol>
-        </IonRow>
-
-        <IonRow className="mt-3">
+    <PageBackground style={{ minHeight: "100%", height: "100%" }}>
+      <IonGrid
+        fixed
+        style={{
+          padding: "16px 12px calc(16px + var(--ion-safe-area-bottom, 0px))",
+          position: "relative",
+          zIndex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minHeight: "100%",
+          height: "100%",
+          boxSizing: "border-box",
+        }}
+      >
+        <IonRow style={{ flex: "0 0 auto" }}>
           <IonCol size="12">
             <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.92)">
-              <div style={{ position: "relative", minHeight: 54 }}>
+              <div
+                style={{
+                  position: "relative",
+                  minHeight: 54,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
                 <div
                   style={{
-                    position: "absolute",
-                    left: 0,
-                    top: "50%",
-                    transform: "translateY(-50%)",
                     width: 54,
                     height: 54,
+                    borderRadius: 18,
+                    background: "rgba(255,215,0,0.14)",
+                    border: "1px solid #2D2D2D",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    color: "#FFE44D",
+                    flexShrink: 0,
                   }}
                 >
-                  <div
+                  <Clock3 size={22} />
+                </div>
+
+                <div style={{ display: "grid", justifyItems: "center", gap: 4, flex: 1, minWidth: 0 }}>
+                  <span
                     style={{
-                      width: 54,
-                      height: 54,
-                      borderRadius: 18,
-                      background: "rgba(255,215,0,0.14)",
-                      border: "1px solid #2D2D2D",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#FFE44D",
+                      color: "#7A7A7A",
+                      fontFamily: "var(--font-inter)",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      lineHeight: 1,
                     }}
                   >
-                    <Clock3 size={22} />
-                  </div>
+                    Tempo decorrido
+                  </span>
+                  <span
+                    style={{
+                      color: "#FFFFFF",
+                      fontFamily: "var(--font-montserrat)",
+                      fontSize: 32,
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
+                      lineHeight: 1,
+                      textAlign: "center",
+                    }}
+                  >
+                    {formatElapsedTime(elapsedSeconds)}
+                  </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 54 }}>
-                  <div style={{ display: "grid", justifyItems: "center", gap: 4 }}>
-                    <span
-                      style={{
-                        color: "#7A7A7A",
-                        fontFamily: "var(--font-inter)",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        lineHeight: 1,
-                      }}
-                    >
-                      Tempo decorrido
-                    </span>
-                    <span
-                      style={{
-                        color: "#FFFFFF",
-                        fontFamily: "var(--font-montserrat)",
-                        fontSize: 32,
-                        fontWeight: 800,
-                        letterSpacing: "0.08em",
-                        minWidth: 132,
-                        lineHeight: 1,
-                        textAlign: "center",
-                      }}
-                    >
-                      {formatElapsedTime(elapsedSeconds)}
-                    </span>
-                  </div>
+
+                <div style={{ width: 54, display: "flex", justifyContent: "flex-end", flexShrink: 0 }}>
+                  <Sheet
+                    open={isWorkoutMenuOpen}
+                    onOpenChange={(open) => {
+                      if (!open && isWorkoutMenuOpen) onToggleWorkoutMenu();
+                    }}
+                  >
+                    <EllipsisActionButton
+                      type="button"
+                      onClick={onToggleWorkoutMenu}
+                      aria-label="Abrir ações do treino"
+                    />
+                    <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+                      <SheetHeader className="px-0 pb-3 pt-3 text-left">
+                        <SheetTitle className="font-montserrat text-[20px] font-bold text-white">Ações do treino</SheetTitle>
+                        <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
+                          Escolha uma ação para o treino em andamento.
+                        </SheetDescription>
+                      </SheetHeader>
+                      <div className="flex flex-col gap-2.5">
+                        <BeeButton variant="dark" fullWidth onClick={onSaveTemplate}>
+                          Salvar como template
+                        </BeeButton>
+                        <BeeButton variant="red" fullWidth onClick={onCancelWorkout}>
+                          Cancelar treino
+                        </BeeButton>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
                 </div>
               </div>
             </SurfaceCard>
           </IonCol>
         </IonRow>
 
-        <IonRow className="mt-4">
-          <IonCol size="12" style={{ position: "relative" }}>
+        {sessionGroups.length > 0 && (
+          <IonRow className="mt-3" style={{ flex: "0 0 auto" }}>
+            <IonCol size="12">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {sessionGroups.map((group) => (
+                  <MuscleTag key={group} group={group} />
+                ))}
+              </div>
+            </IonCol>
+          </IonRow>
+        )}
+
+        <IonRow style={{ flex: "1 1 0%", minHeight: 0, marginTop: 12, marginBottom: 12 }}>
+          <IonCol size="12" style={{ position: "relative", height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
             <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
@@ -237,6 +285,9 @@ export function ActiveWorkoutView({
                 overflowX: "auto",
                 padding: "4px 2px 8px",
                 scrollSnapType: "x proximity",
+                height: "100%",
+                minHeight: 0,
+                flex: 1,
               }}
             >
               {exercises.map((exercise) => (
@@ -247,11 +298,16 @@ export function ActiveWorkoutView({
                   }}
                   style={ACTIVE_WORKOUT_SLIDE_STYLE}
                 >
-                  <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)" style={ACTIVE_WORKOUT_CARD_STYLE}>
+                  <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)" style={{ ...ACTIVE_WORKOUT_CARD_STYLE, position: "relative", overflow: "hidden" }}>
                     <div style={{ display: "grid", gap: 14, height: "100%", gridTemplateRows: "auto minmax(0, 1fr) auto", alignContent: "start" }}>
                       <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-                          <div style={{ display: "grid", gap: 8, minWidth: 0 }}>
+                          <button
+                            type="button"
+                            onClick={() => setFlippedExerciseId(exercise.id)}
+                            aria-label={`Ver mapa muscular e histórico de ${exercise.name}`}
+                            style={{ display: "grid", gap: 8, minWidth: 0, border: "none", padding: 0, background: "transparent", textAlign: "left", cursor: "pointer" }}
+                          >
                             <span
                               className="line-clamp-2"
                               style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}
@@ -259,10 +315,10 @@ export function ActiveWorkoutView({
                               {exercise.name}
                             </span>
                             <MuscleTag group={exercise.group} />
-                            <div className="max-w-[150px] rounded-xl border border-[#303030] bg-[#111] p-1">
-                              <ExerciseMuscleMap muscles={exercise.anatomicalMuscles} compact />
-                            </div>
-                          </div>
+                            <span style={{ color: "#737373", fontFamily: "var(--font-inter)", fontSize: 12 }}>
+                              Toque para ver mapa e histórico
+                            </span>
+                          </button>
                           <Sheet
                             open={activeExerciseMenuId === exercise.id}
                             onOpenChange={(open) => {
@@ -338,7 +394,7 @@ export function ActiveWorkoutView({
                             justifyContent: "flex-start",
                             gap: 10,
                             minHeight: 0,
-                            maxHeight: 212,
+                            flex: 1,
                             overflowY: "auto",
                             paddingRight: 2,
                             alignItems: "stretch",
@@ -430,6 +486,107 @@ export function ActiveWorkoutView({
                         </BeeButton>
                       </div>
                     </div>
+                    {flippedExerciseId === exercise.id && (() => {
+                      const catalogItem = workoutService.getCatalogItemById(exercise.catalogId);
+                      const primaryMuscles = exercise.primaryAnatomicalMuscles?.length
+                        ? exercise.primaryAnatomicalMuscles
+                        : catalogItem?.primaryAnatomicalMuscles;
+                      const secondaryMuscles = exercise.secondaryAnatomicalMuscles?.length
+                        ? exercise.secondaryAnatomicalMuscles
+                        : catalogItem?.secondaryAnatomicalMuscles;
+                      const anatomicalMuscles = exercise.anatomicalMuscles?.length
+                        ? exercise.anatomicalMuscles
+                        : catalogItem?.anatomicalMuscles;
+                      const history = historyState.kind === "loaded" ? historyState.history : null;
+
+                      return (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            zIndex: 2,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 12,
+                            padding: "16px 16px 20px",
+                            background: "rgba(20,20,20,0.99)",
+                            animation: "fade-in 180ms ease-out",
+                            overflowY: "auto",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setFlippedExerciseId(null)}
+                            className="beefit-tap-target"
+                            style={{
+                              border: "none",
+                              padding: 0,
+                              background: "transparent",
+                              color: "#FFFFFF",
+                              cursor: "pointer",
+                              display: "grid",
+                              gap: 2,
+                              textAlign: "left",
+                              minWidth: 0,
+                            }}
+                            aria-label={`Voltar às séries de ${exercise.name}`}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#A3A3A3", fontFamily: "var(--font-inter)", fontSize: 12 }}>
+                              <ChevronLeft size={14} />
+                              <span>Voltar às séries</span>
+                            </div>
+                            <span
+                              className="line-clamp-2"
+                              style={{ fontFamily: "var(--font-montserrat)", fontSize: 20, fontWeight: 700 }}
+                            >
+                              {exercise.name}
+                            </span>
+                          </button>
+
+                          <ExerciseMuscleMap
+                            muscles={anatomicalMuscles}
+                            primaryMuscles={primaryMuscles}
+                            secondaryMuscles={secondaryMuscles}
+                          />
+
+                          <SurfaceCard border="#262626" background="rgba(255,255,255,0.02)">
+                            <div style={{ display: "grid", gap: 10 }}>
+                              <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700 }}>
+                                Histórico recente
+                              </span>
+
+                              <div style={{ display: "grid", gap: 6 }}>
+                                {[
+                                  { label: "Última vez", value: formatDate(history?.lastPerformedAt) },
+                                  { label: "Melhor desempenho", value: formatHistoryPerformance(history?.bestWeightKg, history?.bestReps) },
+                                  { label: "Último desempenho", value: formatHistoryPerformance(history?.lastWeightKg, history?.lastReps) },
+                                ].map((item) => (
+                                  <div
+                                    key={item.label}
+                                    style={{
+                                      borderRadius: 12,
+                                      background: "rgba(255,255,255,0.03)",
+                                      padding: "8px 12px",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      gap: 8,
+                                    }}
+                                  >
+                                    <span style={{ color: "#A3A3A3", fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600 }}>
+                                      {item.label}
+                                    </span>
+                                    <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 13, fontWeight: 700 }}>
+                                      {historyState.kind === "loading" ? "…" : item.value}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </SurfaceCard>
+                        </div>
+                      );
+                    })()}
                   </SurfaceCard>
                 </div>
               ))}
@@ -559,7 +716,7 @@ export function ActiveWorkoutView({
           </IonCol>
         </IonRow>
 
-        <IonRow className="mt-6">
+        <IonRow style={{ flex: "0 0 auto", marginTop: "auto" }}>
           <IonCol size="12">
             {finishValidationError && (
               <div style={{ margin: "0 2px 10px" }}>

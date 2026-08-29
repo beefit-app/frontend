@@ -55,6 +55,8 @@ export function createExerciseCard(
     group: exercise.group,
     groupId: exercise.groupId,
     anatomicalMuscles: exercise.anatomicalMuscles ?? [],
+    primaryAnatomicalMuscles: exercise.primaryAnatomicalMuscles ?? [],
+    secondaryAnatomicalMuscles: exercise.secondaryAnatomicalMuscles ?? [],
     sets: withInitialSet ? [createSet()] : [],
   };
 }
