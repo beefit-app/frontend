@@ -1,10 +1,12 @@
+import { useEffect, useState } from "react";
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 import { ChevronLeft, Flame } from "lucide-react";
 import { BeeButton } from "../../BeeButton";
 import { PageBackground } from "../../PageBackground";
-import type { ExerciseCatalogItem } from "../../../types/workout";
+import type { ExerciseCatalogItem, ExerciseHistory } from "../../../types/workout";
 import type { DetailViewSource } from "../types";
 import { muscleStyle } from "../utils";
+import { workoutService } from "../../../services/workoutService";
 import { MuscleTag, SurfaceCard } from "./shared";
 import { ExerciseMuscleMap } from "./ExerciseMuscleMap";
 
@@ -22,10 +24,42 @@ export function WorkoutCatalogDetailView({
   onAddExercise: () => void;
 }) {
   const style = muscleStyle(exercise.group);
+  const [history, setHistory] = useState<ExerciseHistory | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setHistory(null);
+    setHistoryError(null);
+
+    void workoutService.getExerciseHistory(exercise.id)
+      .then((loadedHistory) => {
+        if (active) setHistory(loadedHistory);
+      })
+      .catch(() => {
+        if (active) setHistoryError("Não foi possível carregar o histórico agora.");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [exercise.id]);
+
+  const formatDate = (value: string | null) => {
+    if (!value) return "Ainda não realizado";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? "Ainda não realizado"
+      : new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+  };
+  const formatPerformance = (weight: number | null, reps: number | null) => {
+    if (weight === null || reps === null) return "—";
+    return weight === 0 ? `${reps} repetições` : `${weight} kg × ${reps}`;
+  };
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ padding: "32px 12px 0", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ padding: "32px 12px calc(96px + var(--ion-safe-area-bottom, 0px))", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
             <button
@@ -92,8 +126,12 @@ export function WorkoutCatalogDetailView({
                   </div>
                 </div>
 
-                <div style={{ minHeight: 220, borderRadius: 22, border: `1px solid ${style.border}`, background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)", display: "grid", alignItems: "center", padding: 20 }}>
-                  <ExerciseMuscleMap muscles={exercise.anatomicalMuscles} />
+                <div style={{ borderRadius: 22, background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)", display: "grid", alignItems: "center", padding: 12 }}>
+                  <ExerciseMuscleMap
+                    muscles={exercise.anatomicalMuscles}
+                    primaryMuscles={exercise.primaryAnatomicalMuscles}
+                    secondaryMuscles={exercise.secondaryAnatomicalMuscles}
+                  />
                 </div>
               </div>
             </SurfaceCard>
@@ -109,18 +147,22 @@ export function WorkoutCatalogDetailView({
                     Histórico recente
                   </span>
 
-                  <div style={{ display: "grid", gap: 10 }}>
+                  {historyError ? (
+                    <span className="font-inter text-sm text-[#FCA5A5]">{historyError}</span>
+                  ) : !history ? (
+                    <span className="font-inter text-sm text-[#A3A3A3]">Carregando histórico…</span>
+                  ) : (
+                    <div style={{ display: "grid", gap: 10 }}>
                     {[
-                      { label: "Última vez", value: exercise.lastPerformed },
-                      { label: "Melhor carga", value: exercise.bestWeight },
-                      { label: "Última carga", value: exercise.lastWeight },
+                      { label: "Última vez", value: formatDate(history.lastPerformedAt) },
+                      { label: "Melhor desempenho", value: formatPerformance(history.bestWeightKg, history.bestReps) },
+                      { label: "Último desempenho", value: formatPerformance(history.lastWeightKg, history.lastReps) },
                     ].map((item) => (
                       <div
                         key={item.label}
                         style={{
                           borderRadius: 18,
-                          border: "1px solid #2D2D2D",
-                          background: "#121212",
+                          background: "rgba(255,255,255,0.035)",
                           padding: 16,
                           display: "flex",
                           alignItems: "center",
@@ -136,8 +178,9 @@ export function WorkoutCatalogDetailView({
                         </span>
                       </div>
                     ))}
+                    </div>
+                  )}
                   </div>
-                </div>
               </SurfaceCard>
 
               <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>

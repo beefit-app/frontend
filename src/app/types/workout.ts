@@ -4,10 +4,23 @@ export interface ExerciseCatalogItem {
   group: string;
   groupId: string;
   notes: string;
-  lastPerformed: string;
-  bestWeight: string;
-  lastWeight: string;
+  /** @deprecated Histórico é carregado sob demanda na tela de detalhes. */
+  lastPerformed?: string;
+  /** @deprecated Histórico é carregado sob demanda na tela de detalhes. */
+  bestWeight?: string;
+  /** @deprecated Histórico é carregado sob demanda na tela de detalhes. */
+  lastWeight?: string;
   anatomicalMuscles?: string[];
+  primaryAnatomicalMuscles?: string[];
+  secondaryAnatomicalMuscles?: string[];
+}
+
+export interface ExerciseHistory {
+  lastPerformedAt: string | null;
+  bestWeightKg: number | null;
+  bestReps: number | null;
+  lastWeightKg: number | null;
+  lastReps: number | null;
 }
 
 export interface WorkoutSet {

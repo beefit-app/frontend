@@ -1,5 +1,6 @@
 import type {
   ExerciseCatalogItem,
+  ExerciseHistory,
   WorkoutCompletionDraft,
   WorkoutCompletionResult,
   WorkoutRecoveryResult,
@@ -76,6 +77,14 @@ interface BackendWorkoutSession {
   } | null;
 }
 
+interface BackendExerciseHistory {
+  lastPerformedAt: string | null;
+  bestWeightKg: number | null;
+  bestReps: number | null;
+  lastWeightKg: number | null;
+  lastReps: number | null;
+}
+
 // /api/exercises serializa a entidade CatalogExercise crua, entao devolve o nome do
 // enum ("CHEST"). /api/workout e /api/templates passam pelo WorkoutMuscleGroupMapper
 // e falam o slug ("peito"). Ler os dois formatos e obrigatorio; escrever, nunca:
@@ -145,9 +154,8 @@ function normalizeCatalogExercise(exercise: BackendCatalogExercise): ExerciseCat
     group: getGroupLabel(groupId),
     groupId,
     notes: exercise.instructions ?? "",
-    lastPerformed: "",
-    bestWeight: "",
-    lastWeight: "",
+    primaryAnatomicalMuscles: exercise.primaryMusclesList ?? [],
+    secondaryAnatomicalMuscles: exercise.secondaryMusclesList ?? [],
     anatomicalMuscles: Array.from(new Set([
       ...(exercise.primaryMusclesList ?? []),
       ...(exercise.secondaryMusclesList ?? []),
@@ -318,6 +326,19 @@ export const workoutService = {
     });
 
     return catalogRequest;
+  },
+
+  async getExerciseHistory(exerciseId: string): Promise<ExerciseHistory> {
+    const response = await apiClient.get<BackendExerciseHistory>(`/api/workout/exercises/${exerciseId}/history`, {
+      auth: true,
+    });
+    return {
+      lastPerformedAt: response.lastPerformedAt,
+      bestWeightKg: response.bestWeightKg,
+      bestReps: response.bestReps,
+      lastWeightKg: response.lastWeightKg,
+      lastReps: response.lastReps,
+    };
   },
 
   getGroupOrder() {
