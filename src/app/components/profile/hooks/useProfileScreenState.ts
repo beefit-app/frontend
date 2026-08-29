@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AuthUser } from "../../../types/auth";
 import { accountSettingsService } from "../../../services/accountSettingsService";
 import { profileService } from "../../../services/profileService";
+import { subscribeSocialEvents } from "../../../services/socialEventsService";
 import { pageCacheStorage } from "../../../storage/pageCacheStorage";
 import type {
   AccountSettingsData,
@@ -70,8 +71,7 @@ export function useProfileScreenState({
           const nextProfile = await profileService.getProfile(authUser);
           if (cancelled) return;
           setProfile(nextProfile);
-          const { email: _email, ...cacheableProfile } = nextProfile;
-          void pageCacheStorage.set(authUser.id, "profile", cacheableProfile);
+          void pageCacheStorage.set(authUser.id, "profile", { ...nextProfile, email: undefined });
           if (typeof nextProfile.ghostModeEnabled === "boolean") {
             onAccountSettingsChange?.({
               ghostModeEnabled: nextProfile.ghostModeEnabled,
@@ -118,6 +118,35 @@ export function useProfileScreenState({
 
     return () => {
       cancelled = true;
+    };
+  }, [authUser, onAccountSettingsChange]);
+
+  useEffect(() => {
+    if (!authUser) return;
+
+    const controller = new AbortController();
+    void subscribeSocialEvents((event) => {
+      if (event.type !== "PROFILE_UPDATED" || event.data.userId !== authUser.id) return;
+
+      // O evento traz somente a projeção social. Invalidar e reler o perfil
+      // completo evita sobrescrever bio, métricas e configurações com dados parciais.
+      void pageCacheStorage.remove(authUser.id, "profile");
+      void profileService.getProfile(authUser)
+        .then((nextProfile) => {
+          if (controller.signal.aborted) return;
+          setProfile(nextProfile);
+          void pageCacheStorage.set(authUser.id, "profile", { ...nextProfile, email: undefined });
+          if (typeof nextProfile.ghostModeEnabled === "boolean") {
+            onAccountSettingsChange?.({ ghostModeEnabled: nextProfile.ghostModeEnabled });
+          }
+        })
+        .catch(() => {
+          // O estado atual continua visível; a próxima abertura tenta novamente.
+        });
+    }, controller.signal);
+
+    return () => {
+      controller.abort();
     };
   }, [authUser, onAccountSettingsChange]);
 

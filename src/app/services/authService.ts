@@ -45,7 +45,7 @@ interface AuthGateway {
   login(input: LoginInput): Promise<AuthSession>;
   register(input: RegisterInput): Promise<AuthSession>;
   restoreSession(): Promise<AuthSession | null>;
-  logout(): Promise<void>;
+  logout(options?: { isAccountDeletion?: boolean }): Promise<void>;
   getCurrentUser(): Promise<AuthUser>;
 }
 
@@ -190,14 +190,14 @@ async function persistSession(session: AuthSession) {
 // Desmonta a sessao inteira, nao so os tokens. Todo caminho de saida passa por
 // aqui — o logout explicito e o forcado por AUTH_UNAUTHORIZED_EVENT —, entao este
 // e o unico ponto que precisa saber apagar dado local.
-async function clearStoredSession() {
+async function clearStoredSession(options?: { isAccountDeletion?: boolean }) {
   const cachedUser = await sessionStorage.getUser<AuthUser>();
 
   await sessionStorage.clearToken();
   await sessionStorage.clearRefreshToken();
   await sessionStorage.clearUser();
 
-  await clearLocalUserData(cachedUser?.id ?? null);
+  await clearLocalUserData(cachedUser?.id ?? null, options);
 }
 
 const mockAuthGateway: AuthGateway = {
@@ -249,8 +249,8 @@ const mockAuthGateway: AuthGateway = {
     };
   },
 
-  async logout() {
-    await clearStoredSession();
+  async logout(options?: { isAccountDeletion?: boolean }) {
+    await clearStoredSession(options);
   },
 
   async getCurrentUser() {
@@ -373,7 +373,7 @@ const apiAuthGateway: AuthGateway = {
     }
   },
 
-  async logout() {
+  async logout(options?: { isAccountDeletion?: boolean }) {
     const refreshToken = await sessionStorage.getRefreshToken();
     const deviceId = await sessionStorage.getDeviceId();
 
@@ -385,7 +385,7 @@ const apiAuthGateway: AuthGateway = {
       }
     }
 
-    await clearStoredSession();
+    await clearStoredSession(options);
   },
 
   async getCurrentUser() {
@@ -408,8 +408,8 @@ export const authService = {
     return authGateway.restoreSession();
   },
 
-  logout() {
-    return authGateway.logout();
+  logout(options?: { isAccountDeletion?: boolean }) {
+    return authGateway.logout(options);
   },
 
   getCurrentUser() {

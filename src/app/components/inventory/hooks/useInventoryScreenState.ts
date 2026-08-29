@@ -140,8 +140,8 @@ export function useInventoryScreenState() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void subscribeSocialEvents(async (type, _data) => {
-      if (type === "TEMPLATE_IMPORTED") {
+    void subscribeSocialEvents(async (event) => {
+      if (event.type === "TEMPLATE_IMPORTED") {
         try {
           const loadedTemplates = await workoutService.loadTemplates();
           setTemplates(loadedTemplates);
@@ -150,7 +150,7 @@ export function useInventoryScreenState() {
           // A próxima abertura da tela recarrega os templates pela API.
         }
       }
-      if (type === "CARD_GENERATED") {
+      if (event.type === "CARD_GENERATED") {
         void pageCacheStorage.remove(user?.id, `inventory.0.${filters.rarity ?? "all"}.${filters.muscleGroup ?? "all"}`);
         void loadPage(0, filters, true);
       }

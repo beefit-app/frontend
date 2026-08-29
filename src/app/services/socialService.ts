@@ -2,18 +2,18 @@ import { apiClient } from "./apiClient";
 import type { CreateHiveRequest } from "../types/api";
 import type { FriendProfile, FriendRequest, Hive, HiveMember, HiveRankingPeriod } from "../components/social/types";
 
-interface ApiUser { id: string; fullName: string; username: string; profilePicture?: string | null }
+interface ApiUser { id: string; fullName: string; username: string; profilePicture?: string | null; developer?: boolean }
 interface ApiFriendship { id: string; user: ApiUser; status: string; direction: string }
 interface ApiHive { id: string; name: string; creatorId: string; inviteCode: string; startDate: string; endDate: string }
-interface ApiRanking { userId: string; fullName: string; username: string; profilePicture?: string | null; score: number }
+interface ApiRanking { userId: string; fullName: string; username: string; profilePicture?: string | null; developer?: boolean; score: number; honeys: number }
 
 function initials(name: string) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase(); }
 function profile(user: ApiUser, status: FriendProfile["status"]): FriendProfile {
-  return { id: user.id, name: user.fullName, username: `@${user.username.replace(/^@/, "")}`, initials: initials(user.fullName), status };
+  return { id: user.id, name: user.fullName, username: `@${user.username.replace(/^@/, "")}`, initials: initials(user.fullName), avatarUrl: user.profilePicture ?? null, isDeveloper: user.developer === true, status };
 }
 function period(hive: ApiHive): HiveRankingPeriod { return (new Date(hive.endDate).getMonth() === new Date(hive.startDate).getMonth() && new Date(hive.endDate).getDate() - new Date(hive.startDate).getDate() <= 7) ? "Semanal" : "Mensal"; }
 function hiveMember(item: ApiRanking): HiveMember {
-  return { id: item.userId, name: item.fullName, username: `@${item.username.replace(/^@/, "")}`, initials: initials(item.fullName), workouts: item.score, honeys: 0 };
+  return { id: item.userId, name: item.fullName, username: `@${item.username.replace(/^@/, "")}`, initials: initials(item.fullName), avatarUrl: item.profilePicture ?? null, isDeveloper: item.developer === true, workouts: item.score, honeys: item.honeys };
 }
 
 function datesForPeriod(value: HiveRankingPeriod) {

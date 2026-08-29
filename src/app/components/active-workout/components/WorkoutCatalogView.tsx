@@ -87,7 +87,7 @@ export function WorkoutCatalogView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ padding: "32px 12px 0", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ padding: "32px 12px calc(16px + var(--ion-safe-area-bottom, 0px))", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
             <button
@@ -215,7 +215,7 @@ export function WorkoutCatalogView({
                   {catalogLoadError}
                 </div>
               )}
-              {!catalogLoadError && visibleCatalogItems.length === 0 && (
+              {!catalogLoadError && filteredItems.length === 0 && (
                 <div
                   style={{
                     border: "1px solid #2D2D2D",
@@ -231,7 +231,7 @@ export function WorkoutCatalogView({
                   Nenhum exercício encontrado para este grupo muscular.
                 </div>
               )}
-              {visibleCatalogItems.map((exercise) => {
+              {filteredItems.map((exercise) => {
                 const alreadyAdded = selectedCatalogIds.has(exercise.id);
                 const style = muscleStyle(exercise.group);
 

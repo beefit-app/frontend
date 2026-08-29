@@ -1,5 +1,6 @@
 import type {
   ExerciseCatalogItem,
+  ExerciseHistory,
   WorkoutCompletionDraft,
   WorkoutCompletionResult,
   WorkoutRecoveryResult,
@@ -24,6 +25,8 @@ interface BackendCatalogExercise {
   instructions?: string | null;
   primaryMuscleGroupsList?: string[] | null;
   secondaryMuscleGroupsList?: string[] | null;
+  primaryMusclesList?: string[] | null;
+  secondaryMusclesList?: string[] | null;
 }
 
 interface BackendTemplateExercise {
@@ -63,15 +66,28 @@ interface BackendWorkoutSession {
   muscleGroups: string[];
   isPrivate: boolean;
   exercises: BackendSessionExercise[];
-  // WorkoutCardResponseDTO nao expoe muscleIntensities; esse campo so chega pelo
-  // evento SSE CARD_GENERATED.
   card?: {
     id: string;
-    attackPower: number;
+    attackPower?: number;
     rarity: string;
     muscleGroup: string;
-    isPersonalRecord: boolean;
+    isPersonalRecord?: boolean;
+    exerciseId?: string | null;
+    exerciseName?: string | null;
+    bestSetWeightKg?: number | null;
+    bestSetReps?: number | null;
+    estimatedOneRepMax?: number | null;
+    improvementPercentage?: number | null;
+    muscleIntensities?: Record<string, number>;
   } | null;
+}
+
+interface BackendExerciseHistory {
+  lastPerformedAt: string | null;
+  bestWeightKg: number | null;
+  bestReps: number | null;
+  lastWeightKg: number | null;
+  lastReps: number | null;
 }
 
 // /api/exercises serializa a entidade CatalogExercise crua, entao devolve o nome do
@@ -143,9 +159,12 @@ function normalizeCatalogExercise(exercise: BackendCatalogExercise): ExerciseCat
     group: getGroupLabel(groupId),
     groupId,
     notes: exercise.instructions ?? "",
-    lastPerformed: "",
-    bestWeight: "",
-    lastWeight: "",
+    primaryAnatomicalMuscles: exercise.primaryMusclesList ?? [],
+    secondaryAnatomicalMuscles: exercise.secondaryMusclesList ?? [],
+    anatomicalMuscles: Array.from(new Set([
+      ...(exercise.primaryMusclesList ?? []),
+      ...(exercise.secondaryMusclesList ?? []),
+    ])),
   };
 }
 
@@ -174,6 +193,9 @@ function normalizeSessionExercise(exercise: BackendSessionExercise): WorkoutExer
     name: exercise.catalogExerciseName,
     group: catalogItem?.group ?? getGroupLabel(groupId),
     groupId,
+    anatomicalMuscles: catalogItem?.anatomicalMuscles ?? [],
+    primaryAnatomicalMuscles: catalogItem?.primaryAnatomicalMuscles ?? [],
+    secondaryAnatomicalMuscles: catalogItem?.secondaryAnatomicalMuscles ?? [],
     sets: exercise.sets
       .slice()
       .sort((first, second) => first.order - second.order)
@@ -213,7 +235,17 @@ function normalizeWorkoutResult(response: BackendWorkoutSession): WorkoutComplet
           attackPower: response.card.attackPower,
           rarity: response.card.rarity,
           muscleGroup: normalizeGroupId(response.card.muscleGroup),
-          isPersonalRecord: response.card.isPersonalRecord,
+          isPersonalRecord: Boolean(
+            response.card.isPersonalRecord ??
+              (response.card.improvementPercentage != null && response.card.improvementPercentage > 0),
+          ),
+          exerciseId: response.card.exerciseId ?? null,
+          exerciseName: response.card.exerciseName ?? null,
+          bestSetWeightKg: response.card.bestSetWeightKg ?? null,
+          bestSetReps: response.card.bestSetReps ?? null,
+          estimatedOneRepMax: response.card.estimatedOneRepMax ?? null,
+          improvementPercentage: response.card.improvementPercentage ?? null,
+          muscleIntensities: response.card.muscleIntensities ?? undefined,
         }
       : null,
   };
@@ -311,6 +343,19 @@ export const workoutService = {
     });
 
     return catalogRequest;
+  },
+
+  async getExerciseHistory(exerciseId: string): Promise<ExerciseHistory> {
+    const response = await apiClient.get<BackendExerciseHistory>(`/api/workout/exercises/${exerciseId}/history`, {
+      auth: true,
+    });
+    return {
+      lastPerformedAt: response.lastPerformedAt,
+      bestWeightKg: response.bestWeightKg,
+      bestReps: response.bestReps,
+      lastWeightKg: response.lastWeightKg,
+      lastReps: response.lastReps,
+    };
   },
 
   getGroupOrder() {
@@ -451,21 +496,31 @@ export const workoutService = {
       { auth: true, headers: { "Idempotency-Key": draft.idempotencyKey } },
     );
 
+    const result = normalizeWorkoutResult(response);
+
     // shouldSaveTemplate nao existe no FinishWorkoutSnapshotRequestDTO; salvar o
-    // template e uma chamada separada.
+    // template e uma chamada separada. A conclusao ja foi persistida, portanto a
+    // falha desse efeito opcional nao pode fazer a UI tratar o treino como pendente.
     if (draft.shouldSaveTemplate) {
-      const createdTemplate = await apiClient.post<BackendTemplate>(
-        "/api/templates",
-        toTemplatePayload(preparedDraft),
-        { auth: true },
-      );
-      templatesCache = [
-        normalizeTemplate(createdTemplate),
-        ...templatesCache.filter((template) => template.id !== createdTemplate.id),
-      ];
+      try {
+        const createdTemplate = await apiClient.post<BackendTemplate>(
+          "/api/templates",
+          toTemplatePayload(preparedDraft),
+          { auth: true },
+        );
+        templatesCache = [
+          normalizeTemplate(createdTemplate),
+          ...templatesCache.filter((template) => template.id !== createdTemplate.id),
+        ];
+      } catch (error) {
+        return {
+          ...result,
+          templateSaveError: error instanceof Error ? error.message : "Não foi possível salvar o template.",
+        };
+      }
     }
 
-    return normalizeWorkoutResult(response);
+    return result;
   },
 
   async getWorkout(workoutId: string): Promise<WorkoutRecoveryResult> {

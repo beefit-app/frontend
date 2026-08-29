@@ -1,4 +1,4 @@
-import { DEFAULT_ACCOUNT_SETTINGS } from "./mock";
+import { DEFAULT_ACCOUNT_SETTINGS } from "./constants";
 import { useProfileScreenState } from "./hooks/useProfileScreenState";
 import type { ProfileScreenProps } from "./types";
 import { AccountSettingsScreen } from "./components/AccountSettingsScreen";
@@ -7,7 +7,7 @@ import { ProfileView } from "./components/ProfileView";
 import { useAuth } from "../../auth/AuthContext";
 import { profileService } from "../../services/profileService";
 
-export { DEFAULT_ACCOUNT_SETTINGS } from "./mock";
+export { DEFAULT_ACCOUNT_SETTINGS } from "./constants";
 export type { AccountSettingsData, ProfileScreenProps } from "./types";
 
 export function ProfileScreen({
@@ -66,7 +66,7 @@ export function ProfileScreen({
         onClearSaveError={clearAccountSettingsError}
         onDeleteAccount={async (password) => {
           const deleted = await handleAccountDelete(password);
-          if (deleted) await logout();
+          if (deleted) await logout({ isAccountDeletion: true });
           return deleted;
         }}
       />

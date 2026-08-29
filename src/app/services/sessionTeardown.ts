@@ -22,11 +22,16 @@ const LEGACY_PROFILE_STORAGE_KEY = "beefit.profile.current";
  * Cada passo e independente: uma falha em qualquer um deles nao pode impedir os
  * demais de rodar, senao o logout deixa lixo pela metade.
  */
-export async function clearLocalUserData(userId: string | null | undefined) {
+export async function clearLocalUserData(
+  userId: string | null | undefined,
+  options: { isAccountDeletion?: boolean } = {},
+) {
   const steps: Array<[string, () => unknown | Promise<unknown>]> = [
     ["caches de treino", () => workoutService.resetCaches()],
     ["fotos em memoria", () => clearMediaCache()],
-    ["rascunhos e fotos", () => workoutDraftStorage.clearAllDrafts(userId)],
+    ...(options.isAccountDeletion
+      ? [["rascunhos e fotos", () => workoutDraftStorage.clearAllDrafts(userId)] as [string, () => unknown | Promise<unknown>]]
+      : []),
     ["amigos ao vivo", () => socialFeedStorage.clearLiveFriends()],
     ["cache de feed em memoria", () => resetFeedCache()],
     ["memoria de treino ativo", () => resetActiveWorkoutMemory()],

@@ -70,6 +70,28 @@ describe("workoutService.finishWorkout", () => {
     });
   });
 
+  it("busca e normaliza o histórico autenticado do exercício", async () => {
+    const { apiClient } = await import("./apiClient");
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      lastPerformedAt: "2026-06-04T10:45:00",
+      bestWeightKg: 100,
+      bestReps: 5,
+      lastWeightKg: 90,
+      lastReps: 8,
+    });
+
+    const { workoutService } = await import("./workoutService");
+
+    await expect(workoutService.getExerciseHistory("catalog-1")).resolves.toEqual({
+      lastPerformedAt: "2026-06-04T10:45:00",
+      bestWeightKg: 100,
+      bestReps: 5,
+      lastWeightKg: 90,
+      lastReps: 8,
+    });
+    expect(apiClient.get).toHaveBeenCalledWith("/api/workout/exercises/catalog-1/history", { auth: true });
+  });
+
   it("cria template quando a opcao esta ativa", async () => {
     const { apiClient } = await import("./apiClient");
     vi.mocked(apiClient.post)
@@ -112,6 +134,20 @@ describe("workoutService.finishWorkout", () => {
       },
       { auth: true },
     );
+  });
+
+  it("confirma o treino quando salvar o template falha", async () => {
+    const { apiClient } = await import("./apiClient");
+    vi.mocked(apiClient.post)
+      .mockResolvedValueOnce(finishedSession)
+      .mockRejectedValueOnce(new Error("Template indisponível"));
+
+    const { workoutService } = await import("./workoutService");
+
+    await expect(workoutService.finishWorkout(createDraft(true))).resolves.toMatchObject({
+      workoutId: "workout-1",
+      templateSaveError: "Template indisponível",
+    });
   });
 
   it("reenvia corpo identico na retomada, para o backend tratar como repeticao", async () => {

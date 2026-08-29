@@ -18,7 +18,7 @@ interface AuthContextValue {
   authError: string | null;
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (options?: { isAccountDeletion?: boolean }) => Promise<void>;
   clearAuthError: () => void;
 }
 
@@ -116,8 +116,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }
 
-  async function logout() {
-    await authService.logout();
+  async function logout(options?: { isAccountDeletion?: boolean }) {
+    await authService.logout(options);
     setAccessToken(null);
     setUser(null);
     setAuthError(null);

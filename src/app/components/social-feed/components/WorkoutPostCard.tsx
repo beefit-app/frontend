@@ -19,6 +19,7 @@ export function WorkoutPostCard({
         name: post.author,
         initials: post.initials,
         avatarUrl: post.authorAvatarUrl,
+        isDeveloper: post.authorIsDeveloper,
         onClick: onOpenAuthorProfile ? () => onOpenAuthorProfile(post.username) : undefined,
       }}
       bodyWeight={post.bodyWeight}

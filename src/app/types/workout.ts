@@ -4,9 +4,23 @@ export interface ExerciseCatalogItem {
   group: string;
   groupId: string;
   notes: string;
-  lastPerformed: string;
-  bestWeight: string;
-  lastWeight: string;
+  /** @deprecated Histórico é carregado sob demanda na tela de detalhes. */
+  lastPerformed?: string;
+  /** @deprecated Histórico é carregado sob demanda na tela de detalhes. */
+  bestWeight?: string;
+  /** @deprecated Histórico é carregado sob demanda na tela de detalhes. */
+  lastWeight?: string;
+  anatomicalMuscles?: string[];
+  primaryAnatomicalMuscles?: string[];
+  secondaryAnatomicalMuscles?: string[];
+}
+
+export interface ExerciseHistory {
+  lastPerformedAt: string | null;
+  bestWeightKg: number | null;
+  bestReps: number | null;
+  lastWeightKg: number | null;
+  lastReps: number | null;
 }
 
 export interface WorkoutSet {
@@ -23,6 +37,9 @@ export interface WorkoutExercise {
   name: string;
   group: string;
   groupId: string;
+  anatomicalMuscles?: string[];
+  primaryAnatomicalMuscles?: string[];
+  secondaryAnatomicalMuscles?: string[];
   sets: WorkoutSet[];
 }
 
@@ -70,14 +87,22 @@ export interface WorkoutCompletionSummary {
 
 export interface WorkoutCard {
   id: string;
-  attackPower: number;
+  attackPower?: number;
   rarity: string;
   muscleGroup: string;
   isPersonalRecord: boolean;
+  exerciseId?: string | null;
+  exerciseName?: string | null;
+  bestSetWeightKg?: number | null;
+  bestSetReps?: number | null;
+  estimatedOneRepMax?: number | null;
+  improvementPercentage?: number | null;
+  muscleIntensities?: Record<string, number>;
 }
 
 export interface WorkoutCompletionResult extends WorkoutCompletionSummary {
   card: WorkoutCard | null;
+  templateSaveError?: string;
 }
 
 export interface WorkoutRecoveryResult extends WorkoutCompletionResult {

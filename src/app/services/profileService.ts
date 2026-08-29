@@ -17,6 +17,7 @@ interface BackendProfileResponse {
   offensiveHoneys?: number | null;
   cardsCount?: number | null;
   totalWorkouts?: number | null;
+  developer?: boolean | null;
 }
 
 interface BackendPublicProfileResponse extends BackendProfileResponse {
@@ -59,46 +60,28 @@ function clearLegacyProfileDraft() {
   window.localStorage.removeItem(LEGACY_PROFILE_STORAGE_KEY);
 }
 
-function buildFallbackProfile(): UserProfile {
-  return {
-    id: "profile-local",
-    displayName: "Alex Ferreira",
-    username: "@alexfit",
-    email: "alexfit@beefit.local",
-    bio: "Entusiasta de musculação e calistenia 🏋️‍♂️ | Treinando há 3 anos | Rumo ao físico dos sonhos!",
-    cards: 47,
-    streak: 15,
-    totalWorkouts: 312,
-    weight: 82.5,
-    avatarUrl: null,
-    weeklyGoal: 4,
-    ghostModeEnabled: false,
-  };
-}
-
 function normalizeUsername(username: string | null | undefined) {
   if (!username?.trim()) return "@beefit";
   return `@${username.replace(/^@/, "").trim()}`;
 }
 
 function buildBaseProfile(authUser: AuthUser | null): UserProfile {
-  if (!authUser) {
-    return buildFallbackProfile();
-  }
-
   return {
-    id: authUser.id || "profile-auth-user",
-    displayName: authUser.name,
-    username: normalizeUsername(authUser.username),
-    email: authUser.email,
+    // Este estado é apenas um shell de carregamento derivado da sessão. Métricas
+    // e conteúdo do perfil nunca recebem dados demonstrativos: chegam da API.
+    id: authUser?.id ?? "",
+    displayName: authUser?.name ?? "",
+    username: normalizeUsername(authUser?.username),
+    email: authUser?.email ?? "",
     bio: "",
     avatarUrl: null,
-    weight: authUser.weight ?? 75,
-    weeklyGoal: authUser.weeklyGoal ?? 4,
+    weight: authUser?.weight ?? null,
+    weeklyGoal: authUser?.weeklyGoal ?? null,
     ghostModeEnabled: false,
-    cards: 47,
-    streak: 15,
-    totalWorkouts: 312,
+    cards: 0,
+    streak: 0,
+    totalWorkouts: 0,
+    isDeveloper: false,
   };
 }
 
@@ -123,6 +106,7 @@ function mergeProfile(baseProfile: UserProfile, response: BackendProfileResponse
       typeof response.totalWorkouts === "number"
         ? response.totalWorkouts
         : baseProfile.totalWorkouts,
+    isDeveloper: response.developer === true,
   };
 }
 
@@ -143,6 +127,7 @@ function publicProfileFromResponse(response: BackendPublicProfileResponse): Publ
         cards: 0,
         streak: 0,
         totalWorkouts: 0,
+        isDeveloper: false,
       },
       response,
     ),
@@ -237,6 +222,7 @@ export const profileService = {
         cards: 0,
         streak: 0,
         totalWorkouts: 0,
+        isDeveloper: false,
       },
       response,
     );

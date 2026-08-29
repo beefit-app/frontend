@@ -13,12 +13,18 @@ export type InventoryMuscleGroup =
 export interface InventoryCard {
   id: string;
   workoutSessionId: string;
-  attackPower: number;
+  attackPower?: number;
   rarity: InventoryRarity;
   rarityLabel: string;
   muscleGroup: InventoryMuscleGroup;
   muscleIntensities: Record<string, number>;
   isPersonalRecord: boolean;
+  exerciseId?: string | null;
+  exerciseName?: string | null;
+  bestSetWeightKg?: number | null;
+  bestSetReps?: number | null;
+  estimatedOneRepMax?: number | null;
+  improvementPercentage?: number | null;
   bodyWeightAtGeneration: number | null;
   generatedAt: string;
 }

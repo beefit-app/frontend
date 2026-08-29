@@ -1,35 +1,12 @@
-import type { CSSProperties } from "react";
-import { HEX_CLIP } from "../workout-post";
+import type { AccountSettingsData } from "./types";
 
-export { HEX_CLIP };
-
-export const TOOLBAR_STYLE: CSSProperties = {
-  "--background": "#0A0A0A",
-  "--border-color": "#2D2D2D",
-  "--color": "#ffffff",
-  "--min-height": "56px",
-} as CSSProperties;
-
-export const TITLE_STYLE: CSSProperties = {
-  fontFamily: "var(--font-montserrat)",
-  fontSize: "17px",
-  fontWeight: 700,
-  color: "#ffffff",
-};
-
+export const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 export const MONTH_PT = [
-  "Janeiro",
-  "Fevereiro",
-  "Março",
-  "Abril",
-  "Maio",
-  "Junho",
-  "Julho",
-  "Agosto",
-  "Setembro",
-  "Outubro",
-  "Novembro",
-  "Dezembro",
-];
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+] as const;
+export const DAY_LABELS = ["D", "S", "T", "Q", "Q", "S", "S"] as const;
 
-export const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+export const DEFAULT_ACCOUNT_SETTINGS: AccountSettingsData = {
+  ghostModeEnabled: false,
+};

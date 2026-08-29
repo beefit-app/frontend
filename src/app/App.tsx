@@ -1,4 +1,5 @@
 import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion as Motion } from "motion/react";
 import {
   setupIonicReact,
   IonApp,
@@ -40,6 +41,29 @@ const SAFE_AREA_TOP_PADDING = {
 function DeferredScreen({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div className="p-6 text-center font-inter text-sm text-[#A3A3A3]">Carregando…</div>}>{children}</Suspense>;
 }
+
+const PAGE_TRANSITION_VARIANTS = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 20 : -20,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.18,
+      ease: [0.25, 1, 0.5, 1] as const,
+    },
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? -20 : 20,
+    opacity: 0,
+    transition: {
+      duration: 0.14,
+      ease: [0.25, 1, 0.5, 1] as const,
+    },
+  }),
+};
 
 const TAB_ITEMS: {
   id: TabId;
@@ -113,7 +137,7 @@ export default function App() {
   const { isAuthenticated, isBootstrapping, user } = useAuth();
   const contentRef = useRef<HTMLIonContentElement | null>(null);
   const [pathname, setPathname] = useState(() => window.location.pathname);
-  const { authScreen, screen, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
+  const { authScreen, screen, direction, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
   const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState(
@@ -287,46 +311,79 @@ export default function App() {
                 />
               )}
               {isAuthenticated && (
-                <>
-                  {screen === "feed" && (
-                    <DeferredScreen><SocialFeedScreen
-                      key={feedRefreshToken}
-                      streakCount={streak.count}
-                      isStreakFedToday={isStreakFedToday}
-                      streakBurstToken={streak.burstToken}
-                      onOpenUserProfile={openSocialProfile}
-                    /></DeferredScreen>
-                  )}
-                  {screen === "social" && (
-                    <DeferredScreen><SocialScreen
-                      isActive={screen === "social"}
-                      profileUsername={socialProfileUsername}
-                      onOpenProfileFromSocial={() => setSocialProfileReturnScreen("social")}
-                      onProfileClosed={() => {
-                        setSocialProfileUsername(null);
-                        if (socialProfileReturnScreen !== "social") {
-                          setScreen(socialProfileReturnScreen);
-                        }
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr",
+                    gridTemplateRows: "1fr",
+                    width: "100%",
+                    minHeight: "100%",
+                  }}
+                >
+                  <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+                    <Motion.div
+                      key={screen}
+                      custom={direction}
+                      variants={PAGE_TRANSITION_VARIANTS}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      style={{
+                        gridColumn: 1,
+                        gridRow: 1,
+                        width: "100%",
+                        willChange: "transform, opacity",
                       }}
-                    /></DeferredScreen>
-                  )}
-                  {screen === "workout" && (
-                    <WorkoutStartScreen
-                      key={workoutScreenInstance}
-                      ghostModeEnabled={accountSettings.ghostModeEnabled}
-                      onActiveWorkoutChange={setActiveWorkout}
-                      onWorkoutCompleted={handleWorkoutCompleted}
-                    />
-                  )}
-                  {screen === "inventory" && <DeferredScreen><InventoryScreen /></DeferredScreen>}
-                  {screen === "profile" && (
-                    <ProfileScreen
-                      key={profileRefreshToken}
-                      accountSettings={accountSettings}
-                      onAccountSettingsChange={setAccountSettings}
-                    />
-                  )}
-                </>
+                    >
+                      {screen === "feed" && (
+                        <DeferredScreen>
+                          <SocialFeedScreen
+                            key={feedRefreshToken}
+                            streakCount={streak.count}
+                            isStreakFedToday={isStreakFedToday}
+                            streakBurstToken={streak.burstToken}
+                            onOpenUserProfile={openSocialProfile}
+                          />
+                        </DeferredScreen>
+                      )}
+                      {screen === "social" && (
+                        <DeferredScreen>
+                          <SocialScreen
+                            isActive={screen === "social"}
+                            profileUsername={socialProfileUsername}
+                            onOpenProfileFromSocial={() => setSocialProfileReturnScreen("social")}
+                            onProfileClosed={() => {
+                              setSocialProfileUsername(null);
+                              if (socialProfileReturnScreen !== "social") {
+                                setScreen(socialProfileReturnScreen);
+                              }
+                            }}
+                          />
+                        </DeferredScreen>
+                      )}
+                      {screen === "workout" && (
+                        <WorkoutStartScreen
+                          key={workoutScreenInstance}
+                          ghostModeEnabled={accountSettings.ghostModeEnabled}
+                          onActiveWorkoutChange={setActiveWorkout}
+                          onWorkoutCompleted={handleWorkoutCompleted}
+                        />
+                      )}
+                      {screen === "inventory" && (
+                        <DeferredScreen>
+                          <InventoryScreen />
+                        </DeferredScreen>
+                      )}
+                      {screen === "profile" && (
+                        <ProfileScreen
+                          key={profileRefreshToken}
+                          accountSettings={accountSettings}
+                          onAccountSettingsChange={setAccountSettings}
+                        />
+                      )}
+                    </Motion.div>
+                  </AnimatePresence>
+                </div>
               )}
             </ScreenErrorBoundary>
           )}

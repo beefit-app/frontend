@@ -11,6 +11,7 @@ export interface UserProfile {
   cards: number;
   streak: number;
   totalWorkouts: number;
+  isDeveloper?: boolean;
 }
 
 export type PublicProfileRelationshipStatus = "SELF" | "FRIEND" | "NONE" | "REQUEST_SENT" | "REQUEST_RECEIVED";

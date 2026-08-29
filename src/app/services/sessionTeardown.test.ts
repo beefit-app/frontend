@@ -57,9 +57,16 @@ describe("desmonte da sessao local", () => {
     seedLocalData();
   });
 
-  it("nao deixa nenhuma chave beefit apos o logout", async () => {
+  it("limpa as chaves da sessao apos o logout, preservando rascunhos isolados por userId", async () => {
     const { authService } = await import("./authService");
     await authService.logout();
+
+    expect(remainingBeefitKeys()).toEqual([`beefit.workoutDraft.${USER_ID}.workout-1`]);
+  });
+
+  it("remove todas as chaves inclusive rascunhos quando for exclusao de conta", async () => {
+    const { authService } = await import("./authService");
+    await authService.logout({ isAccountDeletion: true });
 
     expect(remainingBeefitKeys()).toEqual([]);
   });
@@ -97,6 +104,6 @@ describe("desmonte da sessao local", () => {
     const { authService } = await import("./authService");
     await authService.logout();
 
-    expect(remainingBeefitKeys()).toEqual([]);
+    expect(remainingBeefitKeys()).toEqual([`beefit.workoutDraft.${USER_ID}.workout-1`]);
   });
 });

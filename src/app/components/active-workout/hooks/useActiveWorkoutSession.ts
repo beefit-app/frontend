@@ -15,6 +15,8 @@ import {
   createSet,
 } from "../utils";
 
+const WORKOUT_TITLE_MAX_LENGTH = 80;
+
 export function useActiveWorkoutSession({
   catalogRevision = 0,
   workoutId = null,
@@ -357,6 +359,10 @@ export function useActiveWorkoutSession({
   function handleFinishWorkout() {
     if (!finishTitle.trim()) {
       setFinishTitleError("Digite um título para concluir o treino");
+      return;
+    }
+    if (finishTitle.trim().length > WORKOUT_TITLE_MAX_LENGTH) {
+      setFinishTitleError(`O título pode ter no máximo ${WORKOUT_TITLE_MAX_LENGTH} caracteres.`);
       return;
     }
 
