@@ -24,6 +24,8 @@ interface BackendCatalogExercise {
   instructions?: string | null;
   primaryMuscleGroupsList?: string[] | null;
   secondaryMuscleGroupsList?: string[] | null;
+  primaryMusclesList?: string[] | null;
+  secondaryMusclesList?: string[] | null;
 }
 
 interface BackendTemplateExercise {
@@ -146,6 +148,10 @@ function normalizeCatalogExercise(exercise: BackendCatalogExercise): ExerciseCat
     lastPerformed: "",
     bestWeight: "",
     lastWeight: "",
+    anatomicalMuscles: Array.from(new Set([
+      ...(exercise.primaryMusclesList ?? []),
+      ...(exercise.secondaryMusclesList ?? []),
+    ])),
   };
 }
 
@@ -174,6 +180,7 @@ function normalizeSessionExercise(exercise: BackendSessionExercise): WorkoutExer
     name: exercise.catalogExerciseName,
     group: catalogItem?.group ?? getGroupLabel(groupId),
     groupId,
+    anatomicalMuscles: catalogItem?.anatomicalMuscles ?? [],
     sets: exercise.sets
       .slice()
       .sort((first, second) => first.order - second.order)

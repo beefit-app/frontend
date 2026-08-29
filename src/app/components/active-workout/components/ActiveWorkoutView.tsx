@@ -9,6 +9,7 @@ import { ACTIVE_WORKOUT_CARD_STYLE, ACTIVE_WORKOUT_SLIDE_STYLE } from "../consta
 import { formatElapsedTime } from "../utils";
 import { MuscleTag, SurfaceCard } from "./shared";
 import { BeeAlert } from "../../BeeAlert";
+import { ExerciseMuscleMap } from "./ExerciseMuscleMap";
 
 function EllipsisActionButton({
   className = "",
@@ -258,6 +259,9 @@ export function ActiveWorkoutView({
                               {exercise.name}
                             </span>
                             <MuscleTag group={exercise.group} />
+                            <div className="max-w-[150px] rounded-xl border border-[#303030] bg-[#111] p-1">
+                              <ExerciseMuscleMap muscles={exercise.anatomicalMuscles} compact />
+                            </div>
                           </div>
                           <Sheet
                             open={activeExerciseMenuId === exercise.id}

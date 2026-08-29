@@ -6,6 +6,7 @@ import type { ExerciseCatalogItem } from "../../../types/workout";
 import type { DetailViewSource } from "../types";
 import { muscleStyle } from "../utils";
 import { MuscleTag, SurfaceCard } from "./shared";
+import { ExerciseMuscleMap } from "./ExerciseMuscleMap";
 
 export function WorkoutCatalogDetailView({
   exercise,
@@ -86,29 +87,13 @@ export function WorkoutCatalogDetailView({
                       Mapa muscular
                     </span>
                     <span style={{ color: "#B5B5B5", fontFamily: "var(--font-inter)", fontSize: 13 }}>
-                      Espaço reservado para o mapa de calor dos músculos.
+                      Músculos primários e secundários do exercício.
                     </span>
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    minHeight: 220,
-                    borderRadius: 22,
-                    border: `1px dashed ${style.border}`,
-                    background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: style.text,
-                    fontFamily: "var(--font-montserrat)",
-                    fontSize: 16,
-                    fontWeight: 700,
-                    textAlign: "center",
-                    padding: 20,
-                  }}
-                >
-                  Heatmap muscular
+                <div style={{ minHeight: 220, borderRadius: 22, border: `1px solid ${style.border}`, background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)", display: "grid", alignItems: "center", padding: 20 }}>
+                  <ExerciseMuscleMap muscles={exercise.anatomicalMuscles} />
                 </div>
               </div>
             </SurfaceCard>

@@ -215,7 +215,7 @@ export function WorkoutCatalogView({
                   {catalogLoadError}
                 </div>
               )}
-              {!catalogLoadError && visibleCatalogItems.length === 0 && (
+              {!catalogLoadError && filteredItems.length === 0 && (
                 <div
                   style={{
                     border: "1px solid #2D2D2D",
@@ -231,7 +231,7 @@ export function WorkoutCatalogView({
                   Nenhum exercício encontrado para este grupo muscular.
                 </div>
               )}
-              {visibleCatalogItems.map((exercise) => {
+              {filteredItems.map((exercise) => {
                 const alreadyAdded = selectedCatalogIds.has(exercise.id);
                 const style = muscleStyle(exercise.group);
 

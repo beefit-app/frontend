@@ -7,6 +7,7 @@ export interface ExerciseCatalogItem {
   lastPerformed: string;
   bestWeight: string;
   lastWeight: string;
+  anatomicalMuscles?: string[];
 }
 
 export interface WorkoutSet {
@@ -23,6 +24,7 @@ export interface WorkoutExercise {
   name: string;
   group: string;
   groupId: string;
+  anatomicalMuscles?: string[];
   sets: WorkoutSet[];
 }
 
