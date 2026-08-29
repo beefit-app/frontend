@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { socialService } from "../../../services/socialService";
 import { useAuth } from "../../../auth/AuthContext";
-import { subscribeSocialEvents, type FriendRemovedEvent, type FriendRequestAcceptedEvent, type FriendRequestPendingEvent, type ProfileUpdatedEvent } from "../../../services/socialEventsService";
+import { subscribeSocialEvents } from "../../../services/socialEventsService";
 import { pageCacheStorage } from "../../../storage/pageCacheStorage";
 import type { FriendProfile, Hive, HiveRankingPeriod, SocialSection } from "../types";
 
@@ -185,14 +185,14 @@ export function useSocialState(isActive = false) {
     if (!user?.id) return;
 
     const controller = new AbortController();
-    void subscribeSocialEvents((type, data) => {
-      if (type === "FRIEND_REQUEST_PENDING" || type === "FRIEND_REQUEST_ACCEPTED" || type === "FRIEND_REMOVED") {
+    void subscribeSocialEvents((event) => {
+      if (event.type === "FRIEND_REQUEST_PENDING" || event.type === "FRIEND_REQUEST_ACCEPTED" || event.type === "FRIEND_REMOVED") {
         void pageCacheStorage.remove(user?.id, RELATIONSHIPS_CACHE_KEY);
       }
-      if (type === "PROFILE_UPDATED") {
-        const event = data as ProfileUpdatedEvent;
-        const updateAvatar = (person: FriendProfile) => person.id === event.userId
-          ? { ...person, name: event.fullName, username: `@${event.username.replace(/^@/, "")}`, initials: initials(event.fullName), avatarUrl: event.profilePicture }
+      if (event.type === "PROFILE_UPDATED") {
+        const { data } = event;
+        const updateAvatar = (person: FriendProfile) => person.id === data.userId
+          ? { ...person, name: data.fullName, username: `@${data.username.replace(/^@/, "")}`, initials: initials(data.fullName), avatarUrl: data.profilePicture }
           : person;
         setFriends((current) => current.map(updateAvatar));
         setFriendRequests((current) => current.map((request) => ({ ...request, profile: updateAvatar(request.profile) })));
@@ -200,27 +200,27 @@ export function useSocialState(isActive = false) {
         setDiscoverablePeople((current) => current.map(updateAvatar));
         setHives((current) => current.map((hive) => ({
           ...hive,
-          members: hive.members.map((member) => member.id === event.userId
-            ? { ...member, name: event.fullName, username: `@${event.username.replace(/^@/, "")}`, initials: initials(event.fullName), avatarUrl: event.profilePicture }
+          members: hive.members.map((member) => member.id === data.userId
+            ? { ...member, name: data.fullName, username: `@${data.username.replace(/^@/, "")}`, initials: initials(data.fullName), avatarUrl: data.profilePicture }
             : member),
         })));
         void pageCacheStorage.remove(user?.id, RELATIONSHIPS_CACHE_KEY);
         void pageCacheStorage.remove(user?.id, HIVES_CACHE_KEY);
         return;
       }
-      if (type === "FRIEND_REQUEST_PENDING") {
-        const event = data as FriendRequestPendingEvent;
+      if (event.type === "FRIEND_REQUEST_PENDING") {
+        const { data } = event;
         setFriendRequests((current) => {
-          if (current.some((request) => request.id === event.friendshipId)) return current;
+          if (current.some((request) => request.id === data.friendshipId)) return current;
           return [
             {
-              id: event.friendshipId,
+              id: data.friendshipId,
               profile: buildFriendProfile(
                 {
-                  id: event.requesterId,
-                  fullName: event.requesterFullName,
-                  username: event.requesterUsername,
-                  profilePicture: event.requesterProfilePicture,
+                  id: data.requesterId,
+                  fullName: data.requesterFullName,
+                  username: data.requesterUsername,
+                  profilePicture: data.requesterProfilePicture,
                 },
                 "available",
               ),
@@ -231,35 +231,35 @@ export function useSocialState(isActive = false) {
         return;
       }
 
-      if (type === "FRIEND_REQUEST_ACCEPTED") {
-        const event = data as FriendRequestAcceptedEvent;
+      if (event.type === "FRIEND_REQUEST_ACCEPTED") {
+        const { data } = event;
         const nextFriend = buildFriendProfile(
           {
-            id: event.addresseeId,
-            fullName: event.addresseeFullName,
-            username: event.addresseeUsername,
-            profilePicture: event.addresseeProfilePicture,
+            id: data.addresseeId,
+            fullName: data.addresseeFullName,
+            username: data.addresseeUsername,
+            profilePicture: data.addresseeProfilePicture,
           },
           "friend",
-          event.friendshipId,
+          data.friendshipId,
         );
 
         setFriends((current) => mergeFriend(current, nextFriend));
-        setSentRequests((current) => current.filter((request) => request.id !== event.friendshipId && request.profile.id !== event.addresseeId));
-        setFriendRequests((current) => current.filter((request) => request.id !== event.friendshipId && request.profile.id !== event.addresseeId));
+        setSentRequests((current) => current.filter((request) => request.id !== data.friendshipId && request.profile.id !== data.addresseeId));
+        setFriendRequests((current) => current.filter((request) => request.id !== data.friendshipId && request.profile.id !== data.addresseeId));
         setDiscoverablePeople((current) => current.map((person) => (
-          person.id === event.addresseeId ? { ...person, ...nextFriend } : person
+          person.id === data.addresseeId ? { ...person, ...nextFriend } : person
         )));
         return;
       }
 
-      if (type === "FRIEND_REMOVED") {
-        const event = data as FriendRemovedEvent;
-        setFriends((current) => current.filter((friend) => friend.friendshipId !== event.friendshipId && friend.id !== event.friendId));
-        setSentRequests((current) => current.filter((request) => request.id !== event.friendshipId && request.profile.id !== event.friendId));
-        setFriendRequests((current) => current.filter((request) => request.id !== event.friendshipId && request.profile.id !== event.friendId));
+      if (event.type === "FRIEND_REMOVED") {
+        const { data } = event;
+        setFriends((current) => current.filter((friend) => friend.friendshipId !== data.friendshipId && friend.id !== data.friendId));
+        setSentRequests((current) => current.filter((request) => request.id !== data.friendshipId && request.profile.id !== data.friendId));
+        setFriendRequests((current) => current.filter((request) => request.id !== data.friendshipId && request.profile.id !== data.friendId));
         setDiscoverablePeople((current) => current.map((person) => (
-          person.id === event.friendId ? { ...person, status: "available", friendshipId: undefined } : person
+          person.id === data.friendId ? { ...person, status: "available", friendshipId: undefined } : person
         )));
       }
     }, controller.signal);

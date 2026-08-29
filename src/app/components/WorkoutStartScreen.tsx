@@ -457,11 +457,11 @@ export function WorkoutStartScreen({
     if (!workoutId) return;
 
     const controller = new AbortController();
-    void subscribeSocialEvents((type, data) => {
-      if (type !== "CARD_GENERATED" || !isCardGeneratedEvent(data) || data.workoutId !== workoutId) return;
+    void subscribeSocialEvents((event) => {
+      if (event.type !== "CARD_GENERATED" || event.data.workoutId !== workoutId) return;
 
-      generatedCardEventRef.current = data;
-      generatedCardResolverRef.current?.(data);
+      generatedCardEventRef.current = event.data;
+      generatedCardResolverRef.current?.(event.data);
       generatedCardResolverRef.current = null;
     }, controller.signal);
 
@@ -1042,19 +1042,6 @@ export function WorkoutStartScreen({
         </IonRow>
       </IonGrid>
     </PageBackground>
-  );
-}
-
-function isCardGeneratedEvent(data: unknown): data is CardGeneratedEvent {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "workoutId" in data &&
-    "cardId" in data &&
-    "attackPower" in data &&
-    "rarity" in data &&
-    "muscleGroup" in data &&
-    "isPersonalRecord" in data
   );
 }
 

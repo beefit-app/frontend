@@ -6,7 +6,7 @@ import { socialFeedService } from "../../../services/socialFeedService";
 import { socialFeedStorage } from "../../../storage/socialFeedStorage";
 import { pageCacheStorage } from "../../../storage/pageCacheStorage";
 import { useAuth } from "../../../auth/AuthContext";
-import { subscribeSocialEvents, type PostLikedEvent, type ProfileUpdatedEvent, type WorkoutPresenceEvent } from "../../../services/socialEventsService";
+import { subscribeSocialEvents } from "../../../services/socialEventsService";
 import { normalizeMuscleGroupLabels } from "../../../services/muscleGroups";
 import type { LiveFriend, SocialFeedPost } from "../types";
 
@@ -38,6 +38,16 @@ function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
     groups: normalizeMuscleGroupLabels(friend.groups),
     elapsedSeconds: Math.max(0, friend.elapsedSeconds),
   };
+}
+
+function initials(fullName: string) {
+  return fullName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 }
 
 export function useSocialFeedState() {
@@ -159,57 +169,56 @@ export function useSocialFeedState() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void subscribeSocialEvents((type, data) => {
-      if (type === "POST_LIKED" && "postId" in data && "totalLikes" in data) {
-        const event = data as PostLikedEvent;
-        likeCountsByPostId.current.set(event.postId, event.totalLikes);
+    void subscribeSocialEvents((event) => {
+      if (event.type === "POST_LIKED") {
+        const { postId, totalLikes } = event.data;
+        likeCountsByPostId.current.set(postId, totalLikes);
         setPosts((current) => {
           const next = current.map((post) =>
-            String(post.id) === event.postId ? { ...post, likes: event.totalLikes } : post,
+            String(post.id) === postId ? { ...post, likes: totalLikes } : post,
           );
           if (feedMemoryCache?.userId === userId) feedMemoryCache.posts = next;
           return next;
         });
         return;
       }
-      if (type === "PROFILE_UPDATED") {
-        const event = data as ProfileUpdatedEvent;
+      if (event.type === "PROFILE_UPDATED") {
+        const { data } = event;
         setPosts((current) => {
-          const next = current.map((post) => post.authorId === event.userId
-            ? { ...post, author: event.username, username: `@${event.username.replace(/^@/, "")}`, initials: event.username.slice(0, 2).toUpperCase(), authorAvatarUrl: event.profilePicture }
+          const next = current.map((post) => post.authorId === data.userId
+            ? { ...post, author: data.fullName, username: `@${data.username.replace(/^@/, "")}`, initials: initials(data.fullName), authorAvatarUrl: data.profilePicture }
             : post);
           if (feedMemoryCache?.userId === userId) feedMemoryCache.posts = next;
           return next;
         });
-        setLiveFriends((current) => current.map((friend) => String(friend.id) === event.userId
-          ? { ...friend, name: event.fullName, initials: event.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join(""), photoUrl: event.profilePicture }
+        setLiveFriends((current) => current.map((friend) => String(friend.id) === data.userId
+          ? { ...friend, name: data.fullName, initials: initials(data.fullName), photoUrl: data.profilePicture }
           : friend));
         void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
         return;
       }
-      if (type === "WORKOUT_FINISHED") {
+      if (event.type === "WORKOUT_FINISHED") {
         resetFeedCache();
         void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
         void loadFirstPage();
       }
-      if (!("userId" in data)) return;
-      const event = data as WorkoutPresenceEvent;
-      if (type === "WORKOUT_FINISHED" || type === "WORKOUT_CANCELED") {
-        setLiveFriends((current) => current.filter((item) => String(item.id) !== event.userId));
+      if (event.type === "WORKOUT_CANCELED") {
+        setLiveFriends((current) => current.filter((item) => String(item.id) !== event.data.userId));
         return;
       }
-      if (type === "WORKOUT_STARTED" || type === "WORKOUT_MUSCLE_GROUP_ADDED") {
+      if (event.type === "WORKOUT_STARTED" || event.type === "WORKOUT_MUSCLE_GROUP_ADDED") {
+        const { data } = event;
         setLiveFriends((current) => {
-          const existing = current.find((item) => String(item.id) === event.userId);
+          const existing = current.find((item) => String(item.id) === data.userId);
           const next = normalizeLiveFriend({
-            id: event.userId,
-            name: event.fullName,
-            initials: event.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join(""),
-            photoUrl: event.profilePicture ?? existing?.photoUrl ?? null,
-            groups: event.muscleGroups ?? [],
-            elapsedSeconds: existing?.elapsedSeconds ?? Math.max(0, Math.floor((Date.now() - new Date(event.occurredAt).getTime()) / 1000)),
+            id: data.userId,
+            name: data.fullName,
+            initials: initials(data.fullName),
+            photoUrl: data.profilePicture ?? existing?.photoUrl ?? null,
+            groups: data.muscleGroups,
+            elapsedSeconds: existing?.elapsedSeconds ?? Math.max(0, Math.floor((Date.now() - new Date(data.occurredAt).getTime()) / 1000)),
           });
-          return [...current.filter((item) => String(item.id) !== event.userId), next];
+          return [...current.filter((item) => String(item.id) !== data.userId), next];
         });
       }
     }, controller.signal);

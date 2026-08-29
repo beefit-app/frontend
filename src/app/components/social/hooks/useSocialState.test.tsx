@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
+import type { SocialEvent } from "../../../services/socialEventsService";
 
 const subscribeSocialEvents = vi.hoisted(() => vi.fn());
 const getCachedRelationships = vi.hoisted(() => vi.fn());
@@ -101,8 +102,8 @@ describe("useSocialState", () => {
   });
 
   it("adiciona solicitação recebida em tempo real", async () => {
-    let handler: ((type: string, data: Record<string, unknown>) => void) | undefined;
-    subscribeSocialEvents.mockImplementation(async (onEvent: (type: string, data: Record<string, unknown>) => void) => {
+    let handler: ((event: SocialEvent) => void) | undefined;
+    subscribeSocialEvents.mockImplementation(async (onEvent: (event: SocialEvent) => void) => {
       handler = onEvent;
     });
 
@@ -110,12 +111,13 @@ describe("useSocialState", () => {
     await waitFor(() => expect(subscribeSocialEvents).toHaveBeenCalled());
 
     act(() => {
-      handler?.("FRIEND_REQUEST_PENDING", {
+      handler?.({ type: "FRIEND_REQUEST_PENDING", data: {
         friendshipId: "r-2",
         requesterId: "friend-2",
         requesterFullName: "Maria Silva",
         requesterUsername: "maria",
-      });
+        sentAt: "2026-08-29T10:00:00Z",
+      } });
     });
 
     await waitFor(() => expect(result.current.friendRequests.some((request) => request.id === "r-2")).toBe(true));
@@ -123,8 +125,8 @@ describe("useSocialState", () => {
   });
 
   it("adiciona amigo correto quando a solicitação enviada é aceita", async () => {
-    let handler: ((type: string, data: Record<string, unknown>) => void) | undefined;
-    subscribeSocialEvents.mockImplementation(async (onEvent: (type: string, data: Record<string, unknown>) => void) => {
+    let handler: ((event: SocialEvent) => void) | undefined;
+    subscribeSocialEvents.mockImplementation(async (onEvent: (event: SocialEvent) => void) => {
       handler = onEvent;
     });
 
@@ -132,12 +134,13 @@ describe("useSocialState", () => {
     await waitFor(() => expect(subscribeSocialEvents).toHaveBeenCalled());
 
     act(() => {
-      handler?.("FRIEND_REQUEST_ACCEPTED", {
+      handler?.({ type: "FRIEND_REQUEST_ACCEPTED", data: {
         friendshipId: "f-2",
         addresseeId: "friend-2",
         addresseeFullName: "Maria Silva",
         addresseeUsername: "maria",
-      });
+        acceptedAt: "2026-08-29T10:00:00Z",
+      } });
     });
 
     await waitFor(() => expect(result.current.friends.some((friend) => friend.friendshipId === "f-2")).toBe(true));
@@ -145,13 +148,13 @@ describe("useSocialState", () => {
   });
 
   it("remove solicitação enviada e atualiza busca para amigo quando o aceite chega por sse", async () => {
-    let handler: ((type: string, data: Record<string, unknown>) => void) | undefined;
+    let handler: ((event: SocialEvent) => void) | undefined;
     const { socialService } = await import("../../../services/socialService");
     vi.mocked(socialService.search).mockResolvedValue([
       { id: "friend-2", name: "Maria Silva", username: "@maria", initials: "MS", avatarUrl: null, status: "available" },
     ]);
 
-    subscribeSocialEvents.mockImplementation(async (onEvent: (type: string, data: Record<string, unknown>) => void) => {
+    subscribeSocialEvents.mockImplementation(async (onEvent: (event: SocialEvent) => void) => {
       handler = onEvent;
     });
 
@@ -162,12 +165,13 @@ describe("useSocialState", () => {
     await waitFor(() => expect(result.current.searchResults.some((person) => person.id === "friend-2")).toBe(true));
 
     act(() => {
-      handler?.("FRIEND_REQUEST_ACCEPTED", {
+      handler?.({ type: "FRIEND_REQUEST_ACCEPTED", data: {
         friendshipId: "r-2",
         addresseeId: "friend-2",
         addresseeFullName: "Maria Silva",
         addresseeUsername: "maria",
-      });
+        acceptedAt: "2026-08-29T10:00:00Z",
+      } });
     });
 
     await waitFor(() => expect(result.current.sentRequests.some((request) => request.id === "r-2")).toBe(false));
@@ -176,8 +180,8 @@ describe("useSocialState", () => {
   });
 
   it("remove amizade em tempo real quando chega o sse de deleção", async () => {
-    let handler: ((type: string, data: Record<string, unknown>) => void) | undefined;
-    subscribeSocialEvents.mockImplementation(async (onEvent: (type: string, data: Record<string, unknown>) => void) => {
+    let handler: ((event: SocialEvent) => void) | undefined;
+    subscribeSocialEvents.mockImplementation(async (onEvent: (event: SocialEvent) => void) => {
       handler = onEvent;
     });
 
@@ -185,28 +189,29 @@ describe("useSocialState", () => {
     await waitFor(() => expect(subscribeSocialEvents).toHaveBeenCalled());
 
     act(() => {
-      handler?.("FRIEND_REMOVED", {
+      handler?.({ type: "FRIEND_REMOVED", data: {
         friendshipId: "f-1",
         friendId: "friend",
         friendFullName: "Friend",
         friendUsername: "friend",
-      });
+        removedAt: "2026-08-29T10:00:00Z",
+      } });
     });
 
     await waitFor(() => expect(result.current.friends.some((friend) => friend.id === "friend")).toBe(false));
   });
 
   it("atualiza os avatares sociais quando o perfil de um amigo muda", async () => {
-    let handler: ((type: string, data: Record<string, unknown>) => void) | undefined;
-    subscribeSocialEvents.mockImplementation(async (onEvent: (type: string, data: Record<string, unknown>) => void) => {
+    let handler: ((event: SocialEvent) => void) | undefined;
+    subscribeSocialEvents.mockImplementation(async (onEvent: (event: SocialEvent) => void) => {
       handler = onEvent;
     });
     const { result } = renderHook(() => useSocialState());
     await waitFor(() => expect(result.current.friends).toHaveLength(1));
 
-    act(() => handler?.("PROFILE_UPDATED", {
+    act(() => handler?.({ type: "PROFILE_UPDATED", data: {
       userId: "friend", fullName: "Friend Updated", username: "friend-updated", profilePicture: "/api/media/new-avatar",
-    }));
+    } }));
 
     await waitFor(() => expect(result.current.friends[0]?.avatarUrl).toBe("/api/media/new-avatar"));
     expect(result.current.friends[0]?.name).toBe("Friend Updated");

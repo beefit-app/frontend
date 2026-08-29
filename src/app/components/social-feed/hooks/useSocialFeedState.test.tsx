@@ -47,8 +47,8 @@ describe("useSocialFeedState", () => {
   });
 
   it("atualiza o contador quando recebe uma curtida por SSE", async () => {
-    subscribeSocialEvents.mockImplementation(async (onEvent: (type: string, data: Record<string, unknown>) => void) => {
-      onEvent("POST_LIKED", { postId: "p-1", totalLikes: 7 });
+    subscribeSocialEvents.mockImplementation(async (onEvent: (event: { type: "POST_LIKED"; data: { postId: string; totalLikes: number } }) => void) => {
+      onEvent({ type: "POST_LIKED", data: { postId: "p-1", totalLikes: 7 } });
     });
     const { result } = renderHook(() => useSocialFeedState());
     await waitFor(() => expect(result.current.posts[0]?.likes).toBe(7));
@@ -94,9 +94,9 @@ describe("useSocialFeedState", () => {
   });
 
   it("atualiza o avatar de posts e treinos ao vivo quando o perfil muda", async () => {
-    let handler: ((type: string, data: Record<string, unknown>) => void) | undefined;
+    let handler: ((event: { type: "PROFILE_UPDATED"; data: { userId: string; fullName: string; username: string; profilePicture: string | null } }) => void) | undefined;
     loadLive.mockResolvedValue([{ id: "friend-1", name: "Friend", initials: "FR", photoUrl: null, groups: [], elapsedSeconds: 0 }]);
-    subscribeSocialEvents.mockImplementation(async (onEvent: (type: string, data: Record<string, unknown>) => void) => {
+    subscribeSocialEvents.mockImplementation(async (onEvent: typeof handler) => {
       handler = onEvent;
     });
 
@@ -104,11 +104,13 @@ describe("useSocialFeedState", () => {
     await waitFor(() => expect(result.current.posts).toHaveLength(1));
     await waitFor(() => expect(result.current.liveFriends).toHaveLength(1));
 
-    act(() => handler?.("PROFILE_UPDATED", {
+    act(() => handler?.({ type: "PROFILE_UPDATED", data: {
       userId: "friend-1", fullName: "Friend Updated", username: "friend-updated", profilePicture: "/api/media/new-avatar",
-    }));
+    } }));
 
     await waitFor(() => expect(result.current.posts[0]?.authorAvatarUrl).toBe("/api/media/new-avatar"));
+    expect(result.current.posts[0]?.author).toBe("Friend Updated");
+    expect(result.current.posts[0]?.initials).toBe("FU");
     expect(result.current.liveFriends[0]?.photoUrl).toBe("/api/media/new-avatar");
   });
 });
