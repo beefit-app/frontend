@@ -14,6 +14,7 @@ import type { WorkoutPost, WorkoutPostAuthor } from "../types";
 import { getMuscleBadgeStyle } from "../utils";
 import { HexAvatar } from "./shared";
 import { AuthenticatedImage } from "../../AuthenticatedImage";
+import { DeveloperBadge } from "../../DeveloperBadge";
 
 interface WorkoutPostCardBaseProps {
   post: WorkoutPost;
@@ -164,17 +165,20 @@ export function WorkoutPostCardBase({
                 >
                   <HexAvatar src={author.avatarUrl} initials={author.initials} size={26} />
                   <div>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-montserrat)",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: "#ffffff",
-                        display: "block",
-                      }}
-                    >
-                      {author.name}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-montserrat)",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "#ffffff",
+                          display: "block",
+                        }}
+                      >
+                        {author.name}
+                      </span>
+                      {author.isDeveloper && <DeveloperBadge compact />}
+                    </div>
                     <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "rgba(255,255,255,0.45)" }}>
                       {post.date}
                     </span>

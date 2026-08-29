@@ -8,6 +8,7 @@ import { getProfileInitials } from "../utils";
 import { GoldDivider, HexAvatar, SectionLabel, StatCard, TrainingCalendar } from "./shared";
 import { WorkoutPostCard } from "./WorkoutPostCard";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
+import { DeveloperBadge } from "../../DeveloperBadge";
 
 export function ProfileView({
   profile,
@@ -227,9 +228,12 @@ export function ProfileView({
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 24 }}>
                   <HexAvatar src={profile.avatarUrl} initials={initials} size={96} />
                   <div style={{ textAlign: "center" }}>
-                    <h1 style={{ fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700, color: "#ffffff", margin: "0 0 4px" }}>
-                      {profile.displayName}
-                    </h1>
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 7, marginBottom: 4 }}>
+                      <h1 style={{ fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700, color: "#ffffff", margin: 0 }}>
+                        {profile.displayName}
+                      </h1>
+                      {profile.isDeveloper && <DeveloperBadge />}
+                    </div>
                     <span style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "#8A8A8A", fontWeight: 500 }}>
                       {profile.username}
                     </span>

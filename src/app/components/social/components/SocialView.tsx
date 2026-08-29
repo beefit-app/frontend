@@ -17,6 +17,7 @@ import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
 import { PublicProfilePage } from "../../profile/components/PublicProfileSheet";
 import { HexAvatar } from "../../workout-post";
+import { DeveloperBadge } from "../../DeveloperBadge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
 import type { useSocialState } from "../hooks/useSocialState";
 import type { FriendProfile, Hive, HiveRankingPeriod } from "../types";
@@ -113,9 +114,12 @@ function Notice({
 function PersonIdentity({ person }: { person: FriendProfile }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <HexAvatar initials={person.initials} size={36} />
+      <HexAvatar src={person.avatarUrl} initials={person.initials} size={36} />
       <div className="min-w-0">
-        <p className="truncate font-montserrat text-[13px] font-bold text-white">{person.name}</p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p className="truncate font-montserrat text-[13px] font-bold text-white">{person.name}</p>
+          {person.isDeveloper && <DeveloperBadge compact />}
+        </div>
         <p className="truncate font-inter text-[11px] font-medium text-[#8A8A8A]">{person.username}</p>
       </div>
     </div>
@@ -372,9 +376,12 @@ function RankingPanel({
             <span className={`w-6 font-montserrat text-[13px] font-bold ${index === 0 ? "text-[#FFD700]" : "text-[#8A8A8A]"}`}>
               {index === 0 ? <Crown size={14} color="#FFD700" /> : index + 1}
             </span>
-            <HexAvatar initials={member.initials} size={22} />
+            <HexAvatar src={member.avatarUrl} initials={member.initials} size={22} />
             <div className="min-w-0 flex-1">
-              <p className="truncate font-montserrat text-[12px] font-bold text-white">{member.name}</p>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <p className="truncate font-montserrat text-[12px] font-bold text-white">{member.name}</p>
+                {member.isDeveloper && <DeveloperBadge compact />}
+              </div>
               <p className="font-inter text-[10px] text-[#8A8A8A]">{member.honeys} Honeys</p>
             </div>
             <span className="font-montserrat text-[13px] font-bold text-[#FFD700]">{member.workouts}</span>
