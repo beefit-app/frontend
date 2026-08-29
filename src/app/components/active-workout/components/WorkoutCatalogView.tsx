@@ -87,7 +87,7 @@ export function WorkoutCatalogView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ padding: "32px 12px calc(96px + var(--ion-safe-area-bottom, 0px))", position: "relative", zIndex: 1 }}>
+      <IonGrid fixed style={{ padding: "32px 12px calc(16px + var(--ion-safe-area-bottom, 0px))", position: "relative", zIndex: 1 }}>
         <IonRow>
           <IonCol size="12">
             <button

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Body, { type ExtendedBodyPart, type Slug } from "react-muscle-highlighter";
 
 const SLUG_BY_API_VALUE: Record<string, Slug> = {
@@ -37,7 +37,6 @@ export function ExerciseMuscleMap({
   secondaryMuscles?: string[];
   compact?: boolean;
 }) {
-  const [side, setSide] = useState<"front" | "back">("front");
   const data = useMemo<readonly ExtendedBodyPart[]>(() => {
     const secondary = (secondaryMuscles ?? [])
       .map(toSlug)
@@ -61,29 +60,24 @@ export function ExerciseMuscleMap({
 
   return (
     <div className="grid justify-items-center gap-3" aria-label="Mapa muscular do exercício">
-      <div className="flex rounded-xl bg-black/20 p-1" role="group" aria-label="Lado do corpo">
-        {(["front", "back"] as const).map((value) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setSide(value)}
-            className={`min-h-9 rounded-lg px-4 font-montserrat text-xs font-bold transition ${side === value ? "bg-[#FFD700] text-black" : "text-[#A3A3A3]"}`}
-          >
-            {value === "front" ? "Frente" : "Costas"}
-          </button>
+      <div className="grid w-full grid-cols-2 gap-3 rounded-2xl bg-[#080808] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_28px_rgba(0,0,0,0.28)]">
+        {(["front", "back"] as const).map((side) => (
+          <div key={side} className="grid min-h-[250px] place-items-center overflow-hidden rounded-xl bg-[radial-gradient(circle_at_50%_38%,rgba(255,215,0,0.2),transparent_62%)]">
+            <Body
+              data={data}
+              side={side}
+              gender="male"
+              scale={0.4}
+              colors={["#806000", "#B88A00", "#E0AD00", "#FFE04B"]}
+              defaultFill="#525252"
+              border="none"
+              defaultStroke="none"
+            />
+            <span className="-mt-6 pb-3 font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#E2E2E2]">
+              {side === "front" ? "Frente" : "Costas"}
+            </span>
+          </div>
         ))}
-      </div>
-      <div className="flex min-h-[235px] w-full items-center justify-center overflow-hidden rounded-2xl bg-[radial-gradient(circle_at_50%_35%,rgba(255,215,0,0.11),transparent_64%)]">
-        <Body
-          data={data}
-          side={side}
-          gender="male"
-          scale={scale}
-          colors={["#6B5200", "#A98200", "#D4AD00", "#FFD700"]}
-          defaultFill="#242424"
-          border="none"
-          defaultStroke="none"
-        />
       </div>
       <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 font-inter text-xs text-[#B5B5B5]">
         <span className="inline-flex items-center gap-2"><i className="size-2 rounded-full bg-[#FFD700]" />Principal</span>
