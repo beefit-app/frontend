@@ -5,6 +5,7 @@ export const CURRENT_USER_MEMBER: HiveMember = {
   name: "Alex Ferreira",
   username: "@alexferreira",
   initials: "AF",
+  avatarUrl: null,
   workouts: 4,
   honeys: 15,
   isCurrentUser: true,
@@ -12,24 +13,24 @@ export const CURRENT_USER_MEMBER: HiveMember = {
 
 export const SOCIAL_INITIAL_STATE: SocialInitialState = {
   friends: [
-    { id: "rafa", name: "Rafa Mendes", username: "@rafamendes", initials: "RM", status: "friend" },
-    { id: "bianca", name: "Bianca Reis", username: "@biareis", initials: "BR", status: "friend" },
-    { id: "marina", name: "Marina Costa", username: "@maricosta", initials: "MC", status: "friend" },
+    { id: "rafa", name: "Rafa Mendes", username: "@rafamendes", initials: "RM", avatarUrl: null, status: "friend" },
+    { id: "bianca", name: "Bianca Reis", username: "@biareis", initials: "BR", avatarUrl: null, status: "friend" },
+    { id: "marina", name: "Marina Costa", username: "@maricosta", initials: "MC", avatarUrl: null, status: "friend" },
   ],
   friendRequests: [
     {
       id: "request-lia",
-      profile: { id: "lia", name: "Lia Rocha", username: "@liarocha", initials: "LR", status: "available" },
+      profile: { id: "lia", name: "Lia Rocha", username: "@liarocha", initials: "LR", avatarUrl: null, status: "available" },
     },
     {
       id: "request-joao",
-      profile: { id: "joao", name: "Joao Lima", username: "@joaolima", initials: "JL", status: "available" },
+      profile: { id: "joao", name: "Joao Lima", username: "@joaolima", initials: "JL", avatarUrl: null, status: "available" },
     },
   ],
   discoverablePeople: [
-    { id: "caio", name: "Caio Alves", username: "@caioalves", initials: "CA", status: "available" },
-    { id: "nina", name: "Nina Souza", username: "@ninasouza", initials: "NS", status: "available" },
-    { id: "pedro", name: "Pedro Sales", username: "@pedrosales", initials: "PS", status: "available" },
+    { id: "caio", name: "Caio Alves", username: "@caioalves", initials: "CA", avatarUrl: null, status: "available" },
+    { id: "nina", name: "Nina Souza", username: "@ninasouza", initials: "NS", avatarUrl: null, status: "available" },
+    { id: "pedro", name: "Pedro Sales", username: "@pedrosales", initials: "PS", avatarUrl: null, status: "available" },
   ],
   hives: [
     {
@@ -39,9 +40,9 @@ export const SOCIAL_INITIAL_STATE: SocialInitialState = {
       inviteCode: "FERRO-06",
       creatorId: "rafa",
       members: [
-        { id: "rafa", name: "Rafa Mendes", username: "@rafamendes", initials: "RM", workouts: 5, honeys: 19 },
+        { id: "rafa", name: "Rafa Mendes", username: "@rafamendes", initials: "RM", avatarUrl: null, workouts: 5, honeys: 19 },
         CURRENT_USER_MEMBER,
-        { id: "bianca", name: "Bianca Reis", username: "@biancareis", initials: "BR", workouts: 3, honeys: 12 },
+        { id: "bianca", name: "Bianca Reis", username: "@biancareis", initials: "BR", avatarUrl: null, workouts: 3, honeys: 12 },
       ],
     },
   ],
@@ -55,8 +56,8 @@ export const INVITABLE_HIVES: Hive[] = [
     inviteCode: "BEE-POWER",
     creatorId: "bianca",
     members: [
-      { id: "bianca", name: "Bianca Reis", username: "@biancareis", initials: "BR", workouts: 18, honeys: 24 },
-      { id: "marina", name: "Marina Costa", username: "@marinacosta", initials: "MC", workouts: 16, honeys: 20 },
+      { id: "bianca", name: "Bianca Reis", username: "@biancareis", initials: "BR", avatarUrl: null, workouts: 18, honeys: 24 },
+      { id: "marina", name: "Marina Costa", username: "@marinacosta", initials: "MC", avatarUrl: null, workouts: 16, honeys: 20 },
     ],
   },
   {
@@ -65,6 +66,6 @@ export const INVITABLE_HIVES: Hive[] = [
     period: "Semanal",
     inviteCode: "MEL-7D",
     creatorId: "lia",
-    members: [{ id: "lia", name: "Lia Rocha", username: "@liarocha", initials: "LR", workouts: 4, honeys: 8 }],
+    members: [{ id: "lia", name: "Lia Rocha", username: "@liarocha", initials: "LR", avatarUrl: null, workouts: 4, honeys: 8 }],
   },
 ];

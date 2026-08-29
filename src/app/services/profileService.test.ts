@@ -60,6 +60,7 @@ describe("profileService", () => {
       weight: 80.5,
       weeklyGoal: 4,
       ghostModeEnabled: false,
+      isDeveloper: false,
       cards: 12,
       streak: 9,
       totalWorkouts: 31,
