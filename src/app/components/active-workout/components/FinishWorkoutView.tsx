@@ -296,6 +296,7 @@ export function FinishWorkoutView({
                     label="Título do treino"
                     value={finishTitle}
                     placeholder="Ex: Push pesado de sexta"
+                    maxLength={80}
                     onChange={(event) => onTitleChange(event.target.value)}
                     error={finishTitleError}
                     icon={<ImageIcon size={18} />}

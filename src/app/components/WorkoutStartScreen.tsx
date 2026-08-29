@@ -481,7 +481,7 @@ export function WorkoutStartScreen({
     });
   }
 
-  function showGeneratedCardMessage(cardEvent: CardGeneratedEvent | null, summary: WorkoutCompletionSummary) {
+  function showGeneratedCardMessage(cardEvent: CardGeneratedEvent | null, summary: WorkoutCompletionResult) {
     const card = cardEvent ?? (summary.card
       ? {
           workoutId: summary.workoutId,
