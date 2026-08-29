@@ -141,7 +141,6 @@ export function WorkoutStartScreen({
 
   const isClosingWorkoutRef = useRef(false);
   const generatedCardEventRef = useRef<CardGeneratedEvent | null>(null);
-  const generatedCardResolverRef = useRef<((event: CardGeneratedEvent) => void) | null>(null);
   const finishRequestRef = useRef<Promise<WorkoutCompletionResult> | null>(null);
   const isPreparingFinishRef = useRef(false);
 
@@ -162,7 +161,6 @@ export function WorkoutStartScreen({
     activeWorkoutMemoryConfig = null;
     setActiveWorkoutConfigState(null);
     generatedCardEventRef.current = null;
-    generatedCardResolverRef.current = null;
   }
 
   async function clearActiveWorkoutLocally() {
@@ -219,10 +217,18 @@ export function WorkoutStartScreen({
       const result = await workoutService.finishWorkout(draft, (preparedDraft) =>
         persistPendingFinish(preparedDraft, startedAt, photoFileName),
       );
-      // Limpeza so no caminho de sucesso: se falhar, o rascunho tem de sobreviver
-      // para a proxima tentativa.
-      await removePersistedWorkoutPhoto(photoFileName);
-      await workoutDraftStorage.removeDraft(user?.id, draft.workoutId);
+      // A finalizacao ja foi confirmada pelo backend. Falhas de limpeza local nao
+      // podem transformar esse sucesso em um treino pendente na interface.
+      try {
+        await removePersistedWorkoutPhoto(photoFileName);
+      } catch {
+        // A limpeza sera tentada novamente na proxima abertura da tela.
+      }
+      try {
+        await workoutDraftStorage.removeDraft(user?.id, draft.workoutId);
+      } catch {
+        // A recuperacao consulta o backend e reconhece a sessao FINISHED.
+      }
       return result;
     })();
 
@@ -354,9 +360,8 @@ export function WorkoutStartScreen({
           const persistedSession = await workoutService.getWorkout(persisted.workoutId);
           if (!active) return;
           if (persistedSession.status === "FINISHED") {
-            await removePersistedWorkoutPhoto(persisted.photoFileName);
-            await workoutDraftStorage.clearDrafts(user?.id);
-            onActiveWorkoutChange?.(null);
+            await clearActiveWorkoutLocally();
+            showWorkoutCompletionMessage(persistedSession);
             onWorkoutCompleted?.(pendingDraft, persistedSession);
             showGeneratedCardMessage(null, persistedSession);
             return;
@@ -394,11 +399,11 @@ export function WorkoutStartScreen({
 
           const result = await finishPersistedDraft(pendingDraft, persistedStartedAt, persisted.photoFileName);
           if (!active) return;
-          const cardEvent = await waitForGeneratedCardEvent(pendingDraft.workoutId);
+          const cardEvent = getGeneratedCardEvent(pendingDraft.workoutId);
           // O treino acabou de ser finalizado: limpar so o estado local. Passar por
           // closeActiveWorkout tentaria cancelar uma sessao ja FINISHED.
+          showWorkoutCompletionMessage(result);
           await clearActiveWorkoutLocally();
-          setCompletionMessage(formatCompletionSummary(result));
           onWorkoutCompleted?.(pendingDraft, result);
           showGeneratedCardMessage(cardEvent, result);
           return;
@@ -461,8 +466,6 @@ export function WorkoutStartScreen({
       if (event.type !== "CARD_GENERATED" || event.data.workoutId !== workoutId) return;
 
       generatedCardEventRef.current = event.data;
-      generatedCardResolverRef.current?.(event.data);
-      generatedCardResolverRef.current = null;
     }, controller.signal);
 
     return () => {
@@ -470,15 +473,10 @@ export function WorkoutStartScreen({
     };
   }, [activeWorkoutConfig?.workoutId]);
 
-  function waitForGeneratedCardEvent(workoutId: string | null | undefined) {
-    if (!workoutId) return Promise.resolve<CardGeneratedEvent | null>(null);
-    if (generatedCardEventRef.current?.workoutId === workoutId) {
-      return Promise.resolve(generatedCardEventRef.current);
-    }
-
-    return new Promise<CardGeneratedEvent>((resolve) => {
-      generatedCardResolverRef.current = resolve;
-    });
+  function getGeneratedCardEvent(workoutId: string | null | undefined) {
+    return generatedCardEventRef.current?.workoutId === workoutId
+      ? generatedCardEventRef.current
+      : null;
   }
 
   function showGeneratedCardMessage(cardEvent: CardGeneratedEvent | null, summary: WorkoutCompletionResult) {
@@ -503,6 +501,17 @@ export function WorkoutStartScreen({
       description,
       duration: 6000,
     });
+  }
+
+  function showWorkoutCompletionMessage(summary: WorkoutCompletionResult) {
+    const message = formatCompletionSummary(summary);
+    setCompletionMessage(message);
+    toast.success("Treino finalizado!", { description: message, duration: 6000 });
+    if (summary.templateSaveError) {
+      toast.error("O treino foi finalizado, mas o template não foi salvo.", {
+        description: summary.templateSaveError,
+      });
+    }
   }
 
   async function handleStartWorkout() {
@@ -607,8 +616,8 @@ export function WorkoutStartScreen({
               await persistPendingFinish(draft, startedAt, photoFileName);
 
               const result = await finishPersistedDraft(draft, startedAt, photoFileName);
-              const cardEvent = await waitForGeneratedCardEvent(draft.workoutId);
-              setCompletionMessage(formatCompletionSummary(result));
+              const cardEvent = getGeneratedCardEvent(draft.workoutId);
+              showWorkoutCompletionMessage(result);
               await clearActiveWorkoutLocally();
               onWorkoutCompleted?.(draft, result);
               showGeneratedCardMessage(cardEvent, result);

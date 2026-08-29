@@ -80,6 +80,7 @@ export interface WorkoutCard {
 
 export interface WorkoutCompletionResult extends WorkoutCompletionSummary {
   card: WorkoutCard | null;
+  templateSaveError?: string;
 }
 
 export interface WorkoutRecoveryResult extends WorkoutCompletionResult {

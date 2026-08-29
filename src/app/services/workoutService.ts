@@ -458,21 +458,31 @@ export const workoutService = {
       { auth: true, headers: { "Idempotency-Key": draft.idempotencyKey } },
     );
 
+    const result = normalizeWorkoutResult(response);
+
     // shouldSaveTemplate nao existe no FinishWorkoutSnapshotRequestDTO; salvar o
-    // template e uma chamada separada.
+    // template e uma chamada separada. A conclusao ja foi persistida, portanto a
+    // falha desse efeito opcional nao pode fazer a UI tratar o treino como pendente.
     if (draft.shouldSaveTemplate) {
-      const createdTemplate = await apiClient.post<BackendTemplate>(
-        "/api/templates",
-        toTemplatePayload(preparedDraft),
-        { auth: true },
-      );
-      templatesCache = [
-        normalizeTemplate(createdTemplate),
-        ...templatesCache.filter((template) => template.id !== createdTemplate.id),
-      ];
+      try {
+        const createdTemplate = await apiClient.post<BackendTemplate>(
+          "/api/templates",
+          toTemplatePayload(preparedDraft),
+          { auth: true },
+        );
+        templatesCache = [
+          normalizeTemplate(createdTemplate),
+          ...templatesCache.filter((template) => template.id !== createdTemplate.id),
+        ];
+      } catch (error) {
+        return {
+          ...result,
+          templateSaveError: error instanceof Error ? error.message : "Não foi possível salvar o template.",
+        };
+      }
     }
 
-    return normalizeWorkoutResult(response);
+    return result;
   },
 
   async getWorkout(workoutId: string): Promise<WorkoutRecoveryResult> {

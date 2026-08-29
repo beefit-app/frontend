@@ -114,6 +114,20 @@ describe("workoutService.finishWorkout", () => {
     );
   });
 
+  it("confirma o treino quando salvar o template falha", async () => {
+    const { apiClient } = await import("./apiClient");
+    vi.mocked(apiClient.post)
+      .mockResolvedValueOnce(finishedSession)
+      .mockRejectedValueOnce(new Error("Template indisponível"));
+
+    const { workoutService } = await import("./workoutService");
+
+    await expect(workoutService.finishWorkout(createDraft(true))).resolves.toMatchObject({
+      workoutId: "workout-1",
+      templateSaveError: "Template indisponível",
+    });
+  });
+
   it("reenvia corpo identico na retomada, para o backend tratar como repeticao", async () => {
     const { apiClient } = await import("./apiClient");
     vi.mocked(apiClient.post).mockResolvedValue(finishedSession);
