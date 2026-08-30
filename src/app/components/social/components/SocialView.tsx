@@ -3,6 +3,7 @@ import {
   Copy,
   Crown,
   Ellipsis,
+  Hexagon,
   Plus,
   Search,
   Trophy,
@@ -23,20 +24,14 @@ import type { useSocialState } from "../hooks/useSocialState";
 import type { FriendProfile, Hive, HiveRankingPeriod } from "../types";
 
 type SocialState = ReturnType<typeof useSocialState>;
-const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
-function HiveIcon({ active = false, size = 17 }: { active?: boolean; size?: number }) {
+function HiveIcon({ active = false, size = 16 }: { active?: boolean; size?: number }) {
   return (
-    <span
-      aria-hidden="true"
-      style={{
-        display: "inline-block",
-        width: size,
-        height: Math.round(size * 1.14),
-        clipPath: HEX_CLIP,
-        background: active ? "#0A0A0A" : "#FFD700",
-        opacity: active ? 1 : 0.92,
-      }}
+    <Hexagon
+      size={size}
+      strokeWidth={2}
+      color={active ? "#0A0A0A" : "#FFD700"}
+      style={{ display: "inline-block", flexShrink: 0 }}
     />
   );
 }
@@ -672,9 +667,34 @@ export function SocialView({
     );
   }
 
+  const tabTouchStartX = useRef(0);
+  const tabTouchStartY = useRef(0);
+
+  function handleTabTouchStart(e: React.TouchEvent) {
+    tabTouchStartX.current = e.touches[0].clientX;
+    tabTouchStartY.current = e.touches[0].clientY;
+  }
+
+  function handleTabTouchEnd(e: React.TouchEvent) {
+    const diffX = e.changedTouches[0].clientX - tabTouchStartX.current;
+    const diffY = e.changedTouches[0].clientY - tabTouchStartY.current;
+    if (Math.abs(diffX) > 48 && Math.abs(diffX) > Math.abs(diffY) * 1.3) {
+      if (diffX < 0 && state.activeSection === "friends") {
+        state.setActiveSection("hives");
+      } else if (diffX > 0 && state.activeSection === "hives") {
+        state.setActiveSection("friends");
+      }
+    }
+  }
+
   return (
     <PageBackground>
-      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-7">
+      <IonGrid
+        fixed
+        className="relative z-10 px-3 pb-8 pt-7"
+        onTouchStart={handleTabTouchStart}
+        onTouchEnd={handleTabTouchEnd}
+      >
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <header className="relative mb-6">
