@@ -48,7 +48,7 @@ export function WorkoutPostCardBase({
 
   function handleCardTap() {
     const now = Date.now();
-    if (now - lastTapRef.current < 320) {
+    if (now - lastTapRef.current < 380 && now - lastTapRef.current > 0) {
       triggerLike();
       lastTapRef.current = 0;
     } else {
@@ -92,7 +92,7 @@ export function WorkoutPostCardBase({
       const diff = event.changedTouches[0].clientX - touchStartX.current;
       if (diff < -48) setShowExercises(true);
       else if (diff > 48) setShowExercises(false);
-      else if (Math.abs(diff) < 10) handleCardTap();
+      else if (Math.abs(diff) <= 24) handleCardTap();
     },
     onMouseDown: (event: MouseEvent) => {
       touchStartX.current = event.clientX;
