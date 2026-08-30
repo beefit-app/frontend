@@ -20,7 +20,7 @@ export const ACTIVE_WORKOUT_SLIDE_STYLE: React.CSSProperties = {
   display: "flex",
   justifyContent: "center",
   alignItems: "stretch",
-  minHeight: 340,
+  minHeight: 440,
   boxSizing: "border-box",
 };
 

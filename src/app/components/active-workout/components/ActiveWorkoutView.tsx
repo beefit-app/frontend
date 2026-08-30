@@ -611,13 +611,15 @@ export function ActiveWorkoutView({
               ))}
 
               <div style={ACTIVE_WORKOUT_SLIDE_STYLE}>
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="beefit-tap-target"
                   onClick={onOpenCatalog}
                   style={{
                     ...ACTIVE_WORKOUT_CARD_STYLE,
                     height: "100%",
-                    border: "1px dashed #FFD700",
+                    border: "2px dashed rgba(255,215,0,0.6)",
                     background: "rgba(255,215,0,0.12)",
                     borderRadius: 24,
                     padding: 22,
@@ -630,6 +632,7 @@ export function ActiveWorkoutView({
                     fontSize: 18,
                     fontWeight: 700,
                     cursor: "pointer",
+                    boxSizing: "border-box",
                   }}
                 >
                   <div
@@ -655,7 +658,7 @@ export function ActiveWorkoutView({
                       Abra o catálogo, navegue pelas abas musculares e escolha o próximo exercício.
                     </span>
                   </div>
-                </button>
+                </div>
               </div>
             </div>
           </IonCol>
