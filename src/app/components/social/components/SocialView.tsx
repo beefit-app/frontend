@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion as Motion } from "motion/react";
-import { forwardRef, useEffect, useState, type ReactNode } from "react";
+import { forwardRef, useEffect, useRef, useState, type ReactNode } from "react";
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
@@ -678,7 +678,7 @@ export function SocialView({
   function handleTabTouchEnd(e: React.TouchEvent) {
     const diffX = e.changedTouches[0].clientX - tabTouchStartX.current;
     const diffY = e.changedTouches[0].clientY - tabTouchStartY.current;
-    if (Math.abs(diffX) > 48 && Math.abs(diffX) > Math.abs(diffY) * 1.3) {
+    if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
       if (diffX < 0 && state.activeSection === "friends") {
         state.setActiveSection("hives");
       } else if (diffX > 0 && state.activeSection === "hives") {
