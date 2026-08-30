@@ -297,8 +297,28 @@ export function ActiveWorkoutView({
                   style={ACTIVE_WORKOUT_SLIDE_STYLE}
                 >
                   <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)" style={{ ...ACTIVE_WORKOUT_CARD_STYLE, position: "relative", overflow: "hidden" }}>
-                    {flippedExerciseId !== exercise.id ? (
-                      <div style={{ display: "grid", gap: 14, height: "100%", gridTemplateRows: "auto minmax(0, 1fr) auto", alignContent: "start" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr",
+                        gridTemplateRows: "1fr",
+                        height: "100%",
+                      }}
+                    >
+                      <div
+                        style={{
+                          gridArea: "1 / 1",
+                          visibility: flippedExerciseId === exercise.id ? "hidden" : "visible",
+                          opacity: flippedExerciseId === exercise.id ? 0 : 1,
+                          transition: "opacity 180ms ease-out, visibility 180ms ease-out",
+                          pointerEvents: flippedExerciseId === exercise.id ? "none" : "auto",
+                          display: "grid",
+                          gap: 14,
+                          height: "100%",
+                          gridTemplateRows: "auto minmax(0, 1fr) auto",
+                          alignContent: "start",
+                        }}
+                      >
                         <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
                           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
                             <button
@@ -485,102 +505,110 @@ export function ActiveWorkoutView({
                           </BeeButton>
                         </div>
                       </div>
-                    ) : (() => {
-                      const catalogItem = workoutService.getCatalogItemById(exercise.catalogId);
-                      const primaryMuscles = exercise.primaryAnatomicalMuscles?.length
-                        ? exercise.primaryAnatomicalMuscles
-                        : catalogItem?.primaryAnatomicalMuscles;
-                      const secondaryMuscles = exercise.secondaryAnatomicalMuscles?.length
-                        ? exercise.secondaryAnatomicalMuscles
-                        : catalogItem?.secondaryAnatomicalMuscles;
-                      const anatomicalMuscles = exercise.anatomicalMuscles?.length
-                        ? exercise.anatomicalMuscles
-                        : catalogItem?.anatomicalMuscles;
-                      const history = historyState.kind === "loaded" ? historyState.history : null;
 
-                      return (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 10,
-                            animation: "fade-in 180ms ease-out",
-                            paddingBottom: 2,
-                          }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => setFlippedExerciseId(null)}
-                            className="beefit-tap-target"
+                      {(() => {
+                        const catalogItem = workoutService.getCatalogItemById(exercise.catalogId);
+                        const primaryMuscles = exercise.primaryAnatomicalMuscles?.length
+                          ? exercise.primaryAnatomicalMuscles
+                          : catalogItem?.primaryAnatomicalMuscles;
+                        const secondaryMuscles = exercise.secondaryAnatomicalMuscles?.length
+                          ? exercise.secondaryAnatomicalMuscles
+                          : catalogItem?.secondaryAnatomicalMuscles;
+                        const anatomicalMuscles = exercise.anatomicalMuscles?.length
+                          ? exercise.anatomicalMuscles
+                          : catalogItem?.anatomicalMuscles;
+                        
+                        const isFlipped = flippedExerciseId === exercise.id;
+                        const history = (isFlipped && historyState.kind === "loaded") ? historyState.history : null;
+
+                        return (
+                          <div
                             style={{
-                              border: "none",
-                              padding: 0,
-                              background: "transparent",
-                              color: "#FFFFFF",
-                              cursor: "pointer",
-                              display: "grid",
-                              gap: 2,
-                              textAlign: "left",
-                              minWidth: 0,
+                              gridArea: "1 / 1",
+                              visibility: isFlipped ? "visible" : "hidden",
+                              opacity: isFlipped ? 1 : 0,
+                              transition: "opacity 180ms ease-out, visibility 180ms ease-out",
+                              pointerEvents: isFlipped ? "auto" : "none",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 10,
+                              paddingBottom: 2,
                             }}
-                            aria-label={`Voltar às séries de ${exercise.name}`}
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#A3A3A3", fontFamily: "var(--font-inter)", fontSize: 12 }}>
-                              <ChevronLeft size={14} />
-                              <span>Voltar às séries</span>
-                            </div>
-                            <span
-                              className="line-clamp-2"
-                              style={{ fontFamily: "var(--font-montserrat)", fontSize: 20, fontWeight: 700 }}
+                            <button
+                              type="button"
+                              onClick={() => setFlippedExerciseId(null)}
+                              className="beefit-tap-target"
+                              style={{
+                                border: "none",
+                                padding: 0,
+                                background: "transparent",
+                                color: "#FFFFFF",
+                                cursor: "pointer",
+                                display: "grid",
+                                gap: 2,
+                                textAlign: "left",
+                                minWidth: 0,
+                              }}
+                              aria-label={`Voltar às séries de ${exercise.name}`}
                             >
-                              {exercise.name}
-                            </span>
-                          </button>
-
-                          <ExerciseMuscleMap
-                            muscles={anatomicalMuscles}
-                            primaryMuscles={primaryMuscles}
-                            secondaryMuscles={secondaryMuscles}
-                          />
-
-                          <SurfaceCard border="#262626" background="rgba(255,255,255,0.02)">
-                            <div style={{ display: "grid", gap: 10 }}>
-                              <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700 }}>
-                                Histórico recente
-                              </span>
-
-                              <div style={{ display: "grid", gap: 6 }}>
-                                {[
-                                  { label: "Última vez", value: formatDate(history?.lastPerformedAt) },
-                                  { label: "Melhor desempenho", value: formatHistoryPerformance(history?.bestWeightKg, history?.bestReps) },
-                                  { label: "Último desempenho", value: formatHistoryPerformance(history?.lastWeightKg, history?.lastReps) },
-                                ].map((item) => (
-                                  <div
-                                    key={item.label}
-                                    style={{
-                                      borderRadius: 12,
-                                      background: "rgba(255,255,255,0.03)",
-                                      padding: "8px 12px",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "space-between",
-                                      gap: 8,
-                                    }}
-                                  >
-                                    <span style={{ color: "#A3A3A3", fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600 }}>
-                                      {item.label}
-                                    </span>
-                                    <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 13, fontWeight: 700 }}>
-                                      {historyState.kind === "loading" ? "…" : item.value}
-                                    </span>
-                                  </div>
-                                ))}
+                              <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#A3A3A3", fontFamily: "var(--font-inter)", fontSize: 12 }}>
+                                <ChevronLeft size={14} />
+                                <span>Voltar às séries</span>
                               </div>
-                            </div>
-                          </SurfaceCard>
-                        </div>
-                      );
-                    })()}
+                              <span
+                                className="line-clamp-2"
+                                style={{ fontFamily: "var(--font-montserrat)", fontSize: 20, fontWeight: 700 }}
+                              >
+                                {exercise.name}
+                              </span>
+                            </button>
+
+                            <ExerciseMuscleMap
+                              muscles={anatomicalMuscles}
+                              primaryMuscles={primaryMuscles}
+                              secondaryMuscles={secondaryMuscles}
+                            />
+
+                            <SurfaceCard border="#262626" background="rgba(255,255,255,0.02)">
+                              <div style={{ display: "grid", gap: 10 }}>
+                                <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700 }}>
+                                  Histórico recente
+                                </span>
+
+                                <div style={{ display: "grid", gap: 6 }}>
+                                  {[
+                                    { label: "Última vez", value: formatDate(history?.lastPerformedAt) },
+                                    { label: "Melhor desempenho", value: formatHistoryPerformance(history?.bestWeightKg, history?.bestReps) },
+                                    { label: "Último desempenho", value: formatHistoryPerformance(history?.lastWeightKg, history?.lastReps) },
+                                  ].map((item) => (
+                                    <div
+                                      key={item.label}
+                                      style={{
+                                        borderRadius: 12,
+                                        background: "rgba(255,255,255,0.03)",
+                                        padding: "8px 12px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 8,
+                                      }}
+                                    >
+                                      <span style={{ color: "#A3A3A3", fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600 }}>
+                                        {item.label}
+                                      </span>
+                                      <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 13, fontWeight: 700 }}>
+                                        {isFlipped && historyState.kind === "loading" ? "…" : item.value}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </SurfaceCard>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </SurfaceCard>
                 </div>
               ))}
