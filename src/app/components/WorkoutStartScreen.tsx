@@ -750,7 +750,7 @@ export function WorkoutStartScreen({
   function handleTabTouchEnd(e: React.TouchEvent) {
     const diffX = e.changedTouches[0].clientX - tabTouchStartX.current;
     const diffY = e.changedTouches[0].clientY - tabTouchStartY.current;
-    if (Math.abs(diffX) > 48 && Math.abs(diffX) > Math.abs(diffY) * 1.3) {
+    if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
       if (diffX < 0 && startMode === "groups") {
         setStartMode("templates");
         setSelectedGroups([]);
