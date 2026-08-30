@@ -273,8 +273,8 @@ export function ActiveWorkoutView({
           </IonRow>
         )}
 
-        <IonRow style={{ flex: "1 1 0%", minHeight: 0, marginTop: 12, marginBottom: 12 }}>
-          <IonCol size="12" style={{ position: "relative", height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <IonRow style={{ flex: "1 1 auto", marginTop: 12, marginBottom: 12 }}>
+          <IonCol size="12" style={{ position: "relative", display: "flex", flexDirection: "column" }}>
             <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
@@ -285,8 +285,6 @@ export function ActiveWorkoutView({
                 overflowX: "auto",
                 padding: "4px 2px 8px",
                 scrollSnapType: "x proximity",
-                height: "100%",
-                minHeight: 0,
                 flex: 1,
               }}
             >
@@ -299,194 +297,195 @@ export function ActiveWorkoutView({
                   style={ACTIVE_WORKOUT_SLIDE_STYLE}
                 >
                   <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)" style={{ ...ACTIVE_WORKOUT_CARD_STYLE, position: "relative", overflow: "hidden" }}>
-                    <div style={{ display: "grid", gap: 14, height: "100%", gridTemplateRows: "auto minmax(0, 1fr) auto", alignContent: "start" }}>
-                      <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-                          <button
-                            type="button"
-                            onClick={() => setFlippedExerciseId(exercise.id)}
-                            aria-label={`Ver mapa muscular e histórico de ${exercise.name}`}
-                            style={{ display: "grid", gap: 8, minWidth: 0, border: "none", padding: 0, background: "transparent", textAlign: "left", cursor: "pointer" }}
-                          >
-                            <span
-                              className="line-clamp-2"
-                              style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}
-                            >
-                              {exercise.name}
-                            </span>
-                            <MuscleTag group={exercise.group} />
-                            <span style={{ color: "#737373", fontFamily: "var(--font-inter)", fontSize: 12 }}>
-                              Toque para ver mapa e histórico
-                            </span>
-                          </button>
-                          <Sheet
-                            open={activeExerciseMenuId === exercise.id}
-                            onOpenChange={(open) => {
-                              if (!open && activeExerciseMenuId === exercise.id) onToggleExerciseMenu(exercise.id);
-                            }}
-                          >
-                            <EllipsisActionButton
+                    {flippedExerciseId !== exercise.id ? (
+                      <div style={{ display: "grid", gap: 14, height: "100%", gridTemplateRows: "auto minmax(0, 1fr) auto", alignContent: "start" }}>
+                        <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
+                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                            <button
                               type="button"
-                              onClick={() => onToggleExerciseMenu(exercise.id)}
-                              aria-label={`Abrir ações de ${exercise.name}`}
-                            />
-                            <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
-                              <SheetHeader className="px-0 pb-3 pt-3 text-left">
-                                <SheetTitle className="font-montserrat text-[20px] font-bold text-white">{exercise.name}</SheetTitle>
-                                <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
-                                  Escolha uma ação para este exercício.
-                                </SheetDescription>
-                              </SheetHeader>
-                              <div className="flex flex-col gap-2.5">
-                                <BeeButton variant="red" fullWidth onClick={() => onRemoveExercise(exercise.id)}>
-                                  Remover exercício
-                                </BeeButton>
-                              </div>
-                            </SheetContent>
-                          </Sheet>
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          borderRadius: 22,
-                          border: "1px solid #262626",
-                          background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
-                          padding: 14,
-                          display: "grid",
-                          gridTemplateRows: "auto minmax(0, 1fr)",
-                          gap: 12,
-                          minHeight: 0,
-                          alignContent: "start",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "32px minmax(0, 1fr)",
-                            alignItems: "center",
-                            columnGap: 10,
-                            color: "#8F8F8F",
-                            fontFamily: "var(--font-inter)",
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: "0.08em",
-                            textTransform: "uppercase",
-                            position: "sticky",
-                            top: 0,
-                            zIndex: 1,
-                          }}
-                        >
-                          <span style={{ width: 32, flexShrink: 0, paddingLeft: 8 }}>#</span>
-                          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", alignItems: "center", gap: 10 }}>
-                            <span style={{ paddingLeft: 16 }}>Peso</span>
-                            <span style={{ paddingLeft: 16 }}>Reps</span>
+                              onClick={() => setFlippedExerciseId(exercise.id)}
+                              aria-label={`Ver mapa muscular e histórico de ${exercise.name}`}
+                              style={{ display: "grid", gap: 8, minWidth: 0, border: "none", padding: 0, background: "transparent", textAlign: "left", cursor: "pointer" }}
+                            >
+                              <span
+                                className="line-clamp-2"
+                                style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}
+                              >
+                                {exercise.name}
+                              </span>
+                              <MuscleTag group={exercise.group} />
+                              <span style={{ color: "#737373", fontFamily: "var(--font-inter)", fontSize: 12 }}>
+                                Toque para ver mapa e histórico
+                              </span>
+                            </button>
+                            <Sheet
+                              open={activeExerciseMenuId === exercise.id}
+                              onOpenChange={(open) => {
+                                if (!open && activeExerciseMenuId === exercise.id) onToggleExerciseMenu(exercise.id);
+                              }}
+                            >
+                              <EllipsisActionButton
+                                type="button"
+                                onClick={() => onToggleExerciseMenu(exercise.id)}
+                                aria-label={`Abrir ações de ${exercise.name}`}
+                              />
+                              <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+                                <SheetHeader className="px-0 pb-3 pt-3 text-left">
+                                  <SheetTitle className="font-montserrat text-[20px] font-bold text-white">{exercise.name}</SheetTitle>
+                                  <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
+                                    Escolha uma ação para este exercício.
+                                  </SheetDescription>
+                                </SheetHeader>
+                                <div className="flex flex-col gap-2.5">
+                                  <BeeButton variant="red" fullWidth onClick={() => onRemoveExercise(exercise.id)}>
+                                    Remover exercício
+                                  </BeeButton>
+                                </div>
+                              </SheetContent>
+                            </Sheet>
                           </div>
                         </div>
 
                         <div
-                          ref={(node) => {
-                            seriesContainerRefs.current[exercise.id] = node;
-                          }}
                           style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "flex-start",
-                            gap: 10,
+                            borderRadius: 22,
+                            border: "1px solid #262626",
+                            background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
+                            padding: 14,
+                            display: "grid",
+                            gridTemplateRows: "auto minmax(0, 1fr)",
+                            gap: 12,
                             minHeight: 0,
-                            flex: 1,
-                            overflowY: "auto",
-                            paddingRight: 2,
-                            alignItems: "stretch",
+                            alignContent: "start",
                           }}
                         >
-                          {exercise.sets.map((set, setIndex) => (
-                            <div key={set.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <span
-                                style={{
-                                  width: 32,
-                                  flexShrink: 0,
-                                  color: "#D4D4D4",
-                                  fontFamily: "var(--font-montserrat)",
-                                  fontSize: 16,
-                                  fontWeight: 700,
-                                  textAlign: "center",
-                                }}
-                              >
-                                {setIndex + 1}
-                              </span>
-
-                              <div
-                                style={{
-                                  flex: 1,
-                                  display: "grid",
-                                  gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-                                  gap: 10,
-                                  alignItems: "center",
-                                }}
-                              >
-                                <IonInput
-                                  type="number"
-                                  inputmode="decimal"
-                                  value={set.weight}
-                                  placeholder="kg"
-                                  onIonInput={(event) =>
-                                    onUpdateSet(exercise.id, set.id, "weight", String(event.detail.value ?? ""))
-                                  }
-                                  style={
-                                    {
-                                      "--background": "#111111",
-                                      "--border-radius": "18px",
-                                      "--padding-start": "16px",
-                                      "--padding-end": "16px",
-                                      minHeight: 56,
-                                      border: "none",
-                                      boxShadow: "none",
-                                      color: "#FFFFFF",
-                                      fontFamily: "var(--font-montserrat)",
-                                      fontSize: 16,
-                                      fontWeight: 700,
-                                    } as React.CSSProperties
-                                  }
-                                />
-
-                                <IonInput
-                                  type="number"
-                                  inputmode="numeric"
-                                  value={set.reps}
-                                  placeholder="reps"
-                                  onIonInput={(event) =>
-                                    onUpdateSet(exercise.id, set.id, "reps", String(event.detail.value ?? ""))
-                                  }
-                                  style={
-                                    {
-                                      "--background": "#111111",
-                                      "--border-radius": "18px",
-                                      "--padding-start": "16px",
-                                      "--padding-end": "16px",
-                                      minHeight: 56,
-                                      border: "none",
-                                      boxShadow: "none",
-                                      color: "#FFFFFF",
-                                      fontFamily: "var(--font-montserrat)",
-                                      fontSize: 16,
-                                      fontWeight: 700,
-                                    } as React.CSSProperties
-                                  }
-                                />
-                              </div>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "32px minmax(0, 1fr)",
+                              alignItems: "center",
+                              columnGap: 10,
+                              color: "#8F8F8F",
+                              fontFamily: "var(--font-inter)",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              letterSpacing: "0.08em",
+                              textTransform: "uppercase",
+                              position: "sticky",
+                              top: 0,
+                              zIndex: 1,
+                            }}
+                          >
+                            <span style={{ width: 32, flexShrink: 0, paddingLeft: 8 }}>#</span>
+                            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", alignItems: "center", gap: 10 }}>
+                              <span style={{ paddingLeft: 16 }}>Peso</span>
+                              <span style={{ paddingLeft: 16 }}>Reps</span>
                             </div>
-                          ))}
+                          </div>
+
+                          <div
+                            ref={(node) => {
+                              seriesContainerRefs.current[exercise.id] = node;
+                            }}
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "flex-start",
+                              gap: 10,
+                              minHeight: 0,
+                              flex: 1,
+                              overflowY: "auto",
+                              paddingRight: 2,
+                              alignItems: "stretch",
+                            }}
+                          >
+                            {exercise.sets.map((set, setIndex) => (
+                              <div key={set.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <span
+                                  style={{
+                                    width: 32,
+                                    flexShrink: 0,
+                                    color: "#D4D4D4",
+                                    fontFamily: "var(--font-montserrat)",
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                    textAlign: "center",
+                                  }}
+                                >
+                                  {setIndex + 1}
+                                </span>
+
+                                <div
+                                  style={{
+                                    flex: 1,
+                                    display: "grid",
+                                    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+                                    gap: 10,
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <IonInput
+                                    type="number"
+                                    inputmode="decimal"
+                                    value={set.weight}
+                                    placeholder="kg"
+                                    onIonInput={(event) =>
+                                      onUpdateSet(exercise.id, set.id, "weight", String(event.detail.value ?? ""))
+                                    }
+                                    style={
+                                      {
+                                        "--background": "#111111",
+                                        "--border-radius": "18px",
+                                        "--padding-start": "16px",
+                                        "--padding-end": "16px",
+                                        minHeight: 56,
+                                        border: "none",
+                                        boxShadow: "none",
+                                        color: "#FFFFFF",
+                                        fontFamily: "var(--font-montserrat)",
+                                        fontSize: 16,
+                                        fontWeight: 700,
+                                      } as React.CSSProperties
+                                    }
+                                  />
+
+                                  <IonInput
+                                    type="number"
+                                    inputmode="numeric"
+                                    value={set.reps}
+                                    placeholder="reps"
+                                    onIonInput={(event) =>
+                                      onUpdateSet(exercise.id, set.id, "reps", String(event.detail.value ?? ""))
+                                    }
+                                    style={
+                                      {
+                                        "--background": "#111111",
+                                        "--border-radius": "18px",
+                                        "--padding-start": "16px",
+                                        "--padding-end": "16px",
+                                        minHeight: 56,
+                                        border: "none",
+                                        boxShadow: "none",
+                                        color: "#FFFFFF",
+                                        fontFamily: "var(--font-montserrat)",
+                                        fontSize: 16,
+                                        fontWeight: 700,
+                                      } as React.CSSProperties
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div style={{ paddingTop: 6 }}>
+                          <BeeButton variant="secondary" size="sm" onClick={() => onAddSet(exercise.id)}>
+                            Adicionar Série
+                          </BeeButton>
                         </div>
                       </div>
-
-                      <div style={{ paddingTop: 6 }}>
-                        <BeeButton variant="secondary" size="sm" onClick={() => onAddSet(exercise.id)}>
-                          Adicionar Série
-                        </BeeButton>
-                      </div>
-                    </div>
-                    {flippedExerciseId === exercise.id && (() => {
+                    ) : (() => {
                       const catalogItem = workoutService.getCatalogItemById(exercise.catalogId);
                       const primaryMuscles = exercise.primaryAnatomicalMuscles?.length
                         ? exercise.primaryAnatomicalMuscles
@@ -502,16 +501,11 @@ export function ActiveWorkoutView({
                       return (
                         <div
                           style={{
-                            position: "absolute",
-                            inset: 0,
-                            zIndex: 2,
                             display: "flex",
                             flexDirection: "column",
                             gap: 10,
-                            padding: "14px 14px 16px",
-                            background: "rgba(20,20,20,0.99)",
                             animation: "fade-in 180ms ease-out",
-                            overflowY: "auto",
+                            paddingBottom: 2,
                           }}
                         >
                           <button

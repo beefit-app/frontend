@@ -20,7 +20,6 @@ export const ACTIVE_WORKOUT_SLIDE_STYLE: React.CSSProperties = {
   display: "flex",
   justifyContent: "center",
   alignItems: "stretch",
-  height: "100%",
   minHeight: 340,
   boxSizing: "border-box",
 };
@@ -28,5 +27,4 @@ export const ACTIVE_WORKOUT_SLIDE_STYLE: React.CSSProperties = {
 export const ACTIVE_WORKOUT_CARD_STYLE: React.CSSProperties = {
   width: "calc(100% - 24px)",
   maxWidth: "clamp(348px, 82vw, 480px)",
-  height: "100%",
 };
