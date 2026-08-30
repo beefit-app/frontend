@@ -102,53 +102,136 @@ export function FinishWorkoutView({
                 onChange={(event) => onPhotoChange(event.target.files?.[0] ?? null)}
               />
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (!Capacitor.isNativePlatform()) {
-                    finishPhotoInputRef.current?.click();
-                    return;
-                  }
-                  void captureWorkoutPhoto(CameraSource.Prompt).then((file) => onPhotoChange(file));
-                }}
-                style={{
-                  width: "100%",
-                  minHeight: 220,
-                  borderRadius: 24,
-                  border: "1px dashed #FFD700",
-                  background: finishPhotoUrl
-                    ? `linear-gradient(rgba(10,10,10,0.18), rgba(10,10,10,0.5)), url(${finishPhotoUrl}) center / cover`
-                    : "rgba(255,215,0,0.08)",
-                  padding: 22,
-                  display: "grid",
-                  placeItems: "center",
-                  cursor: "pointer",
-                  textAlign: "center",
-                }}
-              >
-                {finishPhotoUrl ? (
+              {finishPhotoUrl ? (
+                <div
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    minHeight: 230,
+                    borderRadius: 24,
+                    overflow: "hidden",
+                    border: "1px solid rgba(255,215,0,0.3)",
+                    background: `url(${finishPhotoUrl}) center / cover no-repeat`,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "flex-end",
+                    padding: 16,
+                  }}
+                >
                   <div
                     style={{
-                      borderRadius: 999,
-                      background: "rgba(10,10,10,0.72)",
-                      border: "1px solid rgba(255,215,0,0.22)",
-                      padding: "10px 14px",
-                      color: "#FFFFFF",
-                      fontFamily: "var(--font-inter)",
-                      fontSize: 13,
-                      fontWeight: 700,
+                      position: "absolute",
+                      inset: 0,
+                      background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.75) 100%)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "relative",
+                      zIndex: 1,
+                      display: "flex",
+                      gap: 10,
+                      justifyContent: "center",
                     }}
                   >
-                    Trocar foto
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!Capacitor.isNativePlatform()) {
+                          finishPhotoInputRef.current?.click();
+                          return;
+                        }
+                        void captureWorkoutPhoto(CameraSource.Camera).then((file) => file && onPhotoChange(file));
+                      }}
+                      style={{
+                        borderRadius: 14,
+                        background: "rgba(20,20,20,0.85)",
+                        border: "1px solid rgba(255,215,0,0.3)",
+                        padding: "10px 14px",
+                        color: "#FFD700",
+                        fontFamily: "var(--font-montserrat)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Camera size={15} />
+                      Nova foto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!Capacitor.isNativePlatform()) {
+                          finishPhotoInputRef.current?.click();
+                          return;
+                        }
+                        void captureWorkoutPhoto(CameraSource.Photos).then((file) => file && onPhotoChange(file));
+                      }}
+                      style={{
+                        borderRadius: 14,
+                        background: "rgba(20,20,20,0.85)",
+                        border: "1px solid #404040",
+                        padding: "10px 14px",
+                        color: "#FFFFFF",
+                        fontFamily: "var(--font-montserrat)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <ImageIcon size={15} />
+                      Galeria
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onPhotoChange(null)}
+                      style={{
+                        borderRadius: 14,
+                        background: "rgba(239,68,68,0.15)",
+                        border: "1px solid rgba(239,68,68,0.35)",
+                        padding: "10px 14px",
+                        color: "#FCA5A5",
+                        fontFamily: "var(--font-montserrat)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Remover
+                    </button>
                   </div>
-                ) : (
-                  <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    borderRadius: 24,
+                    border: "1px dashed rgba(255,215,0,0.35)",
+                    background: "rgba(255,215,0,0.04)",
+                    padding: "24px 18px",
+                    display: "grid",
+                    placeItems: "center",
+                    textAlign: "center",
+                    gap: 16,
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 6, justifyItems: "center" }}>
                     <div
                       style={{
-                        width: 58,
-                        height: 58,
-                        borderRadius: 18,
-                        background: "rgba(255,215,0,0.14)",
+                        width: 52,
+                        height: 52,
+                        borderRadius: 16,
+                        background: "rgba(255,215,0,0.12)",
                         border: "1px solid rgba(255,228,77,0.25)",
                         display: "flex",
                         alignItems: "center",
@@ -158,17 +241,76 @@ export function FinishWorkoutView({
                     >
                       <Camera size={24} />
                     </div>
-                    <div style={{ display: "grid", gap: 6 }}>
-                      <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}>
-                        Adicionar foto do treino
-                      </span>
-                      <span style={{ color: "#A3A3A3", fontFamily: "var(--font-inter)", fontSize: 14, lineHeight: 1.6 }}>
-                        Mostre o pump, a academia ou algum momento da sessão.
-                      </span>
-                    </div>
+                    <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700 }}>
+                      Foto do treino
+                    </span>
+                    <span style={{ color: "#8A8A8A", fontFamily: "var(--font-inter)", fontSize: 13, maxWidth: 280, lineHeight: 1.45 }}>
+                      Mostre o pump, a academia ou um momento da sessão.
+                    </span>
                   </div>
-                )}
-              </button>
+
+                  <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 320 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!Capacitor.isNativePlatform()) {
+                          finishPhotoInputRef.current?.click();
+                          return;
+                        }
+                        void captureWorkoutPhoto(CameraSource.Camera).then((file) => file && onPhotoChange(file));
+                      }}
+                      style={{
+                        flex: 1,
+                        borderRadius: 14,
+                        background: "rgba(255,215,0,0.14)",
+                        border: "1px solid rgba(255,215,0,0.35)",
+                        padding: "12px 10px",
+                        color: "#FFD700",
+                        fontFamily: "var(--font-montserrat)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Camera size={16} />
+                      Tirar foto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!Capacitor.isNativePlatform()) {
+                          finishPhotoInputRef.current?.click();
+                          return;
+                        }
+                        void captureWorkoutPhoto(CameraSource.Photos).then((file) => file && onPhotoChange(file));
+                      }}
+                      style={{
+                        flex: 1,
+                        borderRadius: 14,
+                        background: "#1C1C1C",
+                        border: "1px solid #333333",
+                        padding: "12px 10px",
+                        color: "#FFFFFF",
+                        fontFamily: "var(--font-montserrat)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <ImageIcon size={16} />
+                      Galeria
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)">
                 <div style={{ display: "grid", gap: 18 }}>
