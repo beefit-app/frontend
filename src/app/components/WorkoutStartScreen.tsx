@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { IonCard, IonCardContent, IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 import { Check, Dumbbell, FolderKanban } from "lucide-react";
 import { ActiveWorkoutScreen } from "./ActiveWorkoutScreen";
-import { AnimatePresence, motion as Motion } from "motion/react";
 import { BeeButton } from "./BeeButton";
 import { PageBackground } from "./PageBackground";
+import { InteractiveTabPager } from "./ui/InteractiveTabPager";
 import { toast } from "sonner";
 import { useAuth } from "../auth/AuthContext";
 import { messages } from "../constants/messages";
@@ -144,8 +144,6 @@ export function WorkoutStartScreen({
   const generatedCardEventRef = useRef<CardGeneratedEvent | null>(null);
   const finishRequestRef = useRef<Promise<WorkoutCompletionResult> | null>(null);
   const isPreparingFinishRef = useRef(false);
-  const tabTouchStartX = useRef(0);
-  const tabTouchStartY = useRef(0);
 
   // Esta tela depende só da interface do service; quando a API entrar,
   // a troca deve acontecer na implementação do service, não aqui.
@@ -721,28 +719,9 @@ export function WorkoutStartScreen({
     );
   }
 
-  function handleTabTouchStart(e: React.TouchEvent) {
-    tabTouchStartX.current = e.touches[0].clientX;
-    tabTouchStartY.current = e.touches[0].clientY;
-  }
-
-  function handleTabTouchEnd(e: React.TouchEvent) {
-    const diffX = e.changedTouches[0].clientX - tabTouchStartX.current;
-    const diffY = e.changedTouches[0].clientY - tabTouchStartY.current;
-    if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
-      if (diffX < 0 && startMode === "groups") {
-        setStartMode("templates");
-        setSelectedGroups([]);
-      } else if (diffX > 0 && startMode === "templates") {
-        setStartMode("groups");
-        setSelectedTemplateId(null);
-      }
-    }
-  }
-
   return (
-    <PageBackground onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
-      <IonGrid fixed style={{ padding: "32px 12px 24px" }}>
+    <PageBackground className="min-h-full flex flex-col box-border">
+      <IonGrid fixed style={{ padding: "24px 12px 24px", minHeight: "100%", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
         <IonRow>
           <IonCol size="12">
             <div style={{ display: "grid", gap: 0 }}>
@@ -758,23 +737,23 @@ export function WorkoutStartScreen({
               >
                 Início do treino.
               </h1>
-              <IonText
+              <p
                 style={{
-                  marginTop: 8,
-                  color: "#B5B5B5",
+                  margin: "8px 0 0",
+                  color: "#A3A3A3",
                   fontFamily: "var(--font-inter)",
                   fontSize: 14,
                   lineHeight: 1.45,
                 }}
               >
-                Escolha os grupos musculares ou use um template salvo para começar.
-              </IonText>
+                Defina o foco do treino antes de começar.
+              </p>
             </div>
           </IonCol>
         </IonRow>
 
         {completionMessage && (
-          <IonRow className="mt-5">
+          <IonRow className="mt-4">
             <IonCol size="12">
               <IonCard
                 style={
@@ -797,16 +776,16 @@ export function WorkoutStartScreen({
           </IonRow>
         )}
 
-        <IonRow className="mt-5">
+        <IonRow className="mt-4">
           <IonCol size="12">
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
-                background: "#181818",
+                background: "#141414",
+                border: "1px solid #2D2D2D",
                 borderRadius: 16,
                 padding: 4,
-                border: "1px solid #2D2D2D",
                 gap: 4,
               }}
             >
@@ -866,143 +845,39 @@ export function WorkoutStartScreen({
           </IonCol>
         </IonRow>
 
-        <AnimatePresence mode="wait" initial={false}>
-          <Motion.div
-            key={startMode}
-            initial={{ opacity: 0, x: startMode === "templates" ? 20 : -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: startMode === "templates" ? -20 : 20 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
+        <div className="mt-5 w-full flex-1">
+          <InteractiveTabPager
+            activeIndex={startMode === "groups" ? 0 : 1}
+            onChangeIndex={(idx) => {
+              if (idx === 0) {
+                setStartMode("groups");
+                setSelectedTemplateId(null);
+              } else {
+                setStartMode("templates");
+                setSelectedGroups([]);
+              }
+            }}
           >
-            {startMode === "groups" && (
-              <IonRow className="mt-5">
-                <IonCol size="12">
-                  <IonCard
-                    style={
-                      {
-                        "--background": "rgba(26,26,26,0.92)",
-                        "--color": "#FFFFFF",
-                        "--border-radius": "24px",
-                        margin: 0,
-                        border: "1px solid #2D2D2D",
-                        boxShadow: "0 20px 60px rgba(0,0,0,0.24)",
-                      } as React.CSSProperties
-                    }
-                  >
-                    <IonCardContent style={{ padding: 16 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                        <HexIcon
-                          icon={<Dumbbell size={18} />}
-                          background="rgba(255,215,0,0.12)"
-                          color="#FFD700"
-                          border="1px solid rgba(255,215,0,0.2)"
-                        />
-                        <div>
-                          <div
-                            style={{
-                              color: "#FFFFFF",
-                              fontFamily: "var(--font-montserrat)",
-                              fontSize: 18,
-                              fontWeight: 700,
-                            }}
-                          >
-                            Grupos musculares
-                          </div>
-                          <IonText
-                            style={{
-                              color: "#A3A3A3",
-                              fontFamily: "var(--font-inter)",
-                              fontSize: 13,
-                            }}
-                          >
-                            Selecione um ou mais focos para iniciar o treino.
-                          </IonText>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-3">
-                        {muscleGroups.map((group) => {
-                          const selected = selectedGroups.includes(group.id);
-                          return (
-                            <button
-                              key={group.id}
-                              type="button"
-                              onClick={() => toggleGroup(group.id)}
-                              style={{
-                                borderRadius: 16,
-                                padding: "16px",
-                                textAlign: "left",
-                                border: `1px solid ${selected ? group.accent : "#2D2D2D"}`,
-                                background: selected ? group.glow : "rgba(16,16,16,0.9)",
-                                boxShadow: selected ? `0 0 0 1px ${group.accent} inset, 0 4px 16px ${group.glow}` : "none",
-                                transition: "all 160ms ease",
-                                display: "flex",
-                                width: "100%",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                gap: 14,
-                                cursor: "pointer",
-                              }}
-                            >
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    color: selected ? "#FFFFFF" : "#EEEEEE",
-                                    fontFamily: "var(--font-montserrat)",
-                                    fontSize: 15,
-                                    fontWeight: 700,
-                                    marginBottom: 3,
-                                  }}
-                                >
-                                  {group.label}
-                                </div>
-                                <div
-                                  style={{
-                                    color: "#8A8A8A",
-                                    fontFamily: "var(--font-inter)",
-                                    fontSize: 12,
-                                    lineHeight: 1.4,
-                                  }}
-                                >
-                                  {group.description}
-                                </div>
-                              </div>
-                              <div
-                                style={{
-                                  width: 26,
-                                  height: 26,
-                                  borderRadius: 999,
-                                  border: `1px solid ${selected ? group.accent : "#3D3D3D"}`,
-                                  background: selected ? group.accent : "rgba(255,255,255,0.04)",
-                                  color: selected ? "#0A0A0A" : "transparent",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  flexShrink: 0,
-                                  transition: "all 160ms ease",
-                                }}
-                              >
-                                <Check size={15} strokeWidth={3} />
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </IonCardContent>
-                  </IonCard>
-                </IonCol>
-              </IonRow>
-            )}
-
-            {startMode === "templates" && (
-              <IonRow className="mt-5">
-                <IonCol size="12">
-                  <div className="flex items-center gap-3 mb-4">
+            <div className="pr-1">
+              <IonCard
+                style={
+                  {
+                    "--background": "rgba(26,26,26,0.92)",
+                    "--color": "#FFFFFF",
+                    "--border-radius": "24px",
+                    margin: 0,
+                    border: "1px solid #2D2D2D",
+                    boxShadow: "0 20px 60px rgba(0,0,0,0.24)",
+                  } as React.CSSProperties
+                }
+              >
+                <IonCardContent style={{ padding: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
                     <HexIcon
-                      icon={<FolderKanban size={18} />}
-                      background="rgba(59,130,246,0.12)"
-                      color="#60A5FA"
-                      border="1px solid rgba(59,130,246,0.2)"
+                      icon={<Dumbbell size={18} />}
+                      background="rgba(255,215,0,0.12)"
+                      color="#FFD700"
+                      border="1px solid rgba(255,215,0,0.2)"
                     />
                     <div>
                       <div
@@ -1013,7 +888,7 @@ export function WorkoutStartScreen({
                           fontWeight: 700,
                         }}
                       >
-                        Templates salvos
+                        Grupos musculares
                       </div>
                       <IonText
                         style={{
@@ -1022,120 +897,221 @@ export function WorkoutStartScreen({
                           fontSize: 13,
                         }}
                       >
-                        Escolha um treino pronto e inicie com um clique.
+                        Selecione um ou mais focos para iniciar o treino.
                       </IonText>
                     </div>
                   </div>
 
-                  {workoutTemplates.length === 0 ? (
-                    <div
-                      style={{
-                        borderRadius: 20,
-                        border: "1px dashed #2D2D2D",
-                        background: "rgba(16,16,16,0.7)",
-                        padding: "28px 20px",
-                        textAlign: "center",
-                        display: "grid",
-                        gap: 8,
-                        justifyItems: "center",
-                      }}
-                    >
-                      <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 16, fontWeight: 700 }}>
-                        Nenhum template salvo ainda
-                      </span>
-                      <span style={{ color: "#8A8A8A", fontFamily: "var(--font-inter)", fontSize: 13, maxWidth: 280 }}>
-                        Você pode criar e personalizar templates na aba de <strong>Inventário</strong> ou salvar ao final de um treino.
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
-                      {workoutTemplates.map((template) => {
-                        const selected = template.id === selectedTemplateId;
-                        return (
-                          <button
-                            key={template.id}
-                            type="button"
-                            onClick={() => selectTemplate(template.id)}
+                  <div className="flex flex-col gap-3">
+                    {muscleGroups.map((group) => {
+                      const selected = selectedGroups.includes(group.id);
+                      return (
+                        <button
+                          key={group.id}
+                          type="button"
+                          onClick={() => toggleGroup(group.id)}
+                          style={{
+                            borderRadius: 16,
+                            padding: "16px",
+                            textAlign: "left",
+                            border: `1px solid ${selected ? group.accent : "#2D2D2D"}`,
+                            background: selected ? group.glow : "rgba(16,16,16,0.9)",
+                            boxShadow: selected ? `0 0 0 1px ${group.accent} inset, 0 4px 16px ${group.glow}` : "none",
+                            transition: "all 160ms ease",
+                            display: "flex",
+                            width: "100%",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 14,
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                color: selected ? "#FFFFFF" : "#EEEEEE",
+                                fontFamily: "var(--font-montserrat)",
+                                fontSize: 15,
+                                fontWeight: 700,
+                                marginBottom: 3,
+                              }}
+                            >
+                              {group.label}
+                            </div>
+                            <div
+                              style={{
+                                color: "#8A8A8A",
+                                fontFamily: "var(--font-inter)",
+                                fontSize: 12,
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              {group.description}
+                            </div>
+                          </div>
+                          <div
                             style={{
-                              borderRadius: 20,
-                              padding: 16,
-                              textAlign: "left",
-                              border: `1px solid ${selected ? "#FFD700" : "#2D2D2D"}`,
-                              background: selected ? "rgba(255,215,0,0.1)" : "rgba(16,16,16,0.9)",
-                              boxShadow: selected ? "0 0 0 1px rgba(255,215,0,0.25) inset" : "none",
+                              width: 26,
+                              height: 26,
+                              borderRadius: 999,
+                              border: `1px solid ${selected ? group.accent : "#3D3D3D"}`,
+                              background: selected ? group.accent : "rgba(255,255,255,0.04)",
+                              color: selected ? "#0A0A0A" : "transparent",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
                               transition: "all 160ms ease",
-                              cursor: "pointer",
                             }}
                           >
-                            <div className="flex items-start justify-between gap-4">
-                              <div>
-                                <div
-                                  style={{
-                                    color: "#FFFFFF",
-                                    fontFamily: "var(--font-montserrat)",
-                                    fontSize: 17,
-                                    fontWeight: 700,
-                                    marginBottom: 8,
-                                  }}
-                                >
-                                  {template.name}
-                                </div>
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                  {template.groups.map((group) => (
-                                    <span
-                                      key={group}
-                                      style={{
-                                        borderRadius: 8,
-                                        padding: "3px 8px",
-                                        border: "1px solid #2D2D2D",
-                                        background: "rgba(255,255,255,0.04)",
-                                        color: "#D4D4D4",
-                                        fontFamily: "var(--font-inter)",
-                                        fontSize: 11,
-                                        fontWeight: 600,
-                                      }}
-                                    >
-                                      {group}
-                                    </span>
-                                  ))}
-                                </div>
-                                <div
-                                  style={{
-                                    color: "#A3A3A3",
-                                    fontFamily: "var(--font-inter)",
-                                    fontSize: 12,
-                                  }}
-                                >
-                                  {template.duration ? `${template.exercises} exercícios · ${template.duration}` : `${template.exercises} exercícios`}
-                                </div>
-                              </div>
-                              <div
-                                style={{
-                                  minWidth: 26,
-                                  height: 26,
-                                  borderRadius: 999,
-                                  border: `1px solid ${selected ? "#FFD700" : "#3D3D3D"}`,
-                                  background: selected ? "#FFD700" : "transparent",
-                                  color: selected ? "#0A0A0A" : "transparent",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                <Check size={14} />
-                              </div>
+                            <Check size={15} strokeWidth={3} />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </IonCardContent>
+              </IonCard>
+            </div>
+
+            <div className="pl-1">
+              <div className="flex items-center gap-3 mb-4">
+                <HexIcon
+                  icon={<FolderKanban size={18} />}
+                  background="rgba(59,130,246,0.12)"
+                  color="#60A5FA"
+                  border="1px solid rgba(59,130,246,0.2)"
+                />
+                <div>
+                  <div
+                    style={{
+                      color: "#FFFFFF",
+                      fontFamily: "var(--font-montserrat)",
+                      fontSize: 18,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Templates salvos
+                  </div>
+                  <IonText
+                    style={{
+                      color: "#A3A3A3",
+                      fontFamily: "var(--font-inter)",
+                      fontSize: 13,
+                    }}
+                  >
+                    Escolha um treino pronto e inicie com um clique.
+                  </IonText>
+                </div>
+              </div>
+
+              {workoutTemplates.length === 0 ? (
+                <div
+                  style={{
+                    borderRadius: 20,
+                    border: "1px dashed #2D2D2D",
+                    background: "rgba(16,16,16,0.7)",
+                    padding: "28px 20px",
+                    textAlign: "center",
+                    display: "grid",
+                    gap: 8,
+                    justifyItems: "center",
+                  }}
+                >
+                  <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 16, fontWeight: 700 }}>
+                    Nenhum template salvo ainda
+                  </span>
+                  <span style={{ color: "#8A8A8A", fontFamily: "var(--font-inter)", fontSize: 13, maxWidth: 280 }}>
+                    Você pode criar e personalizar templates na aba de <strong>Inventário</strong> ou salvar ao final de um treino.
+                  </span>
+                </div>
+              ) : (
+                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+                  {workoutTemplates.map((template) => {
+                    const selected = template.id === selectedTemplateId;
+                    return (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => selectTemplate(template.id)}
+                        style={{
+                          borderRadius: 20,
+                          padding: 16,
+                          textAlign: "left",
+                          border: `1px solid ${selected ? "#FFD700" : "#2D2D2D"}`,
+                          background: selected ? "rgba(255,215,0,0.1)" : "rgba(16,16,16,0.9)",
+                          boxShadow: selected ? "0 0 0 1px rgba(255,215,0,0.25) inset" : "none",
+                          transition: "all 160ms ease",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div
+                              style={{
+                                color: "#FFFFFF",
+                                fontFamily: "var(--font-montserrat)",
+                                fontSize: 17,
+                                fontWeight: 700,
+                                marginBottom: 8,
+                              }}
+                            >
+                              {template.name}
                             </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </IonCol>
-              </IonRow>
-            )}
-          </Motion.div>
-        </AnimatePresence>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {template.groups.map((group) => (
+                                <span
+                                  key={group}
+                                  style={{
+                                    borderRadius: 8,
+                                    padding: "3px 8px",
+                                    border: "1px solid #2D2D2D",
+                                    background: "rgba(255,255,255,0.04)",
+                                    color: "#D4D4D4",
+                                    fontFamily: "var(--font-inter)",
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {group}
+                                </span>
+                              ))}
+                            </div>
+                            <div
+                              style={{
+                                color: "#A3A3A3",
+                                fontFamily: "var(--font-inter)",
+                                fontSize: 12,
+                              }}
+                            >
+                              {template.duration ? `${template.exercises} exercícios · ${template.duration}` : `${template.exercises} exercícios`}
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              minWidth: 26,
+                              height: 26,
+                              borderRadius: 999,
+                              border: `1px solid ${selected ? "#FFD700" : "#3D3D3D"}`,
+                              background: selected ? "#FFD700" : "transparent",
+                              color: selected ? "#0A0A0A" : "transparent",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Check size={14} />
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </InteractiveTabPager>
+        </div>
 
         <IonRow className="mt-6">
           <IonCol size="12">

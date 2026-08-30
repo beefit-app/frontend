@@ -272,7 +272,7 @@ export default function App() {
               "--background":
                 "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%) center var(--beefit-page-gradient-top) / 100% var(--beefit-page-gradient-height) no-repeat, #0A0A0A",
               "--color": "#ffffff",
-              overscrollBehaviorY: "contain",
+              overscrollBehaviorY: "none",
               ...SAFE_AREA_TOP_PADDING,
             } as React.CSSProperties
           }
@@ -344,6 +344,8 @@ export default function App() {
                     position: "relative",
                     width: "100%",
                     minHeight: "100%",
+                    display: "flex",
+                    flexDirection: "column",
                   }}
                 >
                   {visitedScreens.has("feed") && (

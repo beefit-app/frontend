@@ -12,12 +12,13 @@ import {
   Star,
   X,
 } from "lucide-react";
-import { AnimatePresence, motion as Motion } from "motion/react";
+import { motion as Motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
 import { BeeButton } from "../../BeeButton";
 import { PageBackground } from "../../PageBackground";
+import { InteractiveTabPager } from "../../ui/InteractiveTabPager";
 import {
   HEX_CLIP,
   MUSCLE_GROUP_FILTER_OPTIONS,
@@ -1093,251 +1094,224 @@ export function InventoryView({
     await onCreateTemplate(input);
   }
 
-  const tabTouchStartX = useRef(0);
-  const tabTouchStartY = useRef(0);
-
-  function handleTabTouchStart(e: React.TouchEvent) {
-    tabTouchStartX.current = e.touches[0].clientX;
-    tabTouchStartY.current = e.touches[0].clientY;
-  }
-
-  function handleTabTouchEnd(e: React.TouchEvent) {
-    const diffX = e.changedTouches[0].clientX - tabTouchStartX.current;
-    const diffY = e.changedTouches[0].clientY - tabTouchStartY.current;
-    if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
-      if (diffX < 0 && activeTab === "cards") {
-        setActiveTab("templates");
-      } else if (diffX > 0 && activeTab === "templates") {
-        setActiveTab("cards");
-      }
-    }
-  }
-
   return (
-    <PageBackground onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
-      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-5">
-        <IonRow className="ion-justify-content-center">
-          <IonCol size="12">
-            <div>
-              <header className="relative mb-6">
-                <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
-                  Inventário.
-                </h1>
-                <p className="mt-2 max-w-[320px] font-inter text-[14px] leading-[1.45] text-[#A3A3A3]">
-                  Acompanhe suas cartas e organize templates para começar o treino mais rápido.
-                </p>
-              </header>
+    <PageBackground className="min-h-full flex flex-col box-border">
+      <IonGrid fixed className="relative z-10 px-3 pt-6 pb-6 w-full flex-1 flex flex-col box-border">
+        <IonRow className="ion-justify-content-center flex-1">
+          <IonCol size="12" className="flex flex-col flex-1">
+            <header className="relative mb-6">
+              <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
+                Inventário.
+              </h1>
+              <p className="mt-2 max-w-[320px] font-inter text-[14px] leading-[1.45] text-[#A3A3A3]">
+                Acompanhe suas cartas e organize templates para começar o treino mais rápido.
+              </p>
+            </header>
 
-              <nav
-                className="mb-6 grid grid-cols-2 rounded-[18px] border border-[#2D2D2D] bg-[#141414] p-1.5"
-                role="tablist"
-                aria-label="Seções do inventário"
-              >
-                {[
-                  { id: "cards" as const, label: "Cartas", icon: <Package2 size={15} /> },
-                  { id: "templates" as const, label: "Templates", icon: <FolderKanban size={15} /> },
-                ].map((tab) => {
-                  const selected = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={selected}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`relative flex min-h-11 items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
-                        selected ? "text-[#0A0A0A]" : "text-[#8A8A8A]"
-                      }`}
-                    >
-                      {selected && (
-                        <Motion.span
-                          layoutId="inventory-tab-highlight"
-                          className="absolute inset-0 rounded-[13px] bg-[#FFD700]"
-                          transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                        />
-                      )}
-                      <span className="relative z-10 flex items-center gap-2">
-                        {tab.icon}
-                        {tab.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </nav>
-
-              <AnimatePresence mode="wait" initial={false}>
-                <Motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, x: activeTab === "templates" ? 20 : -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: activeTab === "templates" ? -20 : 20 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                >
-                  {activeTab === "cards" && (
-                    <>
-                      <FilterSection
-                        filters={filters}
-                        onResetFilters={onResetFilters}
-                        onRarityChange={onRarityChange}
-                        onMuscleGroupChange={onMuscleGroupChange}
+            <nav
+              className="mb-6 grid grid-cols-2 rounded-[18px] border border-[#2D2D2D] bg-[#141414] p-1.5"
+              role="tablist"
+              aria-label="Seções do inventário"
+            >
+              {[
+                { id: "cards" as const, label: "Cartas", icon: <Package2 size={15} /> },
+                { id: "templates" as const, label: "Templates", icon: <FolderKanban size={15} /> },
+              ].map((tab) => {
+                const selected = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`relative flex min-h-11 items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
+                      selected ? "text-[#0A0A0A]" : "text-[#8A8A8A]"
+                    }`}
+                  >
+                    {selected && (
+                      <Motion.span
+                        layoutId="inventory-tab-highlight"
+                        className="absolute inset-0 rounded-[13px] bg-[#FFD700]"
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
                       />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      {tab.icon}
+                      {tab.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
 
-                      <section className="mt-5 grid gap-4">
-                        {isLoading && <InventorySkeletonList />}
+            <div className="flex-1 min-h-0 w-full">
+              <InteractiveTabPager
+                activeIndex={activeTab === "cards" ? 0 : 1}
+                onChangeIndex={(idx) => setActiveTab(idx === 0 ? "cards" : "templates")}
+              >
+                <div className="pr-1">
+                  <FilterSection
+                    filters={filters}
+                    onResetFilters={onResetFilters}
+                    onRarityChange={onRarityChange}
+                    onMuscleGroupChange={onMuscleGroupChange}
+                  />
 
-                        {!isLoading && error && (
-                          <div
-                            style={{
-                              borderRadius: 20,
-                              border: "1px solid rgba(248,113,113,0.24)",
-                              background: "rgba(38,16,16,0.5)",
-                              padding: 18,
-                              textAlign: "center",
-                            }}
-                          >
-                            <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>
-                              Falha ao carregar o inventário
-                            </div>
-                            <div style={{ marginTop: 8, fontFamily: "var(--font-inter)", fontSize: 14, color: "#FCA5A5" }}>{error}</div>
-                            <button
-                              type="button"
-                              onClick={onRetry}
-                              style={{
-                                marginTop: 14,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 8,
-                                borderRadius: 999,
-                                border: "1px solid rgba(255,215,0,0.28)",
-                                background: "transparent",
-                                color: "#FFD700",
-                                padding: "10px 16px",
-                                fontFamily: "var(--font-montserrat)",
-                                fontSize: 11,
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.04em",
-                              }}
-                            >
-                              <RefreshCcw size={14} />
-                              Tentar novamente
-                            </button>
-                          </div>
-                        )}
+                  <section className="mt-5 grid gap-4">
+                    {isLoading && <InventorySkeletonList />}
 
-                        {!isLoading && !error && cards.length === 0 && !hasActiveFilters && (
-                          <EmptyState
-                            title="Seu inventário ainda está vazio"
-                            description="Finalize treinos para gerar cartas e começar a montar sua coleção."
-                          />
-                        )}
-
-                        {!isLoading && !error && cards.length === 0 && hasActiveFilters && (
-                          <EmptyState
-                            title="Nenhuma carta encontrada"
-                            description="Os filtros atuais não retornaram cartas. Ajuste a raridade ou o grupo muscular."
-                            actionLabel="Limpar filtros"
-                            onAction={onResetFilters}
-                          />
-                        )}
-
-                        {!isLoading && !error && cards.length > 0 && cards.map((card) => <InventoryCardTile key={card.id} card={card} />)}
-
-                        {!error && hasMore && <div ref={sentinelRef} style={{ padding: "8px 0", textAlign: "center", fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A" }}>{isLoadingMore ? "Buscando mais cartas..." : ""}</div>}
-                      </section>
-                    </>
-                  )}
-
-                  {activeTab === "templates" && (
-                    <section className="grid gap-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <FolderKanban size={14} color="#FFD700" />
-                          <h2 className="font-montserrat text-[11px] font-bold uppercase tracking-[0.1em] text-[#8A8A8A]">
-                            Templates salvos
-                          </h2>
-                          <span className="font-montserrat text-[14px] font-bold text-[#FFD700]">{templates.length}</span>
+                    {!isLoading && error && (
+                      <div
+                        style={{
+                          borderRadius: 20,
+                          border: "1px solid rgba(248,113,113,0.24)",
+                          background: "rgba(38,16,16,0.5)",
+                          padding: 18,
+                          textAlign: "center",
+                        }}
+                      >
+                        <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>
+                          Falha ao carregar o inventário
                         </div>
+                        <div style={{ marginTop: 8, fontFamily: "var(--font-inter)", fontSize: 14, color: "#FCA5A5" }}>{error}</div>
                         <button
                           type="button"
-                          onClick={openCreateTemplate}
-                          className="beefit-tap-target flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] border border-[rgba(255,215,0,0.32)] bg-[rgba(255,215,0,0.1)] text-[#FFD700] transition-colors"
-                          aria-label="Criar novo template"
-                        >
-                          <Plus size={18} />
-                        </button>
-                      </div>
-
-                      {isLoadingTemplates && <TemplateSkeletonList />}
-
-                      {!isLoadingTemplates && templatesError && (
-                        <div
+                          onClick={onRetry}
                           style={{
-                            borderRadius: 20,
-                            border: "1px solid rgba(248,113,113,0.24)",
-                            background: "rgba(38,16,16,0.5)",
-                            padding: 18,
-                            textAlign: "center",
+                            marginTop: 14,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            borderRadius: 999,
+                            border: "1px solid rgba(255,215,0,0.28)",
+                            background: "transparent",
+                            color: "#FFD700",
+                            padding: "10px 16px",
+                            fontFamily: "var(--font-montserrat)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.04em",
                           }}
                         >
-                          <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>
-                            Falha ao carregar templates
-                          </div>
-                          <div style={{ marginTop: 8, fontFamily: "var(--font-inter)", fontSize: 14, color: "#FCA5A5" }}>{templatesError}</div>
-                          <button
-                            type="button"
-                            onClick={onRetryTemplates}
-                            style={{
-                              marginTop: 14,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 8,
-                              borderRadius: 999,
-                              border: "1px solid rgba(255,215,0,0.28)",
-                              background: "transparent",
-                              color: "#FFD700",
-                              padding: "10px 16px",
-                              fontFamily: "var(--font-montserrat)",
-                              fontSize: 11,
-                              fontWeight: 700,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.04em",
+                          <RefreshCcw size={14} />
+                          Tentar novamente
+                        </button>
+                      </div>
+                    )}
+
+                    {!isLoading && !error && cards.length === 0 && !hasActiveFilters && (
+                      <EmptyState
+                        title="Seu inventário ainda está vazio"
+                        description="Finalize treinos para gerar cartas e começar a montar sua coleção."
+                      />
+                    )}
+
+                    {!isLoading && !error && cards.length === 0 && hasActiveFilters && (
+                      <EmptyState
+                        title="Nenhuma carta encontrada"
+                        description="Os filtros atuais não retornaram cartas. Ajuste a raridade ou o grupo muscular."
+                        actionLabel="Limpar filtros"
+                        onAction={onResetFilters}
+                      />
+                    )}
+
+                    {!isLoading && !error && cards.length > 0 && cards.map((card) => <InventoryCardTile key={card.id} card={card} />)}
+
+                    {!error && hasMore && <div ref={sentinelRef} style={{ padding: "8px 0", textAlign: "center", fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A" }}>{isLoadingMore ? "Buscando mais cartas..." : ""}</div>}
+                  </section>
+                </div>
+
+                <div className="pl-1">
+                  <section className="grid gap-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <FolderKanban size={14} color="#FFD700" />
+                        <h2 className="font-montserrat text-[11px] font-bold uppercase tracking-[0.1em] text-[#8A8A8A]">
+                          Templates salvos
+                        </h2>
+                        <span className="font-montserrat text-[14px] font-bold text-[#FFD700]">{templates.length}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={openCreateTemplate}
+                        className="beefit-tap-target flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] border border-[rgba(255,215,0,0.32)] bg-[rgba(255,215,0,0.1)] text-[#FFD700] transition-colors"
+                        aria-label="Criar novo template"
+                      >
+                        <Plus size={18} />
+                      </button>
+                    </div>
+
+                    {isLoadingTemplates && <TemplateSkeletonList />}
+
+                    {!isLoadingTemplates && templatesError && (
+                      <div
+                        style={{
+                          borderRadius: 20,
+                          border: "1px solid rgba(248,113,113,0.24)",
+                          background: "rgba(38,16,16,0.5)",
+                          padding: 18,
+                          textAlign: "center",
+                        }}
+                      >
+                        <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>
+                          Falha ao carregar templates
+                        </div>
+                        <div style={{ marginTop: 8, fontFamily: "var(--font-inter)", fontSize: 14, color: "#FCA5A5" }}>{templatesError}</div>
+                        <button
+                          type="button"
+                          onClick={onRetryTemplates}
+                          style={{
+                            marginTop: 14,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            borderRadius: 999,
+                            border: "1px solid rgba(255,215,0,0.28)",
+                            background: "transparent",
+                            color: "#FFD700",
+                            padding: "10px 16px",
+                            fontFamily: "var(--font-montserrat)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.04em",
+                          }}
+                        >
+                          <RefreshCcw size={14} />
+                          Tentar novamente
+                        </button>
+                      </div>
+                    )}
+
+                    {!isLoadingTemplates && !templatesError && templates.length === 0 && (
+                      <EmptyState
+                        title="Nenhum template salvo"
+                        description="Crie um treino pronto com qualquer quantidade de exercícios para usar no início do treino."
+                        actionLabel="Novo template"
+                        onAction={openCreateTemplate}
+                      />
+                    )}
+
+                    {!isLoadingTemplates && !templatesError && templates.length > 0 && (
+                      <div className="flex flex-col gap-2.5">
+                        {templates.map((template) => (
+                          <TemplateCard
+                            key={template.id}
+                            template={template}
+                            catalog={catalog}
+                            onOpenMenu={() => {
+                              setSelectedTemplate(template);
+                              setTemplateMenuOpen(true);
                             }}
-                          >
-                            <RefreshCcw size={14} />
-                            Tentar novamente
-                          </button>
-                        </div>
-                      )}
-
-                      {!isLoadingTemplates && !templatesError && templates.length === 0 && (
-                        <EmptyState
-                          title="Nenhum template salvo"
-                          description="Crie um treino pronto com qualquer quantidade de exercícios para usar no início do treino."
-                          actionLabel="Novo template"
-                          onAction={openCreateTemplate}
-                        />
-                      )}
-
-                      {!isLoadingTemplates && !templatesError && templates.length > 0 && (
-                        <div className="flex flex-col gap-2.5">
-                          {templates.map((template) => (
-                            <TemplateCard
-                              key={template.id}
-                              template={template}
-                              catalog={catalog}
-                              onOpenMenu={() => {
-                                setSelectedTemplate(template);
-                                setTemplateMenuOpen(true);
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </section>
-                  )}
-                </Motion.div>
-              </AnimatePresence>
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </InteractiveTabPager>
             </div>
           </IonCol>
         </IonRow>

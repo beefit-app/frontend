@@ -1,6 +1,5 @@
 import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import {
-  Copy,
   Crown,
   Ellipsis,
   Hexagon,
@@ -12,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion as Motion } from "motion/react";
-import { forwardRef, useEffect, useRef, useState, type ReactNode } from "react";
+import { forwardRef, useEffect, useState, type ReactNode } from "react";
 import { BeeButton } from "../../BeeButton";
 import { BeeInput } from "../../BeeInput";
 import { PageBackground } from "../../PageBackground";
@@ -20,6 +19,7 @@ import { PublicProfilePage } from "../../profile/components/PublicProfileSheet";
 import { HexAvatar } from "../../workout-post";
 import { DeveloperBadge } from "../../DeveloperBadge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
+import { InteractiveTabPager } from "../../ui/InteractiveTabPager";
 import type { useSocialState } from "../hooks/useSocialState";
 import type { FriendProfile, Hive, HiveRankingPeriod } from "../types";
 
@@ -667,31 +667,11 @@ export function SocialView({
     );
   }
 
-  const tabTouchStartX = useRef(0);
-  const tabTouchStartY = useRef(0);
-
-  function handleTabTouchStart(e: React.TouchEvent) {
-    tabTouchStartX.current = e.touches[0].clientX;
-    tabTouchStartY.current = e.touches[0].clientY;
-  }
-
-  function handleTabTouchEnd(e: React.TouchEvent) {
-    const diffX = e.changedTouches[0].clientX - tabTouchStartX.current;
-    const diffY = e.changedTouches[0].clientY - tabTouchStartY.current;
-    if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
-      if (diffX < 0 && state.activeSection === "friends") {
-        state.setActiveSection("hives");
-      } else if (diffX > 0 && state.activeSection === "hives") {
-        state.setActiveSection("friends");
-      }
-    }
-  }
-
   return (
-    <PageBackground onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
-      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-7">
-        <IonRow className="ion-justify-content-center">
-          <IonCol size="12">
+    <PageBackground className="min-h-full flex flex-col box-border">
+      <IonGrid fixed className="relative z-10 px-3 pt-6 pb-6 w-full flex-1 flex flex-col box-border">
+        <IonRow className="ion-justify-content-center flex-1">
+          <IonCol size="12" className="flex flex-col flex-1">
             <header className="relative mb-6">
               <div className="absolute right-0 top-0 flex gap-2">
                 <button
@@ -811,21 +791,19 @@ export function SocialView({
               ))}
             </nav>
 
-            <AnimatePresence mode="wait" initial={false}>
-              <Motion.div
-                key={state.activeSection}
-                initial={{ opacity: 0, x: state.activeSection === "hives" ? 20 : -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: state.activeSection === "hives" ? -20 : 20 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+            <div className="flex-1 min-h-0 w-full">
+              <InteractiveTabPager
+                activeIndex={state.activeSection === "friends" ? 0 : 1}
+                onChangeIndex={(idx) => state.setActiveSection(idx === 0 ? "friends" : "hives")}
               >
-                {state.activeSection === "friends" ? (
+                <div className="pr-1">
                   <FriendsPanel state={state} onOpenProfile={openProfileFromSocial} />
-                ) : (
+                </div>
+                <div className="pl-1">
                   <HivesPanel state={state} onOpenProfile={openProfileFromSocial} />
-                )}
-              </Motion.div>
-            </AnimatePresence>
+                </div>
+              </InteractiveTabPager>
+            </div>
           </IonCol>
         </IonRow>
       </IonGrid>
