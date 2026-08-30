@@ -15,10 +15,11 @@ import {
 import { motion as Motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { useState } from "react";
-import type { ExerciseCatalogItem, WorkoutTemplate } from "../../../types/workout";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
 import { BeeButton } from "../../BeeButton";
 import { PageBackground } from "../../PageBackground";
+import { ExerciseMuscleMap } from "../../active-workout/components/ExerciseMuscleMap";
+import { workoutService } from "../../../services/workoutService";
 import {
   HEX_CLIP,
   MUSCLE_GROUP_FILTER_OPTIONS,
@@ -747,6 +748,99 @@ function TemplateActionSheet({
   );
 }
 
+function TemplateExercisePreviewSheet({
+  exercise,
+  open,
+  onOpenChange,
+  onAddExercise,
+}: {
+  exercise: ExerciseCatalogItem | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAddExercise: (exerciseId: string) => void;
+}) {
+  const [history, setHistory] = useState<{
+    lastPerformedAt?: string | null;
+    bestWeightKg?: number | null;
+    bestReps?: number | null;
+    lastWeightKg?: number | null;
+    lastReps?: number | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!exercise || !open) {
+      setHistory(null);
+      return;
+    }
+    let active = true;
+    void workoutService.getExerciseHistory(exercise.id)
+      .then((data) => {
+        if (active) setHistory(data);
+      })
+      .catch(() => {
+        if (active) setHistory(null);
+      });
+    return () => { active = false; };
+  }, [exercise, open]);
+
+  if (!exercise) return null;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="mx-auto flex max-h-[85dvh] max-w-[600px] flex-col gap-0 overflow-hidden rounded-t-[24px] border border-b-0 border-[#2D2D2D] bg-[#141414] p-0 text-white">
+        <SheetHeader className="border-b border-[#2D2D2D] px-5 py-4 text-left">
+          <SheetTitle className="font-montserrat text-[18px] font-bold text-white">
+            {exercise.name}
+          </SheetTitle>
+          <SheetDescription className="font-inter text-[12px] text-[#8A8A8A]">
+            Foco: {exercise.group}
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <ExerciseMuscleMap
+            muscles={exercise.anatomicalMuscles}
+            primaryMuscles={exercise.primaryAnatomicalMuscles}
+            secondaryMuscles={exercise.secondaryAnatomicalMuscles}
+          />
+          {exercise.instructions && (
+            <div className="rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] p-4 text-[13px] text-[#D4D4D4] font-inter leading-relaxed">
+              <span className="font-bold text-white block mb-1">Instruções:</span>
+              {exercise.instructions}
+            </div>
+          )}
+          {history && (
+            <div className="rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] p-4 font-inter text-[13px]">
+              <span className="font-bold text-white block mb-2 font-montserrat text-[12px] uppercase tracking-wide">
+                Histórico Recente
+              </span>
+              <div className="space-y-1.5 text-[#A3A3A3]">
+                {history.lastPerformedAt && (
+                  <div>Última vez: <strong className="text-white">{new Date(history.lastPerformedAt).toLocaleDateString("pt-BR")}</strong></div>
+                )}
+                {history.bestWeightKg !== null && history.bestWeightKg !== undefined && (
+                  <div>Melhor desempenho: <strong className="text-white">{history.bestWeightKg} kg × {history.bestReps} reps</strong></div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="p-4 border-t border-[#2D2D2D] bg-[#141414]">
+          <BeeButton
+            variant="primary"
+            fullWidth
+            onClick={() => {
+              onAddExercise(exercise.id);
+              onOpenChange(false);
+            }}
+          >
+            Adicionar ao template
+          </BeeButton>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function TemplateFormSheet({
   mode,
   open,
@@ -766,6 +860,7 @@ function TemplateFormSheet({
 }) {
   const [name, setName] = useState("");
   const [exerciseIds, setExerciseIds] = useState<string[]>([]);
+  const [previewExercise, setPreviewExercise] = useState<ExerciseCatalogItem | null>(null);
   const [query, setQuery] = useState("");
   const [catalogMuscleGroupFilter, setCatalogMuscleGroupFilter] = useState<InventoryMuscleGroup | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -774,6 +869,7 @@ function TemplateFormSheet({
     if (!open) return;
     setName(mode === "edit" ? template?.name ?? "" : "");
     setExerciseIds(mode === "edit" ? template?.exerciseIds ?? [] : []);
+    setPreviewExercise(null);
     setQuery("");
     setCatalogMuscleGroupFilter(null);
     setFormError(null);
@@ -812,149 +908,170 @@ function TemplateFormSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto flex max-h-[92dvh] max-w-[820px] gap-0 overflow-hidden rounded-t-[24px] border border-b-0 border-[#2D2D2D] bg-[#141414] p-0 text-white">
-        <SheetHeader className="border-b border-[#2D2D2D] px-5 py-5 text-left">
-          <SheetTitle className="font-montserrat text-[18px] font-bold text-white">
-            {mode === "edit" ? "Editar template" : "Novo template"}
-          </SheetTitle>
-          <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
-            Nomeie o treino e adicione os exercícios na ordem desejada.
-          </SheetDescription>
-        </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="mx-auto flex max-h-[92dvh] max-w-[820px] gap-0 overflow-hidden rounded-t-[24px] border border-b-0 border-[#2D2D2D] bg-[#141414] p-0 text-white">
+          <SheetHeader className="border-b border-[#2D2D2D] px-5 py-5 text-left">
+            <SheetTitle className="font-montserrat text-[18px] font-bold text-white">
+              {mode === "edit" ? "Editar template" : "Novo template"}
+            </SheetTitle>
+            <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
+              Nomeie o treino e adicione os exercícios na ordem desejada.
+            </SheetDescription>
+          </SheetHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:items-start">
-            <div className="grid gap-5">
-              <label className="grid gap-2">
-                <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">Nome</span>
-                <input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="Ex.: Upper pesado"
-                  className="h-12 rounded-2xl border border-[#2D2D2D] bg-[#101010] px-4 font-inter text-[14px] text-white outline-none focus:border-[#FFD700]"
-                />
-              </label>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:items-start">
+              <div className="grid gap-5">
+                <label className="grid gap-2">
+                  <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">Nome</span>
+                  <input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="Ex.: Upper pesado"
+                    className="h-12 rounded-2xl border border-[#2D2D2D] bg-[#101010] px-4 font-inter text-[14px] text-white outline-none focus:border-[#FFD700]"
+                  />
+                </label>
+
+                <section className="grid gap-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">
+                      Exercícios adicionados
+                    </span>
+                    <span className="font-inter text-[12px] font-semibold text-[#FFD700]">{exerciseIds.length}</span>
+                  </div>
+                  {selectedExercises.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-[#2D2D2D] bg-[#101010] px-4 py-5 text-center font-inter text-[13px] text-[#737373]">
+                      Adicione exercícios pelo catálogo abaixo.
+                    </div>
+                  ) : (
+                    <div className="grid max-h-[34dvh] gap-2 overflow-y-auto pr-1 lg:max-h-[46dvh]">
+                      {selectedExercises.map((exercise, index) => (
+                        <div key={`${exercise.id}-${index}`} className="flex items-center gap-3 rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-3 py-3">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[rgba(255,215,0,0.12)] font-montserrat text-[11px] font-bold text-[#FFD700]">
+                            {index + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-inter text-[13px] font-semibold text-white">{exercise.name}</div>
+                            <div className="font-inter text-[11px] text-[#8A8A8A]">{exercise.group}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setExerciseIds((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                            aria-label={`Remover ${exercise.name}`}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#2D2D2D] text-[#A3A3A3]"
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
 
               <section className="grid gap-3">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">
-                    Exercícios adicionados
-                  </span>
-                  <span className="font-inter text-[12px] font-semibold text-[#FFD700]">{exerciseIds.length}</span>
-                </div>
-                {selectedExercises.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-[#2D2D2D] bg-[#101010] px-4 py-5 text-center font-inter text-[13px] text-[#737373]">
-                    Adicione exercícios pelo catálogo abaixo.
+                <label className="grid gap-2">
+                  <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">Catálogo</span>
+                  <div className="flex h-12 items-center gap-2 rounded-2xl border border-[#2D2D2D] bg-[#101010] px-4 text-[#737373] focus-within:border-[#FFD700]">
+                    <Search size={16} />
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Buscar exercício"
+                      className="min-w-0 flex-1 bg-transparent font-inter text-[14px] text-white outline-none placeholder:text-[#8A8A8A]"
+                    />
                   </div>
-                ) : (
-                  <div className="grid max-h-[34dvh] gap-2 overflow-y-auto pr-1 lg:max-h-[46dvh]">
-                    {selectedExercises.map((exercise, index) => (
-                      <div key={`${exercise.id}-${index}`} className="flex items-center gap-3 rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-3 py-3">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[rgba(255,215,0,0.12)] font-montserrat text-[11px] font-bold text-[#FFD700]">
-                          {index + 1}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate font-inter text-[13px] font-semibold text-white">{exercise.name}</div>
-                          <div className="font-inter text-[11px] text-[#8A8A8A]">{exercise.group}</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setExerciseIds((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                          aria-label={`Remover ${exercise.name}`}
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#2D2D2D] text-[#A3A3A3]"
-                        >
-                          <X size={15} />
-                        </button>
-                      </div>
+                </label>
+
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">
+                      Grupo muscular
+                    </span>
+                    {catalogMuscleGroupFilter && (
+                      <button
+                        type="button"
+                        onClick={() => setCatalogMuscleGroupFilter(null)}
+                        className="font-inter text-[12px] font-bold text-[#FFD700]"
+                      >
+                        Limpar
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {MUSCLE_GROUP_FILTER_OPTIONS.map((option) => (
+                      <FilterPill<InventoryMuscleGroup | null>
+                        key={option.label}
+                        active={catalogMuscleGroupFilter === option.value}
+                        label={option.label}
+                        onClick={() => setCatalogMuscleGroupFilter(option.value)}
+                      />
                     ))}
                   </div>
-                )}
-              </section>
-            </div>
-
-            <section className="grid gap-3">
-              <label className="grid gap-2">
-                <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">Catálogo</span>
-                <div className="flex h-12 items-center gap-2 rounded-2xl border border-[#2D2D2D] bg-[#101010] px-4 text-[#737373] focus-within:border-[#FFD700]">
-                  <Search size={16} />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Buscar exercício"
-                    className="min-w-0 flex-1 bg-transparent font-inter text-[14px] text-white outline-none placeholder:text-[#8A8A8A]"
-                  />
                 </div>
-              </label>
 
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">
-                    Grupo muscular
-                  </span>
-                  {catalogMuscleGroupFilter && (
-                    <button
-                      type="button"
-                      onClick={() => setCatalogMuscleGroupFilter(null)}
-                      className="font-inter text-[12px] font-bold text-[#FFD700]"
+                <div className="grid max-h-[44dvh] gap-2 overflow-y-auto pr-1 lg:max-h-[58dvh]">
+                  {filteredCatalog.map((exercise) => (
+                    <div
+                      key={exercise.id}
+                      className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-3 py-3 text-left transition-colors hover:border-[#404040] hover:bg-[#202020]"
                     >
-                      Limpar
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewExercise(exercise)}
+                        className="flex min-w-0 flex-1 items-center gap-3 bg-transparent p-0 text-left border-none cursor-pointer"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-inter text-[13px] font-semibold text-white">{exercise.name}</span>
+                          <span className="block font-inter text-[11px] text-[#8A8A8A]">{exercise.group} · Toque p/ ver mapa</span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExerciseIds((current) => [...current, exercise.id]);
+                        }}
+                        aria-label={`Adicionar ${exercise.name}`}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[rgba(255,215,0,0.3)] bg-[rgba(255,215,0,0.12)] text-[#FFD700] hover:bg-[rgba(255,215,0,0.22)] cursor-pointer"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  ))}
+                  {filteredCatalog.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-[#2D2D2D] bg-[#101010] px-4 py-5 text-center font-inter text-[13px] text-[#737373]">
+                      Nenhum exercício disponível.
+                    </div>
                   )}
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {MUSCLE_GROUP_FILTER_OPTIONS.map((option) => (
-                    <FilterPill<InventoryMuscleGroup | null>
-                      key={option.label}
-                      active={catalogMuscleGroupFilter === option.value}
-                      label={option.label}
-                      onClick={() => setCatalogMuscleGroupFilter(option.value)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid max-h-[44dvh] gap-2 overflow-y-auto pr-1 lg:max-h-[58dvh]">
-                {filteredCatalog.map((exercise) => (
-                  <button
-                    key={exercise.id}
-                    type="button"
-                    onClick={() => setExerciseIds((current) => [...current, exercise.id])}
-                    className="flex w-full items-center gap-3 rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-3 py-3 text-left transition-colors hover:border-[#404040] hover:bg-[#202020]"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[rgba(96,165,250,0.24)] bg-[rgba(96,165,250,0.1)] text-[#60A5FA]">
-                      <Plus size={16} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-inter text-[13px] font-semibold text-white">{exercise.name}</span>
-                      <span className="block font-inter text-[11px] text-[#8A8A8A]">{exercise.group}</span>
-                    </span>
-                  </button>
-                ))}
-                {filteredCatalog.length === 0 && (
-                  <div className="rounded-2xl border border-dashed border-[#2D2D2D] bg-[#101010] px-4 py-5 text-center font-inter text-[13px] text-[#737373]">
-                    Nenhum exercício disponível.
-                  </div>
-                )}
-              </div>
-            </section>
-            {formError && <div className="font-inter text-[13px] text-[#FCA5A5] lg:col-span-2">{formError}</div>}
+              </section>
+              {formError && <div className="font-inter text-[13px] text-[#FCA5A5] lg:col-span-2">{formError}</div>}
+            </div>
           </div>
-        </div>
 
-        <div className="shrink-0 border-t border-[#2D2D2D] bg-[#141414] px-4 py-4">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[#FFD700] bg-[#FFD700] font-montserrat text-[12px] font-bold uppercase tracking-[0.04em] text-[#0A0A0A] disabled:border-[#2D2D2D] disabled:bg-[#1A1A1A] disabled:text-[#737373]"
-          >
-            <Check size={16} />
-            {isSaving ? "Salvando..." : "Salvar template"}
-          </button>
-        </div>
-      </SheetContent>
-    </Sheet>
+          <div className="shrink-0 border-t border-[#2D2D2D] bg-[#141414] px-4 py-4">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[#FFD700] bg-[#FFD700] font-montserrat text-[12px] font-bold uppercase tracking-[0.04em] text-[#0A0A0A] disabled:border-[#2D2D2D] disabled:bg-[#1A1A1A] disabled:text-[#737373]"
+            >
+              <Check size={16} />
+              {isSaving ? "Salvando..." : "Salvar template"}
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <TemplateExercisePreviewSheet
+        exercise={previewExercise}
+        open={previewExercise !== null}
+        onOpenChange={(isOpen) => !isOpen && setPreviewExercise(null)}
+        onAddExercise={(exerciseId) => setExerciseIds((current) => [...current, exerciseId])}
+      />
+    </>
   );
 }
 
