@@ -142,6 +142,7 @@ export default function App() {
       next.add(screen);
       return next;
     });
+    void contentRef.current?.scrollToTop(0);
   }, [screen]);
 
   useEffect(() => {
