@@ -1,5 +1,5 @@
 import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion as Motion } from "motion/react";
+import { motion as Motion } from "motion/react";
 import {
   setupIonicReact,
   IonApp,
@@ -45,29 +45,6 @@ const SAFE_AREA_TOP_PADDING = {
 function DeferredScreen({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div className="p-6 text-center font-inter text-sm text-[#A3A3A3]">Carregando…</div>}>{children}</Suspense>;
 }
-
-const PAGE_TRANSITION_VARIANTS = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 20 : -20,
-    opacity: 0,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    transition: {
-      duration: 0.18,
-      ease: [0.25, 1, 0.5, 1] as const,
-    },
-  },
-  exit: (direction: number) => ({
-    x: direction > 0 ? -20 : 20,
-    opacity: 0,
-    transition: {
-      duration: 0.14,
-      ease: [0.25, 1, 0.5, 1] as const,
-    },
-  }),
-};
 
 const TAB_ITEMS: {
   id: TabId;
@@ -141,7 +118,7 @@ export default function App() {
   const { isAuthenticated, isBootstrapping, user } = useAuth();
   const contentRef = useRef<HTMLIonContentElement | null>(null);
   const [pathname, setPathname] = useState(() => window.location.pathname);
-  const { authScreen, screen, direction, setAuthScreen, setScreen, goBack, handleTabChange } = useAppNavigation(isAuthenticated);
+  const { authScreen, screen, direction: _direction, setAuthScreen, setScreen, goBack, handleTabChange } = useAppNavigation(isAuthenticated);
   const isKeyboardVisible = useKeyboardState();
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
@@ -155,6 +132,17 @@ export default function App() {
   const [socialProfileReturnScreen, setSocialProfileReturnScreen] = useState<"feed" | "social">("social");
   const isAdminRoute = pathname.startsWith("/admin");
   const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
+
+  const [visitedScreens, setVisitedScreens] = useState<Set<TabId>>(() => new Set(["feed"]));
+
+  useEffect(() => {
+    setVisitedScreens((prev) => {
+      if (prev.has(screen)) return prev;
+      const next = new Set(prev);
+      next.add(screen);
+      return next;
+    });
+  }, [screen]);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -352,76 +340,96 @@ export default function App() {
               {isAuthenticated && (
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr",
-                    gridTemplateRows: "1fr",
+                    position: "relative",
                     width: "100%",
                     minHeight: "100%",
                   }}
                 >
-                  <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-                    <Motion.div
-                      key={screen}
-                      custom={direction}
-                      variants={PAGE_TRANSITION_VARIANTS}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
+                  {visitedScreens.has("feed") && (
+                    <div
                       style={{
-                        gridColumn: 1,
-                        gridRow: 1,
+                        display: screen === "feed" ? "block" : "none",
                         width: "100%",
-                        willChange: "transform, opacity",
                       }}
                     >
-                      {screen === "feed" && (
-                        <DeferredScreen>
-                          <SocialFeedScreen
-                            key={feedRefreshToken}
-                            streakCount={streak.count}
-                            isStreakFedToday={isStreakFedToday}
-                            streakBurstToken={streak.burstToken}
-                            onOpenUserProfile={openSocialProfile}
-                          />
-                        </DeferredScreen>
-                      )}
-                      {screen === "social" && (
-                        <DeferredScreen>
-                          <SocialScreen
-                            isActive={screen === "social"}
-                            profileUsername={socialProfileUsername}
-                            onOpenProfileFromSocial={() => setSocialProfileReturnScreen("social")}
-                            onProfileClosed={() => {
-                              setSocialProfileUsername(null);
-                              if (socialProfileReturnScreen !== "social") {
-                                setScreen(socialProfileReturnScreen);
-                              }
-                            }}
-                          />
-                        </DeferredScreen>
-                      )}
-                      {screen === "workout" && (
-                        <WorkoutStartScreen
-                          key={workoutScreenInstance}
-                          ghostModeEnabled={accountSettings.ghostModeEnabled}
-                          onActiveWorkoutChange={setActiveWorkout}
-                          onWorkoutCompleted={handleWorkoutCompleted}
+                      <DeferredScreen>
+                        <SocialFeedScreen
+                          key={feedRefreshToken}
+                          streakCount={streak.count}
+                          isStreakFedToday={isStreakFedToday}
+                          streakBurstToken={streak.burstToken}
+                          onOpenUserProfile={openSocialProfile}
                         />
-                      )}
-                      {screen === "inventory" && (
-                        <DeferredScreen>
-                          <InventoryScreen />
-                        </DeferredScreen>
-                      )}
-                      {screen === "profile" && (
-                        <ProfileScreen
-                          key={profileRefreshToken}
-                          accountSettings={accountSettings}
-                          onAccountSettingsChange={setAccountSettings}
+                      </DeferredScreen>
+                    </div>
+                  )}
+
+                  {visitedScreens.has("social") && (
+                    <div
+                      style={{
+                        display: screen === "social" ? "block" : "none",
+                        width: "100%",
+                      }}
+                    >
+                      <DeferredScreen>
+                        <SocialScreen
+                          isActive={screen === "social"}
+                          profileUsername={socialProfileUsername}
+                          onOpenProfileFromSocial={() => setSocialProfileReturnScreen("social")}
+                          onProfileClosed={() => {
+                            setSocialProfileUsername(null);
+                            if (socialProfileReturnScreen !== "social") {
+                              setScreen(socialProfileReturnScreen);
+                            }
+                          }}
                         />
-                      )}
-                    </Motion.div>
-                  </AnimatePresence>
+                      </DeferredScreen>
+                    </div>
+                  )}
+
+                  {visitedScreens.has("workout") && (
+                    <div
+                      style={{
+                        display: screen === "workout" ? "block" : "none",
+                        width: "100%",
+                      }}
+                    >
+                      <WorkoutStartScreen
+                        key={workoutScreenInstance}
+                        ghostModeEnabled={accountSettings.ghostModeEnabled}
+                        onActiveWorkoutChange={setActiveWorkout}
+                        onWorkoutCompleted={handleWorkoutCompleted}
+                      />
+                    </div>
+                  )}
+
+                  {visitedScreens.has("inventory") && (
+                    <div
+                      style={{
+                        display: screen === "inventory" ? "block" : "none",
+                        width: "100%",
+                      }}
+                    >
+                      <DeferredScreen>
+                        <InventoryScreen />
+                      </DeferredScreen>
+                    </div>
+                  )}
+
+                  {visitedScreens.has("profile") && (
+                    <div
+                      style={{
+                        display: screen === "profile" ? "block" : "none",
+                        width: "100%",
+                      }}
+                    >
+                      <ProfileScreen
+                        key={profileRefreshToken}
+                        accountSettings={accountSettings}
+                        onAccountSettingsChange={setAccountSettings}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </ScreenErrorBoundary>

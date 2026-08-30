@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import App from "./App";
 
 const authState = vi.hoisted(() => ({
@@ -130,9 +130,8 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Social" }));
     expect(await screen.findByText("social-screen")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.queryByText("social-feed-screen")).not.toBeInTheDocument();
-    });
+    expect(screen.getByText("social-screen").closest("div")?.parentElement).toHaveStyle({ display: "block" });
+    expect(screen.getByText("social-feed-screen").closest("div")?.parentElement).toHaveStyle({ display: "none" });
   });
 
   it("invalida posts e dias do perfil ao concluir um treino", () => {
