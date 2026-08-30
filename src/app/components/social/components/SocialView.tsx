@@ -688,13 +688,8 @@ export function SocialView({
   }
 
   return (
-    <PageBackground>
-      <IonGrid
-        fixed
-        className="relative z-10 px-3 pb-8 pt-7"
-        onTouchStart={handleTabTouchStart}
-        onTouchEnd={handleTabTouchEnd}
-      >
+    <PageBackground onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
+      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-7">
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <header className="relative mb-6">
@@ -816,11 +811,21 @@ export function SocialView({
               ))}
             </nav>
 
-            {state.activeSection === "friends" ? (
-              <FriendsPanel state={state} onOpenProfile={openProfileFromSocial} />
-            ) : (
-              <HivesPanel state={state} onOpenProfile={openProfileFromSocial} />
-            )}
+            <AnimatePresence mode="wait" initial={false}>
+              <Motion.div
+                key={state.activeSection}
+                initial={{ opacity: 0, x: state.activeSection === "hives" ? 20 : -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: state.activeSection === "hives" ? -20 : 20 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                {state.activeSection === "friends" ? (
+                  <FriendsPanel state={state} onOpenProfile={openProfileFromSocial} />
+                ) : (
+                  <HivesPanel state={state} onOpenProfile={openProfileFromSocial} />
+                )}
+              </Motion.div>
+            </AnimatePresence>
           </IonCol>
         </IonRow>
       </IonGrid>
