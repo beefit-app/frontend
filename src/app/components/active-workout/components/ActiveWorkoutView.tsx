@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { IonCol, IonGrid, IonInput, IonRow } from "@ionic/react";
-import { Clock3, Ellipsis, Plus, ChevronLeft } from "lucide-react";
+import { Clock3, Ellipsis, Plus, ChevronLeft, Trash2 } from "lucide-react";
 import { BeeButton } from "../../BeeButton";
 import { PageBackground } from "../../PageBackground";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
@@ -360,8 +360,7 @@ export function ActiveWorkoutView({
                         >
                           <div
                             style={{
-                              display: "grid",
-                              gridTemplateColumns: "32px minmax(0, 1fr)",
+                              display: "flex",
                               alignItems: "center",
                               columnGap: 10,
                               color: "#8F8F8F",
@@ -376,10 +375,11 @@ export function ActiveWorkoutView({
                             }}
                           >
                             <span style={{ width: 32, flexShrink: 0, paddingLeft: 8 }}>#</span>
-                            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", alignItems: "center", gap: 10 }}>
+                            <div style={{ flex: 1, display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", alignItems: "center", gap: 10 }}>
                               <span style={{ paddingLeft: 16 }}>Peso</span>
                               <span style={{ paddingLeft: 16 }}>Reps</span>
                             </div>
+                            <span style={{ width: 32, flexShrink: 0 }}></span>
                           </div>
 
                           <div
@@ -473,6 +473,27 @@ export function ActiveWorkoutView({
                                     }
                                   />
                                 </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => onRemoveSet(exercise.id, set.id)}
+                                  aria-label="Remover série"
+                                  style={{
+                                    width: 32,
+                                    height: 32,
+                                    flexShrink: 0,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    background: "transparent",
+                                    border: "none",
+                                    padding: 0,
+                                    color: "#555555",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <Trash2 size={18} />
+                                </button>
                               </div>
                             ))}
                           </div>
