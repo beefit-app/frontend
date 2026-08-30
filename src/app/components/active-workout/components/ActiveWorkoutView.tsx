@@ -133,7 +133,7 @@ export function ActiveWorkoutView({
   }, [exercises]);
 
   return (
-    <PageBackground style={{ minHeight: "100%", height: "100%" }}>
+    <PageBackground style={{ display: "flex", flexDirection: "column", minHeight: "100%", height: "100%" }}>
       <IonGrid
         fixed
         style={{
@@ -142,8 +142,7 @@ export function ActiveWorkoutView({
           zIndex: 1,
           display: "flex",
           flexDirection: "column",
-          minHeight: "100%",
-          height: "100%",
+          flex: 1,
           boxSizing: "border-box",
         }}
       >
@@ -252,8 +251,8 @@ export function ActiveWorkoutView({
           </IonRow>
         )}
 
-        <IonRow style={{ flex: "1 1 auto", marginTop: 12, marginBottom: 12 }}>
-          <IonCol size="12" style={{ position: "relative", display: "flex", flexDirection: "column" }}>
+        <IonRow style={{ flex: "1 1 auto", marginTop: 12, marginBottom: 12, alignItems: "stretch" }}>
+          <IonCol size="12" style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%" }}>
             <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
