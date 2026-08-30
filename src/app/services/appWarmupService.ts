@@ -15,9 +15,10 @@ export async function warmupAppData(user: AuthUser | null): Promise<void> {
     // 1. Feed Social inicial
     socialFeedService.load(0).catch(() => null),
 
-    // 2. Catálogo de Exercícios e Templates de Treino
+    // 2. Catálogo de Exercícios, Templates e Treino Ativo
     workoutService.loadCatalog().catch(() => null),
     workoutService.loadTemplates().catch(() => null),
+    workoutService.getActiveWorkout().catch(() => null),
 
     // 3. Perfil do Usuário
     profileService.getProfile(user).catch(() => null),
