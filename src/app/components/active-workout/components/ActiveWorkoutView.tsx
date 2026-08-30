@@ -510,7 +510,7 @@ export function ActiveWorkoutView({
                               pointerEvents: isFlipped ? "auto" : "none",
                               display: "flex",
                               flexDirection: "column",
-                              gap: 10,
+                              gap: 8,
                               paddingBottom: 2,
                             }}
                           >
@@ -524,20 +524,18 @@ export function ActiveWorkoutView({
                                 background: "transparent",
                                 color: "#FFFFFF",
                                 cursor: "pointer",
-                                display: "grid",
-                                gap: 2,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
                                 textAlign: "left",
                                 minWidth: 0,
                               }}
                               aria-label={`Voltar às séries de ${exercise.name}`}
                             >
-                              <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#A3A3A3", fontFamily: "var(--font-inter)", fontSize: 12 }}>
-                                <ChevronLeft size={14} />
-                                <span>Voltar às séries</span>
-                              </div>
+                              <ChevronLeft size={20} style={{ color: "#A3A3A3", flexShrink: 0 }} />
                               <span
                                 className="line-clamp-2"
-                                style={{ fontFamily: "var(--font-montserrat)", fontSize: 20, fontWeight: 700 }}
+                                style={{ fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700 }}
                               >
                                 {exercise.name}
                               </span>
@@ -549,13 +547,13 @@ export function ActiveWorkoutView({
                               secondaryMuscles={secondaryMuscles}
                             />
 
-                            <SurfaceCard border="#262626" background="rgba(255,255,255,0.02)">
-                              <div style={{ display: "grid", gap: 10 }}>
+                            <SurfaceCard border="#262626" background="rgba(255,255,255,0.02)" style={{ padding: 12 }}>
+                              <div style={{ display: "grid", gap: 8 }}>
                                 <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 14, fontWeight: 700 }}>
                                   Histórico recente
                                 </span>
 
-                                <div style={{ display: "grid", gap: 6 }}>
+                                <div style={{ display: "grid", gap: 4 }}>
                                   {[
                                     { label: "Última vez", value: formatDate(history?.lastPerformedAt) },
                                     { label: "Melhor desempenho", value: formatHistoryPerformance(history?.bestWeightKg, history?.bestReps) },
@@ -564,9 +562,9 @@ export function ActiveWorkoutView({
                                     <div
                                       key={item.label}
                                       style={{
-                                        borderRadius: 12,
+                                        borderRadius: 10,
                                         background: "rgba(255,255,255,0.03)",
-                                        padding: "8px 12px",
+                                        padding: "6px 10px",
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "space-between",
