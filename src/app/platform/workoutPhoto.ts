@@ -12,17 +12,15 @@ function dataUrlToFile(dataUrl: string, fileName: string) {
 export async function captureWorkoutPhoto(source: CameraSource): Promise<File | null> {
   if (!Capacitor.isNativePlatform()) return null;
   try {
-    const check = await Camera.checkPermissions();
-    if (source === CameraSource.Camera && check.camera !== "granted") {
-      const requested = await Camera.requestPermissions({ permissions: ["camera"] });
-      if (requested.camera !== "granted") {
-        return null;
+    try {
+      const check = await Camera.checkPermissions();
+      if (source === CameraSource.Camera && check.camera !== "granted") {
+        await Camera.requestPermissions({ permissions: ["camera"] });
+      } else if (source === CameraSource.Photos && check.photos !== "granted") {
+        await Camera.requestPermissions({ permissions: ["photos"] });
       }
-    } else if (source === CameraSource.Photos && check.photos !== "granted") {
-      const requested = await Camera.requestPermissions({ permissions: ["photos"] });
-      if (requested.photos !== "granted") {
-        return null;
-      }
+    } catch {
+      // Ignora erro de checagem prévia e deixa o Camera.getPhoto lidar com a solicitação nativa
     }
 
     const photo = await Camera.getPhoto({
@@ -30,9 +28,11 @@ export async function captureWorkoutPhoto(source: CameraSource): Promise<File | 
       resultType: CameraResultType.DataUrl,
       quality: 85,
       correctOrientation: true,
+      allowEditing: false,
     });
     return photo.dataUrl ? dataUrlToFile(photo.dataUrl, `workout-${Date.now()}.jpg`) : null;
-  } catch {
+  } catch (error) {
+    console.warn("captureWorkoutPhoto falhou ou foi cancelada:", error);
     return null;
   }
 }

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 import { CameraSource } from "@capacitor/camera";
 import { Capacitor } from "@capacitor/core";
@@ -11,7 +12,7 @@ import { BeeAlert } from "../../BeeAlert";
 import { captureWorkoutPhoto } from "../../../platform/workoutPhoto";
 
 export function FinishWorkoutView({
-  finishPhotoInputRef,
+  finishPhotoInputRef: _unusedPhotoInputRef,
   finishPhotoUrl,
   finishTitle,
   finishTitleError,
@@ -45,6 +46,39 @@ export function FinishWorkoutView({
   onToggleSaveTemplate: () => void;
   onFinish: () => void;
 }) {
+  const finishCameraInputRef = useRef<HTMLInputElement | null>(null);
+  const finishGalleryInputRef = useRef<HTMLInputElement | null>(null);
+
+  async function handleTakePhoto() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const file = await captureWorkoutPhoto(CameraSource.Camera);
+        if (file) {
+          onPhotoChange(file);
+          return;
+        }
+      } catch (err) {
+        console.warn("Native camera failed, falling back to input", err);
+      }
+    }
+    finishCameraInputRef.current?.click();
+  }
+
+  async function handlePickGallery() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const file = await captureWorkoutPhoto(CameraSource.Photos);
+        if (file) {
+          onPhotoChange(file);
+          return;
+        }
+      } catch (err) {
+        console.warn("Native gallery failed, falling back to input", err);
+      }
+    }
+    finishGalleryInputRef.current?.click();
+  }
+
   const formattedVolume = new Intl.NumberFormat("pt-BR", {
     maximumFractionDigits: 0,
   }).format(totalVolumeKg);
@@ -95,9 +129,17 @@ export function FinishWorkoutView({
           <IonCol size="12">
             <div style={{ display: "grid", gap: 16 }}>
               <input
-                ref={finishPhotoInputRef}
+                ref={finishCameraInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/*"
+                capture="environment"
+                style={{ display: "none" }}
+                onChange={(event) => onPhotoChange(event.target.files?.[0] ?? null)}
+              />
+              <input
+                ref={finishGalleryInputRef}
+                type="file"
+                accept="image/*"
                 style={{ display: "none" }}
                 onChange={(event) => onPhotoChange(event.target.files?.[0] ?? null)}
               />
@@ -137,13 +179,7 @@ export function FinishWorkoutView({
                   >
                     <button
                       type="button"
-                      onClick={() => {
-                        if (!Capacitor.isNativePlatform()) {
-                          finishPhotoInputRef.current?.click();
-                          return;
-                        }
-                        void captureWorkoutPhoto(CameraSource.Camera).then((file) => file && onPhotoChange(file));
-                      }}
+                      onClick={handleTakePhoto}
                       style={{
                         borderRadius: 14,
                         background: "rgba(20,20,20,0.85)",
@@ -164,13 +200,7 @@ export function FinishWorkoutView({
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (!Capacitor.isNativePlatform()) {
-                          finishPhotoInputRef.current?.click();
-                          return;
-                        }
-                        void captureWorkoutPhoto(CameraSource.Photos).then((file) => file && onPhotoChange(file));
-                      }}
+                      onClick={handlePickGallery}
                       style={{
                         borderRadius: 14,
                         background: "rgba(20,20,20,0.85)",
@@ -252,13 +282,7 @@ export function FinishWorkoutView({
                   <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 320 }}>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (!Capacitor.isNativePlatform()) {
-                          finishPhotoInputRef.current?.click();
-                          return;
-                        }
-                        void captureWorkoutPhoto(CameraSource.Camera).then((file) => file && onPhotoChange(file));
-                      }}
+                      onClick={handleTakePhoto}
                       style={{
                         flex: 1,
                         borderRadius: 14,
@@ -281,13 +305,7 @@ export function FinishWorkoutView({
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (!Capacitor.isNativePlatform()) {
-                          finishPhotoInputRef.current?.click();
-                          return;
-                        }
-                        void captureWorkoutPhoto(CameraSource.Photos).then((file) => file && onPhotoChange(file));
-                      }}
+                      onClick={handlePickGallery}
                       style={{
                         flex: 1,
                         borderRadius: 14,
