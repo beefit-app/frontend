@@ -920,7 +920,7 @@ export function WorkoutStartScreen({
                         </div>
                       </div>
 
-                      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
+                      <div className="flex flex-col gap-3">
                         {muscleGroups.map((group) => {
                           const selected = selectedGroups.includes(group.id);
                           return (
@@ -929,63 +929,60 @@ export function WorkoutStartScreen({
                               type="button"
                               onClick={() => toggleGroup(group.id)}
                               style={{
-                                borderRadius: 20,
-                                padding: "14px 46px 14px 14px",
+                                borderRadius: 16,
+                                padding: "16px",
                                 textAlign: "left",
                                 border: `1px solid ${selected ? group.accent : "#2D2D2D"}`,
                                 background: selected ? group.glow : "rgba(16,16,16,0.9)",
-                                boxShadow: selected ? `0 0 0 1px ${group.accent} inset` : "none",
+                                boxShadow: selected ? `0 0 0 1px ${group.accent} inset, 0 4px 16px ${group.glow}` : "none",
                                 transition: "all 160ms ease",
                                 display: "flex",
-                                height: "100%",
-                                alignItems: "flex-start",
-                                position: "relative",
+                                width: "100%",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 14,
                                 cursor: "pointer",
                               }}
                             >
-                              <div className="w-full">
-                                <div style={{ flex: 1 }}>
-                                  <div
-                                    style={{
-                                      color: "#FFFFFF",
-                                      fontFamily: "var(--font-montserrat)",
-                                      fontSize: 16,
-                                      fontWeight: 700,
-                                      marginBottom: 6,
-                                    }}
-                                  >
-                                    {group.label}
-                                  </div>
-                                  <div
-                                    style={{
-                                      color: "#A3A3A3",
-                                      fontFamily: "var(--font-inter)",
-                                      fontSize: 12,
-                                      lineHeight: 1.45,
-                                    }}
-                                  >
-                                    {group.description}
-                                  </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div
+                                  style={{
+                                    color: selected ? "#FFFFFF" : "#EEEEEE",
+                                    fontFamily: "var(--font-montserrat)",
+                                    fontSize: 15,
+                                    fontWeight: 700,
+                                    marginBottom: 3,
+                                  }}
+                                >
+                                  {group.label}
                                 </div>
                                 <div
                                   style={{
-                                    width: 24,
-                                    height: 24,
-                                    position: "absolute",
-                                    top: 14,
-                                    right: 14,
-                                    borderRadius: 999,
-                                    border: `1px solid ${selected ? group.accent : "#3D3D3D"}`,
-                                    background: selected ? group.accent : "transparent",
-                                    color: selected ? "#0A0A0A" : "transparent",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    flexShrink: 0,
+                                    color: "#8A8A8A",
+                                    fontFamily: "var(--font-inter)",
+                                    fontSize: 12,
+                                    lineHeight: 1.4,
                                   }}
                                 >
-                                  <Check size={14} />
+                                  {group.description}
                                 </div>
+                              </div>
+                              <div
+                                style={{
+                                  width: 26,
+                                  height: 26,
+                                  borderRadius: 999,
+                                  border: `1px solid ${selected ? group.accent : "#3D3D3D"}`,
+                                  background: selected ? group.accent : "rgba(255,255,255,0.04)",
+                                  color: selected ? "#0A0A0A" : "transparent",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
+                                  transition: "all 160ms ease",
+                                }}
+                              >
+                                <Check size={15} strokeWidth={3} />
                               </div>
                             </button>
                           );
