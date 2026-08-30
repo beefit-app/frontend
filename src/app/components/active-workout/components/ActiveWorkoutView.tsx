@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { IonCol, IonGrid, IonInput, IonRow } from "@ionic/react";
-import { Clock3, Ellipsis, Plus, ChevronRight, ChevronLeft } from "lucide-react";
+import { Clock3, Ellipsis, Plus, ChevronLeft } from "lucide-react";
 import { BeeButton } from "../../BeeButton";
 import { PageBackground } from "../../PageBackground";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
@@ -84,8 +84,7 @@ export function ActiveWorkoutView({
   onOpenCatalog: () => void;
   onOpenFinish: () => void;
 }) {
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(false);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [flippedExerciseId, setFlippedExerciseId] = useState<string | null>(null);
   const [historyState, setHistoryState] = useState<HistoryState>({ kind: "idle" });
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -116,37 +115,17 @@ export function ActiveWorkoutView({
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    setShowLeftArrow(container.scrollLeft > 20);
-
-    const isCloseToEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 20;
-    setShowRightArrow(!isCloseToEnd);
-  };
-
-  const handleScrollLeft = () => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const scrollAmount = container.clientWidth + 16;
-    container.scrollBy({ left: -scrollAmount, behavior: "smooth" });
-  };
-
-  const handleScrollRight = () => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const scrollAmount = container.clientWidth + 16;
-    container.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    // The width of each snap point is the slide's width plus the gap (16px)
+    // Actually, each slide fills the container width (flex 0 0 100%) and gap is 16
+    const slideWidth = container.clientWidth + 16;
+    const index = Math.round(container.scrollLeft / slideWidth);
+    
+    // Safety clamp in case of overscroll
+    const safeIndex = Math.max(0, Math.min(index, exercises.length));
+    setActiveSlideIndex(safeIndex);
   };
 
   useEffect(() => {
-    if (exercises.length > 0) {
-      setShowLeftArrow(false);
-      setShowRightArrow(true);
-    } else {
-      setShowLeftArrow(false);
-      setShowRightArrow(false);
-    }
-
     const timer = window.setTimeout(() => {
       handleScroll();
     }, 100);
@@ -619,6 +598,7 @@ export function ActiveWorkoutView({
                   onClick={onOpenCatalog}
                   style={{
                     ...ACTIVE_WORKOUT_CARD_STYLE,
+                    height: "100%",
                     border: "1px dashed #FFD700",
                     background: "rgba(255,215,0,0.12)",
                     borderRadius: 24,
@@ -626,9 +606,12 @@ export function ActiveWorkoutView({
                     display: "grid",
                     alignContent: "center",
                     justifyItems: "center",
-                    gap: 16,
+                    gap: 12,
+                    color: "#FFD700",
+                    fontFamily: "var(--font-montserrat)",
+                    fontSize: 18,
+                    fontWeight: 700,
                     cursor: "pointer",
-                    textAlign: "center",
                   }}
                 >
                   <div
@@ -657,86 +640,23 @@ export function ActiveWorkoutView({
                 </button>
               </div>
             </div>
-
-            {exercises.length > 0 && showLeftArrow && (
-              <button
-                type="button"
-                onClick={handleScrollLeft}
-                aria-label="Ver exercício anterior"
-                style={{
-                  position: "absolute",
-                  left: 8,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: 38,
-                  height: 38,
-                  borderRadius: "50%",
-                  background: "rgba(20, 20, 20, 0.4)",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "rgba(255, 255, 255, 0.55)",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-                  zIndex: 10,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.75)";
-                  e.currentTarget.style.color = "#FFFFFF";
-                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.4)";
-                  e.currentTarget.style.color = "rgba(255, 255, 255, 0.55)";
-                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
-                }}
-              >
-                <ChevronLeft size={20} />
-              </button>
-            )}
-
-            {exercises.length > 0 && showRightArrow && (
-              <button
-                type="button"
-                onClick={handleScrollRight}
-                aria-label="Ver próximo exercício"
-                style={{
-                  position: "absolute",
-                  right: 8,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: 38,
-                  height: 38,
-                  borderRadius: "50%",
-                  background: "rgba(20, 20, 20, 0.4)",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "rgba(255, 255, 255, 0.55)",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-                  zIndex: 10,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.75)";
-                  e.currentTarget.style.color = "#FFFFFF";
-                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.4)";
-                  e.currentTarget.style.color = "rgba(255, 255, 255, 0.55)";
-                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
-                }}
-              >
-                <ChevronRight size={20} />
-              </button>
-            )}
           </IonCol>
         </IonRow>
+
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "4px 0 16px" }}>
+          {Array.from({ length: exercises.length + 1 }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: i === activeSlideIndex ? "#FFFFFF" : "rgba(255,255,255,0.2)",
+                transition: "background 0.2s",
+              }}
+            />
+          ))}
+        </div>
 
         <IonRow style={{ flex: "0 0 auto", marginTop: "auto" }}>
           <IonCol size="12">
@@ -745,9 +665,15 @@ export function ActiveWorkoutView({
                 <BeeAlert plain>{finishValidationError}</BeeAlert>
               </div>
             )}
-            <BeeButton variant="primary" size="lg" fullWidth onClick={onOpenFinish}>
-              Concluir treino
-            </BeeButton>
+            {activeSlideIndex === exercises.length ? (
+              <BeeButton variant="primary" size="lg" fullWidth onClick={onOpenFinish}>
+                Concluir treino
+              </BeeButton>
+            ) : (
+              <BeeButton variant="secondary" size="lg" fullWidth onClick={onOpenCatalog}>
+                Adicionar Exercício
+              </BeeButton>
+            )}
           </IonCol>
         </IonRow>
       </IonGrid>
