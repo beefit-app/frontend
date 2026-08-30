@@ -11,13 +11,30 @@ function dataUrlToFile(dataUrl: string, fileName: string) {
 
 export async function captureWorkoutPhoto(source: CameraSource): Promise<File | null> {
   if (!Capacitor.isNativePlatform()) return null;
-  const photo = await Camera.getPhoto({
-    source,
-    resultType: CameraResultType.DataUrl,
-    quality: 85,
-    correctOrientation: true,
-  });
-  return photo.dataUrl ? dataUrlToFile(photo.dataUrl, `workout-${Date.now()}.jpg`) : null;
+  try {
+    const check = await Camera.checkPermissions();
+    if (source === CameraSource.Camera && check.camera !== "granted") {
+      const requested = await Camera.requestPermissions({ permissions: ["camera"] });
+      if (requested.camera !== "granted") {
+        return null;
+      }
+    } else if (source === CameraSource.Photos && check.photos !== "granted") {
+      const requested = await Camera.requestPermissions({ permissions: ["photos"] });
+      if (requested.photos !== "granted") {
+        return null;
+      }
+    }
+
+    const photo = await Camera.getPhoto({
+      source,
+      resultType: CameraResultType.DataUrl,
+      quality: 85,
+      correctOrientation: true,
+    });
+    return photo.dataUrl ? dataUrlToFile(photo.dataUrl, `workout-${Date.now()}.jpg`) : null;
+  } catch {
+    return null;
+  }
 }
 
 function toBase64(file: File) {
