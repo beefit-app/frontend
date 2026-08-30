@@ -15,10 +15,10 @@ import {
 import { motion as Motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { useState } from "react";
-import type { ExerciseCatalogItem, WorkoutTemplate } from "../../../types/workout";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
 import { BeeButton } from "../../BeeButton";
 import { PageBackground } from "../../PageBackground";
+import { InteractiveTabPager } from "../../ui/InteractiveTabPager";
 import {
   HEX_CLIP,
   MUSCLE_GROUP_FILTER_OPTIONS,
@@ -764,8 +764,8 @@ function TemplateFormSheet({
   onOpenChange: (open: boolean) => void;
   onSubmit: (input: { name: string; exerciseIds: string[] }) => Promise<void>;
 }) {
-  const [name, setName] = useState("");
-  const [exerciseIds, setExerciseIds] = useState<string[]>([]);
+  const [name, setName] = useState(template?.name ?? "");
+  const [exerciseIds, setExerciseIds] = useState<string[]>(template?.exerciseIds ?? []);
   const [query, setQuery] = useState("");
   const [catalogMuscleGroupFilter, setCatalogMuscleGroupFilter] = useState<InventoryMuscleGroup | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -823,55 +823,56 @@ function TemplateFormSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:items-start">
-            <div className="grid gap-5">
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          <div className="grid gap-5 lg:grid-cols-2">
+            <section className="grid gap-3">
               <label className="grid gap-2">
-                <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">Nome</span>
+                <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">
+                  Nome do template
+                </span>
                 <input
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Ex.: Upper pesado"
-                  className="h-12 rounded-2xl border border-[#2D2D2D] bg-[#101010] px-4 font-inter text-[14px] text-white outline-none focus:border-[#FFD700]"
+                  placeholder="Ex: Treino A (Superior)"
+                  className="h-12 rounded-2xl border border-[#2D2D2D] bg-[#101010] px-4 font-inter text-[14px] text-white outline-none focus:border-[#FFD700] placeholder:text-[#8A8A8A]"
                 />
               </label>
 
-              <section className="grid gap-3">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">
-                    Exercícios adicionados
-                  </span>
-                  <span className="font-inter text-[12px] font-semibold text-[#FFD700]">{exerciseIds.length}</span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-montserrat text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">
+                  Exercícios selecionados
+                </span>
+                <span className="font-montserrat text-[12px] font-bold text-[#FFD700]">{selectedExercises.length}</span>
+              </div>
+
+              {selectedExercises.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[#2D2D2D] bg-[#101010] px-4 py-6 text-center font-inter text-[13px] text-[#737373]">
+                  Selecione exercícios da lista ao lado.
                 </div>
-                {selectedExercises.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-[#2D2D2D] bg-[#101010] px-4 py-5 text-center font-inter text-[13px] text-[#737373]">
-                    Adicione exercícios pelo catálogo abaixo.
-                  </div>
-                ) : (
-                  <div className="grid max-h-[34dvh] gap-2 overflow-y-auto pr-1 lg:max-h-[46dvh]">
-                    {selectedExercises.map((exercise, index) => (
-                      <div key={`${exercise.id}-${index}`} className="flex items-center gap-3 rounded-2xl border border-[#2D2D2D] bg-[#1A1A1A] px-3 py-3">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[rgba(255,215,0,0.12)] font-montserrat text-[11px] font-bold text-[#FFD700]">
-                          {index + 1}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate font-inter text-[13px] font-semibold text-white">{exercise.name}</div>
-                          <div className="font-inter text-[11px] text-[#8A8A8A]">{exercise.group}</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setExerciseIds((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                          aria-label={`Remover ${exercise.name}`}
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#2D2D2D] text-[#A3A3A3]"
-                        >
-                          <X size={15} />
-                        </button>
+              ) : (
+                <div className="grid max-h-[38dvh] gap-2 overflow-y-auto pr-1">
+                  {selectedExercises.map((exercise, index) => (
+                    <div
+                      key={`${exercise.id}-${index}`}
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-[#2D2D2D] bg-[#101010] px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-inter text-[13px] font-semibold text-white">{exercise.name}</p>
+                        <p className="font-inter text-[11px] text-[#8A8A8A]">{exercise.group}</p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            </div>
+                      <button
+                        type="button"
+                        onClick={() => setExerciseIds((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                        aria-label={`Remover ${exercise.name}`}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#2D2D2D] text-[#A3A3A3]"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
 
             <section className="grid gap-3">
               <label className="grid gap-2">
@@ -1094,59 +1095,62 @@ export function InventoryView({
   }
 
   return (
-    <PageBackground>
-      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-5">
-        <IonRow className="ion-justify-content-center">
-          <IonCol size="12">
-            <div>
-              <header className="relative mb-6">
-                <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
-                  Inventário.
-                </h1>
-                <p className="mt-2 max-w-[320px] font-inter text-[14px] leading-[1.45] text-[#A3A3A3]">
-                  Acompanhe suas cartas e organize templates para começar o treino mais rápido.
-                </p>
-              </header>
+    <PageBackground className="min-h-full flex flex-col box-border">
+      <IonGrid fixed className="relative z-10 px-3 pt-6 pb-6 w-full flex-1 flex flex-col box-border">
+        <IonRow className="ion-justify-content-center flex-1">
+          <IonCol size="12" className="flex flex-col flex-1">
+            <header className="relative mb-6">
+              <h1 className="font-montserrat text-[34px] font-[800] leading-none text-white">
+                Inventário.
+              </h1>
+              <p className="mt-2 max-w-[320px] font-inter text-[14px] leading-[1.45] text-[#A3A3A3]">
+                Acompanhe suas cartas e organize templates para começar o treino mais rápido.
+              </p>
+            </header>
 
-              <nav
-                className="mb-6 grid grid-cols-2 rounded-[18px] border border-[#2D2D2D] bg-[#141414] p-1.5"
-                role="tablist"
-                aria-label="Seções do inventário"
+            <nav
+              className="mb-6 grid grid-cols-2 rounded-[18px] border border-[#2D2D2D] bg-[#141414] p-1.5"
+              role="tablist"
+              aria-label="Seções do inventário"
+            >
+              {[
+                { id: "cards" as const, label: "Cartas", icon: <Package2 size={15} /> },
+                { id: "templates" as const, label: "Templates", icon: <FolderKanban size={15} /> },
+              ].map((tab) => {
+                const selected = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`relative flex min-h-11 items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
+                      selected ? "text-[#0A0A0A]" : "text-[#8A8A8A]"
+                    }`}
+                  >
+                    {selected && (
+                      <Motion.span
+                        layoutId="inventory-tab-highlight"
+                        className="absolute inset-0 rounded-[13px] bg-[#FFD700]"
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      {tab.icon}
+                      {tab.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="flex-1 min-h-0 w-full">
+              <InteractiveTabPager
+                activeIndex={activeTab === "cards" ? 0 : 1}
+                onChangeIndex={(idx) => setActiveTab(idx === 0 ? "cards" : "templates")}
               >
-                {[
-                  { id: "cards" as const, label: "Cartas", icon: <Package2 size={15} /> },
-                  { id: "templates" as const, label: "Templates", icon: <FolderKanban size={15} /> },
-                ].map((tab) => {
-                  const selected = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={selected}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`relative flex min-h-11 items-center justify-center gap-2 rounded-[13px] px-3 py-3 font-montserrat text-[12px] font-bold uppercase tracking-wide ${
-                        selected ? "text-[#0A0A0A]" : "text-[#8A8A8A]"
-                      }`}
-                    >
-                      {selected && (
-                        <Motion.span
-                          layoutId="inventory-tab-highlight"
-                          className="absolute inset-0 rounded-[13px] bg-[#FFD700]"
-                          transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                        />
-                      )}
-                      <span className="relative z-10 flex items-center gap-2">
-                        {tab.icon}
-                        {tab.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </nav>
-
-              {activeTab === "cards" && (
-                <>
+                <div className="pr-1">
                   <FilterSection
                     filters={filters}
                     onResetFilters={onResetFilters}
@@ -1217,97 +1221,97 @@ export function InventoryView({
 
                     {!error && hasMore && <div ref={sentinelRef} style={{ padding: "8px 0", textAlign: "center", fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A" }}>{isLoadingMore ? "Buscando mais cartas..." : ""}</div>}
                   </section>
-                    </>
-                  )}
+                </div>
 
-                  {activeTab === "templates" && (
-                <section className="grid gap-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <FolderKanban size={14} color="#FFD700" />
-                      <h2 className="font-montserrat text-[11px] font-bold uppercase tracking-[0.1em] text-[#8A8A8A]">
-                        Templates salvos
-                      </h2>
-                      <span className="font-montserrat text-[14px] font-bold text-[#FFD700]">{templates.length}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={openCreateTemplate}
-                      className="beefit-tap-target flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] border border-[rgba(255,215,0,0.32)] bg-[rgba(255,215,0,0.1)] text-[#FFD700] transition-colors"
-                      aria-label="Criar novo template"
-                    >
-                      <Plus size={18} />
-                    </button>
-                  </div>
-
-                  {isLoadingTemplates && <TemplateSkeletonList />}
-
-                  {!isLoadingTemplates && templatesError && (
-                    <div
-                      style={{
-                        borderRadius: 20,
-                        border: "1px solid rgba(248,113,113,0.24)",
-                        background: "rgba(38,16,16,0.5)",
-                        padding: 18,
-                        textAlign: "center",
-                      }}
-                    >
-                      <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>
-                        Falha ao carregar templates
+                <div className="pl-1">
+                  <section className="grid gap-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <FolderKanban size={14} color="#FFD700" />
+                        <h2 className="font-montserrat text-[11px] font-bold uppercase tracking-[0.1em] text-[#8A8A8A]">
+                          Templates salvos
+                        </h2>
+                        <span className="font-montserrat text-[14px] font-bold text-[#FFD700]">{templates.length}</span>
                       </div>
-                      <div style={{ marginTop: 8, fontFamily: "var(--font-inter)", fontSize: 14, color: "#FCA5A5" }}>{templatesError}</div>
                       <button
                         type="button"
-                        onClick={onRetryTemplates}
-                        style={{
-                          marginTop: 14,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 8,
-                          borderRadius: 999,
-                          border: "1px solid rgba(255,215,0,0.28)",
-                          background: "transparent",
-                          color: "#FFD700",
-                          padding: "10px 16px",
-                          fontFamily: "var(--font-montserrat)",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.04em",
-                        }}
+                        onClick={openCreateTemplate}
+                        className="beefit-tap-target flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] border border-[rgba(255,215,0,0.32)] bg-[rgba(255,215,0,0.1)] text-[#FFD700] transition-colors"
+                        aria-label="Criar novo template"
                       >
-                        <RefreshCcw size={14} />
-                        Tentar novamente
+                        <Plus size={18} />
                       </button>
                     </div>
-                  )}
 
-                  {!isLoadingTemplates && !templatesError && templates.length === 0 && (
-                    <EmptyState
-                      title="Nenhum template salvo"
-                      description="Crie um treino pronto com qualquer quantidade de exercícios para usar no início do treino."
-                      actionLabel="Novo template"
-                      onAction={openCreateTemplate}
-                    />
-                  )}
+                    {isLoadingTemplates && <TemplateSkeletonList />}
 
-                  {!isLoadingTemplates && !templatesError && templates.length > 0 && (
-                    <div className="flex flex-col gap-2.5">
-                      {templates.map((template) => (
-                        <TemplateCard
-                          key={template.id}
-                          template={template}
-                          catalog={catalog}
-                          onOpenMenu={() => {
-                            setSelectedTemplate(template);
-                            setTemplateMenuOpen(true);
+                    {!isLoadingTemplates && templatesError && (
+                      <div
+                        style={{
+                          borderRadius: 20,
+                          border: "1px solid rgba(248,113,113,0.24)",
+                          background: "rgba(38,16,16,0.5)",
+                          padding: 18,
+                          textAlign: "center",
+                        }}
+                      >
+                        <div style={{ fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>
+                          Falha ao carregar templates
+                        </div>
+                        <div style={{ marginTop: 8, fontFamily: "var(--font-inter)", fontSize: 14, color: "#FCA5A5" }}>{templatesError}</div>
+                        <button
+                          type="button"
+                          onClick={onRetryTemplates}
+                          style={{
+                            marginTop: 14,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            borderRadius: 999,
+                            border: "1px solid rgba(255,215,0,0.28)",
+                            background: "transparent",
+                            color: "#FFD700",
+                            padding: "10px 16px",
+                            fontFamily: "var(--font-montserrat)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.04em",
                           }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </section>
-              )}
+                        >
+                          <RefreshCcw size={14} />
+                          Tentar novamente
+                        </button>
+                      </div>
+                    )}
+
+                    {!isLoadingTemplates && !templatesError && templates.length === 0 && (
+                      <EmptyState
+                        title="Nenhum template salvo"
+                        description="Crie um treino pronto com qualquer quantidade de exercícios para usar no início do treino."
+                        actionLabel="Novo template"
+                        onAction={openCreateTemplate}
+                      />
+                    )}
+
+                    {!isLoadingTemplates && !templatesError && templates.length > 0 && (
+                      <div className="flex flex-col gap-2.5">
+                        {templates.map((template) => (
+                          <TemplateCard
+                            key={template.id}
+                            template={template}
+                            catalog={catalog}
+                            onOpenMenu={() => {
+                              setSelectedTemplate(template);
+                              setTemplateMenuOpen(true);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </InteractiveTabPager>
             </div>
           </IonCol>
         </IonRow>

@@ -1,8 +1,8 @@
 import { IonCol, IonGrid, IonRow } from "@ionic/react";
 import {
-  Copy,
   Crown,
   Ellipsis,
+  Hexagon,
   Plus,
   Search,
   Trophy,
@@ -19,24 +19,19 @@ import { PublicProfilePage } from "../../profile/components/PublicProfileSheet";
 import { HexAvatar } from "../../workout-post";
 import { DeveloperBadge } from "../../DeveloperBadge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
+import { InteractiveTabPager } from "../../ui/InteractiveTabPager";
 import type { useSocialState } from "../hooks/useSocialState";
 import type { FriendProfile, Hive, HiveRankingPeriod } from "../types";
 
 type SocialState = ReturnType<typeof useSocialState>;
-const HEX_CLIP = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
-function HiveIcon({ active = false, size = 17 }: { active?: boolean; size?: number }) {
+function HiveIcon({ active = false, size = 16 }: { active?: boolean; size?: number }) {
   return (
-    <span
-      aria-hidden="true"
-      style={{
-        display: "inline-block",
-        width: size,
-        height: Math.round(size * 1.14),
-        clipPath: HEX_CLIP,
-        background: active ? "#0A0A0A" : "#FFD700",
-        opacity: active ? 1 : 0.92,
-      }}
+    <Hexagon
+      size={size}
+      strokeWidth={2}
+      color={active ? "#0A0A0A" : "#FFD700"}
+      style={{ display: "inline-block", flexShrink: 0 }}
     />
   );
 }
@@ -673,10 +668,10 @@ export function SocialView({
   }
 
   return (
-    <PageBackground>
-      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-7">
-        <IonRow className="ion-justify-content-center">
-          <IonCol size="12">
+    <PageBackground className="min-h-full flex flex-col box-border">
+      <IonGrid fixed className="relative z-10 px-3 pt-6 pb-6 w-full flex-1 flex flex-col box-border">
+        <IonRow className="ion-justify-content-center flex-1">
+          <IonCol size="12" className="flex flex-col flex-1">
             <header className="relative mb-6">
               <div className="absolute right-0 top-0 flex gap-2">
                 <button
@@ -796,11 +791,19 @@ export function SocialView({
               ))}
             </nav>
 
-            {state.activeSection === "friends" ? (
-              <FriendsPanel state={state} onOpenProfile={openProfileFromSocial} />
-            ) : (
-              <HivesPanel state={state} onOpenProfile={openProfileFromSocial} />
-            )}
+            <div className="flex-1 min-h-0 w-full">
+              <InteractiveTabPager
+                activeIndex={state.activeSection === "friends" ? 0 : 1}
+                onChangeIndex={(idx) => state.setActiveSection(idx === 0 ? "friends" : "hives")}
+              >
+                <div className="pr-1">
+                  <FriendsPanel state={state} onOpenProfile={openProfileFromSocial} />
+                </div>
+                <div className="pl-1">
+                  <HivesPanel state={state} onOpenProfile={openProfileFromSocial} />
+                </div>
+              </InteractiveTabPager>
+            </div>
           </IonCol>
         </IonRow>
       </IonGrid>

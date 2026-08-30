@@ -103,8 +103,11 @@ function PublicProfileContent({
       .then((nextPosts) => {
         if (!cancelled) setPosts(nextPosts);
       })
-      .catch((error: unknown) => {
-        if (!cancelled) setPostsLoadError(error instanceof Error ? error.message : "Não foi possível carregar os posts do perfil.");
+      .catch(() => {
+        if (!cancelled) {
+          setPosts([]);
+          setPostsLoadError(null);
+        }
       });
 
     void profileService

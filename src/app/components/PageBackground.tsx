@@ -2,15 +2,17 @@ export function PageBackground({
   children,
   className = "",
   style,
+  ...props
 }: {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-}) {
+} & React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={`relative w-full overflow-hidden bg-[#0A0A0A] ${className}`}
       style={{ minHeight: "100%", ...style }}
+      {...props}
     >
       <div
         style={{
