@@ -1210,9 +1210,34 @@ export function InventoryView({
     await onCreateTemplate(input);
   }
 
+  const tabTouchStartX = useRef(0);
+  const tabTouchStartY = useRef(0);
+
+  function handleTabTouchStart(e: React.TouchEvent) {
+    tabTouchStartX.current = e.touches[0].clientX;
+    tabTouchStartY.current = e.touches[0].clientY;
+  }
+
+  function handleTabTouchEnd(e: React.TouchEvent) {
+    const diffX = e.changedTouches[0].clientX - tabTouchStartX.current;
+    const diffY = e.changedTouches[0].clientY - tabTouchStartY.current;
+    if (Math.abs(diffX) > 48 && Math.abs(diffX) > Math.abs(diffY) * 1.3) {
+      if (diffX < 0 && activeTab === "cards") {
+        setActiveTab("templates");
+      } else if (diffX > 0 && activeTab === "templates") {
+        setActiveTab("cards");
+      }
+    }
+  }
+
   return (
     <PageBackground>
-      <IonGrid fixed className="relative z-10 px-3 pb-8 pt-5">
+      <IonGrid
+        fixed
+        className="relative z-10 px-3 pb-8 pt-5"
+        onTouchStart={handleTabTouchStart}
+        onTouchEnd={handleTabTouchEnd}
+      >
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <div>
