@@ -158,7 +158,7 @@ export function ActiveWorkoutView({
       <IonGrid
         fixed
         style={{
-          padding: "16px 12px calc(16px + var(--ion-safe-area-bottom, 0px))",
+          padding: "10px 12px calc(10px + var(--ion-safe-area-bottom, 0px))",
           position: "relative",
           zIndex: 1,
           display: "flex",
@@ -301,49 +301,53 @@ export function ActiveWorkoutView({
                   <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)" style={{ ...ACTIVE_WORKOUT_CARD_STYLE, position: "relative", overflow: "hidden" }}>
                     <div style={{ display: "grid", gap: 14, height: "100%", gridTemplateRows: "auto minmax(0, 1fr) auto", alignContent: "start" }}>
                       <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, width: "100%" }}>
                           <button
                             type="button"
                             onClick={() => setFlippedExerciseId(exercise.id)}
                             aria-label={`Ver mapa muscular e histórico de ${exercise.name}`}
-                            style={{ display: "grid", gap: 8, minWidth: 0, border: "none", padding: 0, background: "transparent", textAlign: "left", cursor: "pointer" }}
+                            style={{ display: "grid", gap: 6, flex: "1 1 0%", minWidth: 0, border: "none", padding: 0, background: "transparent", textAlign: "left", cursor: "pointer" }}
                           >
                             <span
                               className="line-clamp-2"
-                              style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}
+                              style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 20, fontWeight: 700, lineHeight: 1.25 }}
                             >
                               {exercise.name}
                             </span>
-                            <MuscleTag group={exercise.group} />
-                            <span style={{ color: "#737373", fontFamily: "var(--font-inter)", fontSize: 12 }}>
-                              Toque para ver mapa e histórico
-                            </span>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <MuscleTag group={exercise.group} />
+                              <span style={{ color: "#737373", fontFamily: "var(--font-inter)", fontSize: 11 }}>
+                                Toque para ver mapa e histórico
+                              </span>
+                            </div>
                           </button>
-                          <Sheet
-                            open={activeExerciseMenuId === exercise.id}
-                            onOpenChange={(open) => {
-                              if (!open && activeExerciseMenuId === exercise.id) onToggleExerciseMenu(exercise.id);
-                            }}
-                          >
-                            <EllipsisActionButton
-                              type="button"
-                              onClick={() => onToggleExerciseMenu(exercise.id)}
-                              aria-label={`Abrir ações de ${exercise.name}`}
-                            />
-                            <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
-                              <SheetHeader className="px-0 pb-3 pt-3 text-left">
-                                <SheetTitle className="font-montserrat text-[20px] font-bold text-white">{exercise.name}</SheetTitle>
-                                <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
-                                  Escolha uma ação para este exercício.
-                                </SheetDescription>
-                              </SheetHeader>
-                              <div className="flex flex-col gap-2.5">
-                                <BeeButton variant="red" fullWidth onClick={() => onRemoveExercise(exercise.id)}>
-                                  Remover exercício
-                                </BeeButton>
-                              </div>
-                            </SheetContent>
-                          </Sheet>
+                          <div style={{ flexShrink: 0 }}>
+                            <Sheet
+                              open={activeExerciseMenuId === exercise.id}
+                              onOpenChange={(open) => {
+                                if (!open && activeExerciseMenuId === exercise.id) onToggleExerciseMenu(exercise.id);
+                              }}
+                            >
+                              <EllipsisActionButton
+                                type="button"
+                                onClick={() => onToggleExerciseMenu(exercise.id)}
+                                aria-label={`Abrir ações de ${exercise.name}`}
+                              />
+                              <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
+                                <SheetHeader className="px-0 pb-3 pt-3 text-left">
+                                  <SheetTitle className="font-montserrat text-[20px] font-bold text-white">{exercise.name}</SheetTitle>
+                                  <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
+                                    Escolha uma ação para este exercício.
+                                  </SheetDescription>
+                                </SheetHeader>
+                                <div className="flex flex-col gap-2.5">
+                                  <BeeButton variant="red" fullWidth onClick={() => onRemoveExercise(exercise.id)}>
+                                    Remover exercício
+                                  </BeeButton>
+                                </div>
+                              </SheetContent>
+                            </Sheet>
+                          </div>
                         </div>
                       </div>
 
@@ -507,8 +511,8 @@ export function ActiveWorkoutView({
                             zIndex: 2,
                             display: "flex",
                             flexDirection: "column",
-                            gap: 12,
-                            padding: "16px 16px 20px",
+                            gap: 10,
+                            padding: "14px 14px 16px",
                             background: "rgba(20,20,20,0.99)",
                             animation: "fade-in 180ms ease-out",
                             overflowY: "auto",
