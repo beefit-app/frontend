@@ -650,7 +650,7 @@ export function ActiveWorkoutView({
                   >
                     <Plus size={24} />
                   </div>
-                  <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ display: "grid", gap: 6, textAlign: "center", justifyItems: "center" }}>
                     <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 22, fontWeight: 700 }}>
                       Adicionar exercício
                     </span>
