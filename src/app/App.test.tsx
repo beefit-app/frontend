@@ -77,7 +77,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(screen.getByText("Restaurando sua sessão...")).toBeInTheDocument();
+    expect(screen.getByAltText("BeeFit")).toBeInTheDocument();
   });
 
   it("permite alternar entre login e cadastro", () => {

@@ -13,15 +13,19 @@ import { RegisterScreen } from "./components/RegisterScreen";
 import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } from "./components/ProfileScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
 import { LegalDocuments } from "./components/LegalDocuments";
+import { App as CapApp } from "@capacitor/app";
 import { useAuth } from "./auth/AuthContext";
 import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
 import { useStreakState } from "./hooks/useStreakState";
 import { useWorkoutSessionState } from "./hooks/useWorkoutSessionState";
+import { useKeyboardState } from "./hooks/useKeyboardState";
+import { warmupAppData } from "./services/appWarmupService";
 import { profileService } from "./services/profileService";
 import { pageCacheStorage } from "./storage/pageCacheStorage";
 import { resetFeedCache } from "./components/social-feed/hooks/useSocialFeedState";
 import type { WorkoutCompletionDraft, WorkoutCompletionSummary } from "./types/workout";
 import { Toaster } from "./components/ui/sonner";
+import logoImg from "../imports/logo.png";
 
 setupIonicReact({ mode: "md" });
 
@@ -137,7 +141,8 @@ export default function App() {
   const { isAuthenticated, isBootstrapping, user } = useAuth();
   const contentRef = useRef<HTMLIonContentElement | null>(null);
   const [pathname, setPathname] = useState(() => window.location.pathname);
-  const { authScreen, screen, direction, setAuthScreen, setScreen, handleTabChange } = useAppNavigation(isAuthenticated);
+  const { authScreen, screen, direction, setAuthScreen, setScreen, goBack, handleTabChange } = useAppNavigation(isAuthenticated);
+  const isKeyboardVisible = useKeyboardState();
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
   const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState(
@@ -150,6 +155,32 @@ export default function App() {
   const [socialProfileReturnScreen, setSocialProfileReturnScreen] = useState<"feed" | "social">("social");
   const isAdminRoute = pathname.startsWith("/admin");
   const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      void warmupAppData(user);
+    }
+  }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    const backListener = CapApp.addListener("backButton", () => {
+      if (socialProfileUsername !== null) {
+        setSocialProfileUsername(null);
+        if (socialProfileReturnScreen !== "social") {
+          setScreen(socialProfileReturnScreen);
+        }
+        return;
+      }
+      const hasPopped = goBack();
+      if (!hasPopped) {
+        void CapApp.exitApp();
+      }
+    });
+
+    return () => {
+      void backListener.then((handle) => handle.remove());
+    };
+  }, [goBack, setScreen, socialProfileReturnScreen, socialProfileUsername]);
 
   if (legalDocument) {
     return (
@@ -208,24 +239,28 @@ export default function App() {
           >
             {isBootstrapping && (
               <div className="flex min-h-full items-center justify-center px-6 text-center">
-                <div className="max-w-[280px]">
-                  <span className="block font-montserrat text-[14px] font-bold uppercase tracking-[0.12em] text-[#B8A65A]">
-                    BeeFit Admin
-                  </span>
-                  <span className="mt-3 block font-inter text-[15px] text-[#D4D4D4]">
-                    Restaurando sua sessão...
-                  </span>
-                </div>
+                <Motion.div
+                  initial={{ opacity: 0.4, scale: 0.95 }}
+                  animate={{ opacity: [0.4, 1, 0.4], scale: [0.95, 1.02, 0.95] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  className="flex flex-col items-center"
+                >
+                  <img
+                    src={logoImg}
+                    alt="BeeFit"
+                    className="h-20 w-20 object-contain drop-shadow-[0_0_24px_rgba(255,215,0,0.25)]"
+                  />
+                </Motion.div>
               </div>
             )}
-
             {!isBootstrapping && (
-              <ScreenErrorBoundary resetKey={`admin:${isAuthenticated}:${authScreen}`}>
-                {!isAuthenticated && authScreen === "login" && (
-                  <LoginScreen onNavigateToRegister={() => setAuthScreen("register")} />
-                )}
-                {!isAuthenticated && authScreen === "register" && (
-                  <RegisterScreen onNavigateToLogin={() => setAuthScreen("login")} />
+              <ScreenErrorBoundary resetKey={`admin:${isAuthenticated}:${user?.email ?? ""}`}>
+                {!isAuthenticated && (
+                  <LoginScreen
+                    onNavigateToRegister={() => {
+                      window.location.pathname = "/";
+                    }}
+                  />
                 )}
                 {isAuthenticated && <DeferredScreen><AdminScreen /></DeferredScreen>}
               </ScreenErrorBoundary>
@@ -243,26 +278,30 @@ export default function App() {
           ref={contentRef}
           fullscreen
           scrollY
-          forceOverscroll
           style={
             {
               "--background":
                 "linear-gradient(180deg, rgba(255,215,0,0.07) 0%, transparent 100%) center var(--beefit-page-gradient-top) / 100% var(--beefit-page-gradient-height) no-repeat, #0A0A0A",
               "--color": "#ffffff",
+              overscrollBehaviorY: "contain",
               ...SAFE_AREA_TOP_PADDING,
             } as React.CSSProperties
           }
         >
           {isBootstrapping && (
             <div className="flex min-h-full items-center justify-center px-6 text-center">
-              <div className="max-w-[280px]">
-                <span className="block font-montserrat text-[14px] font-bold uppercase tracking-[0.12em] text-[#B8A65A]">
-                  BeeFit
-                </span>
-                <span className="mt-3 block font-inter text-[15px] text-[#D4D4D4]">
-                  Restaurando sua sessão...
-                </span>
-              </div>
+              <Motion.div
+                initial={{ opacity: 0.4, scale: 0.95 }}
+                animate={{ opacity: [0.4, 1, 0.4], scale: [0.95, 1.02, 0.95] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                className="flex flex-col items-center"
+              >
+                <img
+                  src={logoImg}
+                  alt="BeeFit"
+                  className="h-20 w-20 object-contain drop-shadow-[0_0_24px_rgba(255,215,0,0.25)]"
+                />
+              </Motion.div>
             </div>
           )}
 
@@ -390,7 +429,7 @@ export default function App() {
 
         </IonContent>
 
-        {!isBootstrapping && isAuthenticated && (
+        {!isBootstrapping && isAuthenticated && !isKeyboardVisible && (
           <IonFooter
             className="ion-no-border"
             data-testid="bottom-navigation"
