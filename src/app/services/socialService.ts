@@ -42,6 +42,7 @@ export const socialService = {
   async sendRequest(userId: string) { return apiClient.post<ApiFriendship>(`/api/social/friends/request/${userId}`, undefined, { auth: true }); },
   async acceptRequest(id: string) { return apiClient.post<ApiFriendship>(`/api/social/friends/${id}/accept`, undefined, { auth: true }); },
   async rejectRequest(id: string) { return apiClient.post(`/api/social/friends/${id}/reject`, undefined, { auth: true }); },
+  async cancelRequest(id: string) { return apiClient.post(`/api/social/friends/${id}/cancel`, undefined, { auth: true }); },
   async removeFriend(id: string) { return apiClient.delete(`/api/social/friends/${id}`, undefined, { auth: true }); },
   async loadHives(currentUserId: string) {
     const hives = await apiClient.get<ApiHive[]>("/api/hives/mine", { auth: true });
