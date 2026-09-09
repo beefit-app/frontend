@@ -33,6 +33,19 @@ Na pratica, **Mac de 2018 em diante**. O Ventura exige MacBook Air 2018+,
 MacBook Pro 2017+, iMac 2017+ ou Mac mini 2018+. Macs de laboratorio de
 faculdade costumam servir e ja vem com Xcode.
 
+### Conferir na maquina, antes de aceitar o emprestimo
+
+1. **Qual macOS esta instalado** (*Menu Apple -> Ajustes -> Geral -> Sobre*). Se
+   estiver abaixo de 13.5, a maquina precisa ser **atualizada** — decisao do dono,
+   1-2 h de trabalho. Perguntar antes.
+2. **Espaco em disco: ~40 GB livres.** Xcode sao ~15 GB, mais DerivedData e o
+   cache do SPM.
+3. **RAM e processador.** Num Intel com 8 GB a primeira build (resolver SPM +
+   compilar tudo) leva de 10 a 20 min. Motivo a mais para preparar dias antes.
+
+Referencia de modelos: um MacBook Pro 13" de 2019 chega ate o Sequoia (macOS 15)
+e serve com folga. Um Mac de 2014 nao passa do Big Sur e **nao serve**.
+
 Duas saidas que parecem resolver e nao resolvem:
 
 - **OpenCore Legacy Patcher** (macOS novo em Mac sem suporte): funciona, mas nao
@@ -53,7 +66,7 @@ Duas saidas que parecem resolver e nao resolvem:
 | 5 | `npx cap open ios` | Capacitor 8 usa **SPM, sem CocoaPods**. A primeira abertura resolve os pacotes pela rede e demora. |
 | 6 | *Xcode -> Settings -> Accounts* -> adicionar Apple ID comum | Aparece como **Personal Team** |
 | 7 | Target **App** -> *Signing & Capabilities* -> **Team = Personal Team** | Se der `Failed to register bundle identifier`, o `com.beefit.app` esta tomado no cadastro global da Apple: troque `PRODUCT_BUNDLE_IDENTIFIER` para algo unico (ex.: `com.beefit.app.davi`). Nao precisa mexer no `capacitor.config.ts`. |
-| 8 | **Ensaio completo no proprio iPhone** | Rodar a instalacao e o roteiro inteiro sozinho. Cada problema resolvido aqui e um problema a menos multiplicado por N aparelhos. |
+| 8 | **Ensaio completo no proprio iPhone** | Rodar a instalacao e o roteiro inteiro sozinho. Cada problema resolvido aqui e um problema a menos multiplicado por N aparelhos. E onde aparece uma eventual incompatibilidade entre a versao do Xcode e o iOS dos aparelhos: instale o Xcode mais novo que o macOS aceitar. |
 
 Nada precisa ser alterado no backend: o CORS de producao **ja libera**
 `capacitor://localhost`, a origem do WebView do iOS (conferido no preflight de
