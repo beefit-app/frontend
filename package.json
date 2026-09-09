@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "build:remote": "vite build --mode remote",
     "dev": "vite",
     "dev:remote": "vite --mode remote",
     "lint": "eslint src --max-warnings 200",
