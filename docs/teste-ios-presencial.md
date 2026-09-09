@@ -122,6 +122,23 @@ sozinho. Anotar o resultado de cada item por aparelho (modelo + versao do iOS).
       top: 16; left: 16` (`components/profile/components/ProfileView.tsx:57`).
       Conferir se **nao fica sob o notch**.
 
+### Descoberta do "Concluir treino" — observar com atencao
+
+O botao de baixo da tela de treino ativo e **um so** e troca de funcao conforme o
+slide (`components/active-workout/components/ActiveWorkoutView.tsx:687-695`):
+"Adicionar Exercicio" nos slides de exercicio, **"Concluir treino" apenas no
+ultimo slide**. Chegar la exige rolar o carrossel horizontalmente, e as bolinhas
+indicadoras sao `<div>` decorativos, **sem clique** (linhas 669-680).
+
+Isso ja travou quem conhece o app. Vale medir com quem nunca viu:
+
+- [ ] O testador descobre sozinho como finalizar o treino? **Em quanto tempo?**
+- [ ] Ele tentou tocar nas bolinhas?
+- [ ] Precisou de ajuda? Anotar a frase exata que ele disse ao travar.
+
+Nao e bug de iOS — e feedback de produto, e e o tipo de coisa que so aparece
+com usuario de verdade.
+
 ### Casca nativa
 
 - [ ] Splash screen e icone corretos no springboard (deve ser a abelha, nao o
