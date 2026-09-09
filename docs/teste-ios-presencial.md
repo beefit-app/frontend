@@ -12,11 +12,41 @@ exigem o Apple Developer Program (US$99/ano).
 O Postgres do Render expira em **18/09/2026** (carencia ate 02/10) e nao tem
 backup. Contas criadas na sessao somem depois disso.
 
+## Requisito do Mac — conferir ANTES de qualquer coisa
+
+Nem todo Mac serve, e um Mac velho demais nao e questao de lentidao: e
+incompatibilidade que trava na primeira compilacao.
+
+Todos os `Package.swift` do projeto — o de `ios/App/CapApp-SPM/` e os dos seis
+plugins em `node_modules/` — declaram `swift-tools-version: 5.9`. Swift 5.9 so
+existe a partir do **Xcode 15**, que por sua vez exige **macOS 13.5 (Ventura)**.
+Um Mac no Big Sur (macOS 11) para no Xcode 13.2.1 / Swift 5.5 e nao consegue nem
+interpretar esses arquivos.
+
+| | Minimo absoluto | Recomendado |
+| --- | --- | --- |
+| macOS | Ventura 13.5 | Sonoma 14.5+ |
+| Xcode | 15 | 16+ |
+| Motivo | compilar o projeto | **instalar** em iPhone com iOS recente: Xcode antigo nao reconhece aparelho novo demais |
+
+Na pratica, **Mac de 2018 em diante**. O Ventura exige MacBook Air 2018+,
+MacBook Pro 2017+, iMac 2017+ ou Mac mini 2018+. Macs de laboratorio de
+faculdade costumam servir e ja vem com Xcode.
+
+Duas saidas que parecem resolver e nao resolvem:
+
+- **OpenCore Legacy Patcher** (macOS novo em Mac sem suporte): funciona, mas nao
+  se faz isso em maquina emprestada, e compilar Xcode 16 em hardware de 2014 e
+  doloroso mesmo quando da certo.
+- **Mac na nuvem** (MacinCloud, MacStadium): nao existe cabo USB ate uma maquina
+  remota, e a instalacao presencial depende do cabo. Mac na nuvem so serve para a
+  rota TestFlight, que exige os US$99 de qualquer forma.
+
 ## Antes da sessao (dias antes, nao no dia)
 
 | # | Passo | Observacao |
 | --- | --- | --- |
-| 1 | Instalar **Xcode** pela App Store | ~15 GB. Baixar no dia mata a sessao. |
+| 1 | Instalar **Xcode 15+** (16+ de preferencia) | ~15 GB. Baixar no dia mata a sessao. Conferir antes o requisito de macOS acima. |
 | 2 | Instalar **Node 22** (ver `.nvmrc`) e **git** | |
 | 3 | `git clone https://github.com/beefit-app/frontend.git && cd frontend && npm ci` | |
 | 4 | `npm run mobile:sync:remote` | `vite build --mode remote` + `npx cap sync`; ja aponta para `https://beefit-api.onrender.com` |
