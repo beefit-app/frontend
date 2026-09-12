@@ -9,7 +9,7 @@ import { Sheet, SheetContent } from "../../ui/sheet";
 function actionLabel(profile: PublicUserProfile | null) {
   if (!profile) return null;
   if (profile.relationshipStatus === "NONE") return "Adicionar amigo";
-  if (profile.relationshipStatus === "REQUEST_SENT") return "Solicitação enviada";
+  if (profile.relationshipStatus === "REQUEST_SENT") return "Cancelar solicitação";
   if (profile.relationshipStatus === "REQUEST_RECEIVED") return "Aceitar solicitação";
   if (profile.relationshipStatus === "FRIEND") return "Amigos";
   return null;
@@ -17,7 +17,7 @@ function actionLabel(profile: PublicUserProfile | null) {
 
 function actionDisabled(profile: PublicUserProfile | null, isSubmitting: boolean) {
   if (isSubmitting || !profile) return true;
-  return profile.relationshipStatus !== "NONE" && profile.relationshipStatus !== "REQUEST_RECEIVED";
+  return profile.relationshipStatus === "FRIEND";
 }
 
 export function PublicProfileSheet({
@@ -142,6 +142,13 @@ function PublicProfileContent({
           ...current,
           relationshipStatus: "FRIEND",
           friendshipId: response.id,
+        });
+      } else if (profile.relationshipStatus === "REQUEST_SENT" && profile.friendshipId) {
+        await socialService.cancelRequest(profile.friendshipId);
+        setProfile((current) => current && {
+          ...current,
+          relationshipStatus: "NONE",
+          friendshipId: null,
         });
       }
       onFriendshipChange?.();

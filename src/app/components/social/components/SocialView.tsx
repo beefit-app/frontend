@@ -196,9 +196,11 @@ function FriendsPanel({
                 >
                   <PersonIdentity person={request.profile} />
                 </button>
-                <span className="rounded-full bg-[#202020] px-3 py-1.5 font-inter text-[10px] font-bold uppercase tracking-wide text-[#A3A3A3]">
-                  Enviada
-                </span>
+                <div className="flex shrink-0">
+                  <SmallButton onClick={() => state.cancelFriendRequest(request.id)}>
+                    Cancelar
+                  </SmallButton>
+                </div>
               </div>
             ))}
           </div>
@@ -735,13 +737,24 @@ export function SocialView({
                               <span className="rounded-full bg-[rgba(34,197,94,0.12)] px-3 py-1.5 font-inter text-[10px] font-bold uppercase tracking-wide text-[#4ADE80]">
                                 Amigo
                               </span>
+                            ) : person.status === "sent" ? (
+                              <div className="flex shrink-0">
+                                {person.friendshipId ? (
+                                  <SmallButton onClick={() => state.cancelFriendRequest(person.friendshipId!)}>
+                                    Cancelar
+                                  </SmallButton>
+                                ) : (
+                                  <SmallButton disabled variant="neutral">
+                                    Enviada
+                                  </SmallButton>
+                                )}
+                              </div>
                             ) : (
                               <SmallButton
-                                variant={person.status === "sent" ? "neutral" : "gold"}
-                                disabled={person.status === "sent"}
+                                variant="gold"
                                 onClick={() => state.sendFriendRequest(person.id)}
                               >
-                                {person.status === "sent" ? "Enviada" : "Adicionar"}
+                                Adicionar
                               </SmallButton>
                             )}
                           </div>
