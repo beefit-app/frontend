@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, forwardRef } from "react";
 import { IonCol, IonGrid, IonInput, IonRow } from "@ionic/react";
 import { Clock3, Ellipsis, Plus, ChevronLeft, Trash2 } from "lucide-react";
+import { motion as Motion } from "motion/react";
 import { BeeButton } from "../../BeeButton";
 import { PageBackground } from "../../PageBackground";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
@@ -31,21 +32,29 @@ function formatHistoryPerformance(weight: number | null | undefined, reps: numbe
   return weight === 0 ? `${reps} reps` : `${weight} kg × ${reps}`;
 }
 
-function EllipsisActionButton({
-  className = "",
-  type = "button",
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      type={type}
-      className={`beefit-tap-target flex h-10 w-10 items-center justify-center rounded-[12px] border border-[#2D2D2D] bg-[#181818] text-[#A3A3A3] transition-colors hover:border-[#525252] hover:text-white ${className}`}
-      {...props}
-    >
-      <Ellipsis size={16} />
-    </button>
-  );
-}
+const EllipsisActionButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Motion.button>>(
+  ({ className = "", type = "button", onClick, ...props }, ref) => {
+    return (
+      <Motion.button
+        ref={ref}
+        type={type}
+        data-no-card-flip="true"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.96 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.(e);
+        }}
+        className={`beefit-tap-target flex h-10 w-10 cursor-pointer items-center justify-center rounded-[14px] border border-[#404040] bg-[#1A1A1A] text-white transition-colors hover:border-[#525252] hover:bg-[#222222] ${className}`}
+        {...props}
+      >
+        <Ellipsis size={18} />
+      </Motion.button>
+    );
+  },
+);
+EllipsisActionButton.displayName = "EllipsisActionButton";
 
 export function ActiveWorkoutView({
   sessionGroups,
@@ -111,6 +120,22 @@ export function ActiveWorkoutView({
     };
   }, [exercises, flippedExerciseId]);
 
+  const scrollTimeoutRef = useRef<number | null>(null);
+
+  const snapToClosestSlide = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const slideWidth = container.clientWidth + 16;
+    if (slideWidth <= 16) return;
+
+    const targetIndex = Math.max(0, Math.min(Math.round(container.scrollLeft / slideWidth), exercises.length));
+    const targetChild = container.children[targetIndex] as HTMLElement | undefined;
+    if (targetChild) {
+      targetChild.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  };
+
   const handleScroll = () => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -123,7 +148,29 @@ export function ActiveWorkoutView({
     // Safety clamp in case of overscroll
     const safeIndex = Math.max(0, Math.min(index, exercises.length));
     setActiveSlideIndex(safeIndex);
+
+    if (scrollTimeoutRef.current) {
+      window.clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = window.setTimeout(snapToClosestSlide, 120);
   };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const onScrollEnd = () => {
+      snapToClosestSlide();
+    };
+
+    container.addEventListener("scrollend", onScrollEnd);
+    return () => {
+      container.removeEventListener("scrollend", onScrollEnd);
+      if (scrollTimeoutRef.current) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [exercises.length]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -131,6 +178,21 @@ export function ActiveWorkoutView({
     }, 100);
     return () => window.clearTimeout(timer);
   }, [exercises]);
+
+  const isInteractiveElement = (target: HTMLElement | null) => {
+    if (!target) return false;
+    return !!target.closest(
+      "button:not([data-flip-card]), input, textarea, select, ion-input, ion-button, [role='button']:not([data-flip-card]), [data-no-card-flip]"
+    );
+  };
+
+  const handleCardClick = (exerciseId: string, isCurrentlyFlipped: boolean, e: React.MouseEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement | null;
+    if (!target || isInteractiveElement(target)) {
+      return;
+    }
+    setFlippedExerciseId(isCurrentlyFlipped ? null : exerciseId);
+  };
 
   return (
     <PageBackground style={{ display: "flex", flexDirection: "column", minHeight: "100%", height: "100%" }}>
@@ -262,7 +324,7 @@ export function ActiveWorkoutView({
                 gap: 16,
                 overflowX: "auto",
                 padding: "4px 2px 8px",
-                scrollSnapType: "x proximity",
+                scrollSnapType: "x mandatory",
                 flex: 1,
               }}
             >
@@ -274,7 +336,12 @@ export function ActiveWorkoutView({
                   }}
                   style={ACTIVE_WORKOUT_SLIDE_STYLE}
                 >
-                  <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)" style={{ ...ACTIVE_WORKOUT_CARD_STYLE, position: "relative", overflow: "hidden" }}>
+                  <SurfaceCard
+                    border="#2D2D2D"
+                    background="rgba(20,20,20,0.96)"
+                    onClick={(e) => handleCardClick(exercise.id, flippedExerciseId === exercise.id, e)}
+                    style={{ ...ACTIVE_WORKOUT_CARD_STYLE, position: "relative", overflow: "hidden", cursor: "pointer" }}
+                  >
                     <div
                       style={{
                         display: "grid",
@@ -301,6 +368,7 @@ export function ActiveWorkoutView({
                           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
                             <button
                               type="button"
+                              data-flip-card="true"
                               onClick={() => setFlippedExerciseId(exercise.id)}
                               aria-label={`Ver mapa muscular e histórico de ${exercise.name}`}
                               style={{ display: "grid", gap: 8, minWidth: 0, border: "none", padding: 0, background: "transparent", textAlign: "left", cursor: "pointer" }}
@@ -324,6 +392,7 @@ export function ActiveWorkoutView({
                             >
                               <EllipsisActionButton
                                 type="button"
+                                data-no-card-flip="true"
                                 onClick={() => onToggleExerciseMenu(exercise.id)}
                                 aria-label={`Abrir ações de ${exercise.name}`}
                               />
@@ -414,6 +483,8 @@ export function ActiveWorkoutView({
                                 </span>
 
                                 <div
+                                  data-no-card-flip="true"
+                                  onClick={(e) => e.stopPropagation()}
                                   style={{
                                     flex: 1,
                                     display: "grid",
@@ -475,7 +546,11 @@ export function ActiveWorkoutView({
 
                                 <button
                                   type="button"
-                                  onClick={() => onRemoveSet(exercise.id, set.id)}
+                                  data-no-card-flip="true"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRemoveSet(exercise.id, set.id);
+                                  }}
                                   aria-label="Remover série"
                                   style={{
                                     width: 32,
@@ -498,7 +573,7 @@ export function ActiveWorkoutView({
                           </div>
                         </div>
 
-                        <div style={{ paddingTop: 6 }}>
+                        <div style={{ paddingTop: 6 }} data-no-card-flip="true" onClick={(e) => e.stopPropagation()}>
                           <BeeButton variant="secondary" size="sm" onClick={() => onAddSet(exercise.id)}>
                             Adicionar Série
                           </BeeButton>
@@ -532,10 +607,12 @@ export function ActiveWorkoutView({
                               flexDirection: "column",
                               gap: 8,
                               paddingBottom: 2,
+                              cursor: "pointer",
                             }}
                           >
                             <button
                               type="button"
+                              data-flip-card="true"
                               onClick={() => setFlippedExerciseId(null)}
                               className="beefit-tap-target"
                               style={{
@@ -666,11 +743,21 @@ export function ActiveWorkoutView({
 
         <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "auto 0" }}>
           {Array.from({ length: exercises.length + 1 }).map((_, i) => (
-            <div
+            <button
               key={i}
+              type="button"
+              onClick={() => {
+                const container = scrollContainerRef.current;
+                const targetChild = container?.children[i] as HTMLElement | undefined;
+                targetChild?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+              }}
+              aria-label={`Ir para o exercício ${i + 1}`}
               style={{
                 width: 6,
                 height: 6,
+                padding: 0,
+                border: "none",
+                cursor: "pointer",
                 borderRadius: "50%",
                 background: i === activeSlideIndex ? "#FFFFFF" : "rgba(255,255,255,0.2)",
                 transition: "background 0.2s",

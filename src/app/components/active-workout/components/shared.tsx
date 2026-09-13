@@ -35,14 +35,18 @@ export function SurfaceCard({
   border = "#2D2D2D",
   background = "rgba(20,20,20,0.92)",
   style,
+  onClick,
+  ...props
 }: {
   children: React.ReactNode;
   border?: string;
   background?: string;
   style?: React.CSSProperties;
-}) {
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
+} & React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
+      onClick={onClick}
       style={{
         borderRadius: 24,
         border: `1px solid ${border}`,
@@ -53,6 +57,7 @@ export function SurfaceCard({
         boxShadow: "0 18px 48px rgba(0,0,0,0.18)",
         ...style,
       }}
+      {...props}
     >
       {children}
     </div>
