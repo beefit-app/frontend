@@ -108,8 +108,8 @@ export function ProfileView({
 
               {managementEnabled && (
               <Sheet open={isProfileMenuOpen} onOpenChange={setIsProfileMenuOpen}>
-                <SheetContent side="right" className="border-l border-[#2D2D2D] bg-[#141414] text-white sm:max-w-[360px]">
-                  <SheetHeader className="border-b border-[#2D2D2D] px-5 py-5 text-left">
+                <SheetContent side="right" className="border-l border-[#2D2D2D] bg-[#141414] text-white sm:max-w-[360px] pt-[calc(var(--ion-safe-area-top,0px)+16px)]">
+                  <SheetHeader className="border-b border-[#2D2D2D] px-5 pb-5 pt-2 text-left">
                     <SheetTitle className="font-montserrat text-[18px] font-bold text-white">
                       Opções do perfil
                     </SheetTitle>
