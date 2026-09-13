@@ -11,13 +11,30 @@ function dataUrlToFile(dataUrl: string, fileName: string) {
 
 export async function captureWorkoutPhoto(source: CameraSource): Promise<File | null> {
   if (!Capacitor.isNativePlatform()) return null;
-  const photo = await Camera.getPhoto({
-    source,
-    resultType: CameraResultType.DataUrl,
-    quality: 85,
-    correctOrientation: true,
-  });
-  return photo.dataUrl ? dataUrlToFile(photo.dataUrl, `workout-${Date.now()}.jpg`) : null;
+  try {
+    try {
+      const check = await Camera.checkPermissions();
+      if (source === CameraSource.Camera && check.camera !== "granted") {
+        await Camera.requestPermissions({ permissions: ["camera"] });
+      } else if (source === CameraSource.Photos && check.photos !== "granted") {
+        await Camera.requestPermissions({ permissions: ["photos"] });
+      }
+    } catch {
+      // Ignora erro de checagem prévia e deixa o Camera.getPhoto lidar com a solicitação nativa
+    }
+
+    const photo = await Camera.getPhoto({
+      source,
+      resultType: CameraResultType.DataUrl,
+      quality: 85,
+      correctOrientation: true,
+      allowEditing: false,
+    });
+    return photo.dataUrl ? dataUrlToFile(photo.dataUrl, `workout-${Date.now()}.jpg`) : null;
+  } catch (error) {
+    console.warn("captureWorkoutPhoto falhou ou foi cancelada:", error);
+    return null;
+  }
 }
 
 function toBase64(file: File) {

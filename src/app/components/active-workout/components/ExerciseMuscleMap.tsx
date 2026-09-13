@@ -66,18 +66,18 @@ export function ExerciseMuscleMap({
       <div className="grid w-full rounded-2xl bg-[#0e0e0e] border border-[#222222] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_20px_rgba(0,0,0,0.35)]">
         <div className="grid grid-cols-2 gap-2">
           {(["front", "back"] as const).map((side) => (
-            <div key={side} className="grid min-h-[180px] place-items-center overflow-hidden rounded-xl bg-[#141414] border border-[#242424] pt-2">
+            <div key={side} className="grid min-h-[148px] place-items-center overflow-hidden rounded-xl bg-[#141414] border border-[#242424] pt-1.5">
               <Body
                 data={data}
                 side={side}
                 gender="male"
-                scale={0.38}
+                scale={0.33}
                 colors={["#806000", "#B88A00", "#E0AD00", "#FFE04B"]}
                 defaultFill="#444444"
                 border="none"
                 defaultStroke="none"
               />
-              <span className="-mt-3 pb-2 font-montserrat text-[10px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">
+              <span className="-mt-3 pb-1.5 font-montserrat text-[10px] font-bold uppercase tracking-[0.08em] text-[#8A8A8A]">
                 {side === "front" ? "Frente" : "Costas"}
               </span>
             </div>

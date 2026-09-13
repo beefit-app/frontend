@@ -1,0 +1,344 @@
+From e7b4b5770793e4bff65baf5c1dd3f7bec2816a37 Mon Sep 17 00:00:00 2001
+From: Theo Faria <theocarfar@gmail.com>
+Date: Sun, 13 Sep 2026 12:23:18 -0300
+Subject: [PATCH 4/5] =?UTF-8?q?feat(treino):=20implementa=20dele=C3=A7?=
+ =?UTF-8?q?=C3=A3o=20de=20treino=20no=20perfil=20e=20feed=20social?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .../profile/components/WorkoutPostCard.tsx    | 54 +++++++++++----
+ .../social-feed/components/SocialFeedView.tsx |  3 +
+ .../components/WorkoutPostCard.tsx            |  1 +
+ .../social-feed/hooks/useSocialFeedState.ts   | 35 ++++++++++
+ src/app/components/social-feed/index.tsx      |  3 +-
+ .../components/WorkoutPostCardBase.tsx        | 66 +++++++++++++------
+ src/app/services/workoutService.ts            |  4 ++
+ 7 files changed, 133 insertions(+), 33 deletions(-)
+
+diff --git a/src/app/components/profile/components/WorkoutPostCard.tsx b/src/app/components/profile/components/WorkoutPostCard.tsx
+index a8b16b2c..0b106c2f 100644
+--- a/src/app/components/profile/components/WorkoutPostCard.tsx
++++ b/src/app/components/profile/components/WorkoutPostCard.tsx
+@@ -2,12 +2,20 @@ import { useState } from "react";
+ import { WorkoutPostCardBase } from "../../workout-post";
+ import type { ProfileData, WorkoutPost } from "../types";
+ import { getProfileInitials } from "../utils";
++import { useAuth } from "../../../auth/AuthContext";
++import { workoutService } from "../../../services/workoutService";
++import { useConfirm } from "../../../hooks/useConfirm";
++import { toast } from "sonner";
+ 
+-export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile: ProfileData }) {
++export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile: ProfileData; }) {
+   const [liked, setLiked] = useState(post.liked);
+   const [likes, setLikes] = useState(post.likes);
+   const [templateSaved, setTemplateSaved] = useState(post.templateSaved);
++  const [isDeleted, setIsDeleted] = useState(false);
+   const initials = getProfileInitials(profile);
++  const { user } = useAuth();
++  const isMe = user?.id === profile.id;
++  const confirmDialog = useConfirm();
+ 
+   function toggleLike() {
+     setLiked((current) => {
+@@ -16,17 +24,39 @@ export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile:
+     });
+   }
+ 
++  async function handleDelete() {
++    const ok = await confirmDialog({
++      title: "Apagar Treino",
++      message: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
++      confirmText: "Apagar",
++      cancelText: "Cancelar"
++    });
++    if (!ok) return;
++    try {
++      await workoutService.deleteWorkout(String(post.id));
++      setIsDeleted(true);
++      toast.success("Treino apagado com sucesso.");
++    } catch (e) {
++      toast.error("Não foi possível apagar o treino.");
++    }
++  }
++
++  if (isDeleted) return null;
++
+   return (
+-    <WorkoutPostCardBase
+-      post={post}
+-      author={{ name: profile.displayName, initials, avatarUrl: profile.avatarUrl, isDeveloper: profile.isDeveloper }}
+-      bodyWeight={profile.weight ?? 0}
+-      liked={liked}
+-      likes={likes}
+-      templateSaved={templateSaved}
+-      onToggleLike={toggleLike}
+-      onToggleTemplate={() => setTemplateSaved((current) => !current)}
+-      muscleVariant="accent"
+-    />
++    <>
++      <WorkoutPostCardBase
++        post={post}
++        author={{ name: profile.displayName, initials, avatarUrl: profile.avatarUrl, isDeveloper: profile.isDeveloper }}
++        bodyWeight={profile.weight ?? 0}
++        liked={liked}
++        likes={likes}
++        templateSaved={templateSaved}
++        onToggleLike={toggleLike}
++        onToggleTemplate={() => setTemplateSaved((current) => !current)}
++        muscleVariant="accent"
++        onDelete={isMe ? handleDelete : undefined}
++      />
++    </>
+   );
+ }
+diff --git a/src/app/components/social-feed/components/SocialFeedView.tsx b/src/app/components/social-feed/components/SocialFeedView.tsx
+index 8602c26a..b00cb0d5 100644
+--- a/src/app/components/social-feed/components/SocialFeedView.tsx
++++ b/src/app/components/social-feed/components/SocialFeedView.tsx
+@@ -16,6 +16,7 @@ export function SocialFeedView({
+   onToggleLike,
+   onSaveTemplate,
+   onOpenAuthorProfile,
++  onDeletePost,
+   isLoading,
+   isLoadingMore,
+   hasMore,
+@@ -31,6 +32,7 @@ export function SocialFeedView({
+   onToggleLike: (id: string | number) => void;
+   onSaveTemplate: (id: string | number) => void;
+   onOpenAuthorProfile?: (username: string) => void;
++  onDeletePost?: (id: string | number) => void;
+   isLoading: boolean;
+   isLoadingMore: boolean;
+   hasMore: boolean;
+@@ -127,6 +129,7 @@ export function SocialFeedView({
+                     onToggleLike={onToggleLike}
+                     onSaveTemplate={onSaveTemplate}
+                     onOpenAuthorProfile={onOpenAuthorProfile}
++              onDeletePost={onDeletePost}
+                   />
+                 ))}
+                 {error && <div className="rounded-2xl border border-[rgba(248,113,113,0.28)] px-4 py-4 text-center font-inter text-sm text-[#FCA5A5]">{error}<button type="button" onClick={onRetry} className="ml-2 font-bold underline">Tentar novamente</button></div>}
+diff --git a/src/app/components/social-feed/components/WorkoutPostCard.tsx b/src/app/components/social-feed/components/WorkoutPostCard.tsx
+index 489a7278..a677000d 100644
+--- a/src/app/components/social-feed/components/WorkoutPostCard.tsx
++++ b/src/app/components/social-feed/components/WorkoutPostCard.tsx
+@@ -1,5 +1,6 @@
+ import { WorkoutPostCardBase } from "../../workout-post";
+ import type { SocialFeedPost } from "../types";
++import { useAuth } from "../../../auth/AuthContext";
+ 
+ export function WorkoutPostCard({
+   post,
+diff --git a/src/app/components/social-feed/hooks/useSocialFeedState.ts b/src/app/components/social-feed/hooks/useSocialFeedState.ts
+index 6a7e4d72..407eb236 100644
+--- a/src/app/components/social-feed/hooks/useSocialFeedState.ts
++++ b/src/app/components/social-feed/hooks/useSocialFeedState.ts
+@@ -3,6 +3,7 @@ import { messages } from "../../../constants/messages";
+ import { useConfirm } from "../../../hooks/useConfirm";
+ import { useEffect, useRef, useState } from "react";
+ import { socialFeedService } from "../../../services/socialFeedService";
++import { workoutService } from "../../../services/workoutService";
+ import { socialFeedStorage } from "../../../storage/socialFeedStorage";
+ import { pageCacheStorage } from "../../../storage/pageCacheStorage";
+ import { useAuth } from "../../../auth/AuthContext";
+@@ -31,6 +32,23 @@ export function resetFeedCache() {
+ }
+ 
+ function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
++  async function handleDeletePost(postId: string | number) {
++    const ok = await confirmDialog({
++      title: "Apagar Treino",
++      message: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
++      confirmText: "Apagar",
++      cancelText: "Cancelar"
++    });
++    if (!ok) return;
++    try {
++      await workoutService.deleteWorkout(String(postId));
++      setPosts((prev) => prev.filter((p) => p.id !== postId));
++      toast.success("Treino apagado com sucesso.");
++    } catch (e) {
++      toast.error("Não foi possível apagar o treino.");
++    }
++  }
++
+   return {
+     ...friend,
+     // Os eventos SSE entregam o grupo cru (slug ou enum); o caminho REST ja chega
+@@ -335,6 +353,23 @@ export function useSocialFeedState() {
+     void loadFirstPage({ hydrateCache: false, silent: false });
+   }
+ 
++  async function handleDeletePost(postId: string | number) {
++    const ok = await confirmDialog({
++      title: "Apagar Treino",
++      message: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
++      confirmText: "Apagar",
++      cancelText: "Cancelar"
++    });
++    if (!ok) return;
++    try {
++      await workoutService.deleteWorkout(String(postId));
++      setPosts((prev) => prev.filter((p) => p.id !== postId));
++      toast.success("Treino apagado com sucesso.");
++    } catch (e) {
++      toast.error("Não foi possível apagar o treino.");
++    }
++  }
++
+   return {
+     confirmDialog,
+     posts,
+diff --git a/src/app/components/social-feed/index.tsx b/src/app/components/social-feed/index.tsx
+index 96c3f0de..1aee4d45 100644
+--- a/src/app/components/social-feed/index.tsx
++++ b/src/app/components/social-feed/index.tsx
+@@ -12,7 +12,7 @@ export function SocialFeedScreen({
+   streakBurstToken: number;
+   onOpenUserProfile?: (username: string) => void;
+ }) {
+-  const { confirmDialog, posts, liveFriends, toggleLike, saveTemplate, isLoading, isLoadingMore, hasMore, error, loadMore, retry } =
++  const { confirmDialog, posts, liveFriends, toggleLike, saveTemplate, handleDeletePost, isLoading, isLoadingMore, hasMore, error, loadMore, retry } =
+     useSocialFeedState();
+ 
+   return (
+@@ -24,6 +24,7 @@ export function SocialFeedScreen({
+       isStreakFedToday={isStreakFedToday}
+       streakBurstToken={streakBurstToken}
+       onToggleLike={toggleLike}
++      onDeletePost={handleDeletePost}
+       onSaveTemplate={saveTemplate}
+       onOpenAuthorProfile={onOpenUserProfile}
+       isLoading={isLoading}
+diff --git a/src/app/components/workout-post/components/WorkoutPostCardBase.tsx b/src/app/components/workout-post/components/WorkoutPostCardBase.tsx
+index 1731dde1..6f57ce7b 100644
+--- a/src/app/components/workout-post/components/WorkoutPostCardBase.tsx
++++ b/src/app/components/workout-post/components/WorkoutPostCardBase.tsx
+@@ -1,6 +1,9 @@
+ import { type MouseEvent, type TouchEvent, useRef, useState } from "react";
++  Trash2,
+ import { AnimatePresence, motion as Motion } from "motion/react";
++  Trash2,
+ import {
++  Trash2,
+   Bookmark,
+   ChevronLeft,
+   ChevronRight,
+@@ -10,11 +13,16 @@ import {
+   ImageIcon,
+ } from "lucide-react";
+ import { HEX_CLIP } from "../constants";
++  Trash2,
+ import type { WorkoutPost, WorkoutPostAuthor } from "../types";
+ import { getMuscleBadgeStyle } from "../utils";
++  Trash2,
+ import { HexAvatar } from "./shared";
++  Trash2,
+ import { AuthenticatedImage } from "../../AuthenticatedImage";
++  Trash2,
+ import { DeveloperBadge } from "../../DeveloperBadge";
++  Trash2,
+ 
+ interface WorkoutPostCardBaseProps {
+   post: WorkoutPost;
+@@ -25,6 +33,7 @@ interface WorkoutPostCardBaseProps {
+   templateSaved: boolean;
+   onToggleLike: () => void;
+   onToggleTemplate: () => void;
++  onDelete?: () => void;
+   muscleVariant?: "accent" | "neutral";
+ }
+ 
+@@ -37,6 +46,7 @@ export function WorkoutPostCardBase({
+   templateSaved,
+   onToggleLike,
+   onToggleTemplate,
++  onDelete,
+   muscleVariant = "accent",
+ }: WorkoutPostCardBaseProps) {
+   const [showExercises, setShowExercises] = useState(false);
+@@ -269,26 +279,42 @@ export function WorkoutPostCardBase({
+                     </span>
+                   </div>
+                 </button>
+-                <button
+-                  type="button"
+-                  className="beefit-tap-target"
+-                  onClick={() => setShowExercises(true)}
+-                  style={{
+-                    background: "rgba(255,255,255,0.08)",
+-                    border: "1px solid rgba(255,255,255,0.12)",
+-                    borderRadius: 100,
+-                    display: "flex",
+-                    alignItems: "center",
+-                    gap: 3,
+-                    cursor: "pointer",
+-                    padding: "4px 10px",
+-                  }}
+-                >
+-                  <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 500 }}>
+-                    Exercícios
+-                  </span>
+-                  <ChevronRight size={11} color="rgba(255,255,255,0.45)" />
+-                </button>
++                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
++                  {onDelete && (
++                    <button
++                      type="button"
++                      className="beefit-tap-target text-[#8A8A8A] hover:text-red-500 transition-colors"
++                      onClick={(e) => {
++                        e.stopPropagation();
++                        onDelete();
++                      }}
++                      title="Apagar Treino"
++                    >
++                      <Trash2 size={16} />
++                    </button>
++                  )}
++                  <button
++                    type="button"
++                    className="beefit-tap-target"
++                    onClick={() => setShowExercises(true)}
++                    style={{
++                      background: "rgba(255,255,255,0.06)",
++                      border: "none",
++                      borderRadius: 16,
++                      padding: "4px 10px",
++                      display: "flex",
++                      alignItems: "center",
++                      gap: 4,
++                      cursor: "pointer",
++                      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05)",
++                    }}
++                  >
++                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 500 }}>
++                      Exercícios
++                    </span>
++                    <ChevronRight size={11} color="rgba(255,255,255,0.45)" />
++                  </button>
++                </div>
+               </div>
+ 
+               <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
+diff --git a/src/app/services/workoutService.ts b/src/app/services/workoutService.ts
+index 520e026b..f799ed05 100644
+--- a/src/app/services/workoutService.ts
++++ b/src/app/services/workoutService.ts
+@@ -542,6 +542,10 @@ export const workoutService = {
+     );
+   },
+ 
++  async deleteWorkout(workoutId: string) {
++    await apiClient.delete(`/api/workout/${workoutId}`, { auth: true });
++  },
++
+   async cancelWorkout(workoutId: string | null | undefined) {
+     if (!workoutId) {
+       throw new Error("Sessão de treino sem ID do backend.");
+-- 
+2.53.0
+

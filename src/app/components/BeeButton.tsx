@@ -23,8 +23,8 @@ export type BeeButtonSize = "sm" | "md" | "lg";
 export type BeeButtonShape = "pill" | "soft";
 
 const SHAPE_RADIUS: Record<BeeButtonShape, string> = {
-  pill: "100px",
-  soft: "12px",
+  pill: "14px",
+  soft: "14px",
 };
 
 interface BeeButtonProps {
