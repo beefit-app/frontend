@@ -84,8 +84,7 @@ export function ActiveWorkoutView({
   onOpenCatalog: () => void;
   onOpenFinish: () => void;
 }) {
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(false);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [flippedExerciseId, setFlippedExerciseId] = useState<string | null>(null);
   const [historyState, setHistoryState] = useState<HistoryState>({ kind: "idle" });
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -116,42 +115,11 @@ export function ActiveWorkoutView({
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    setShowLeftArrow(container.scrollLeft > 20);
-
-    const isCloseToEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 20;
-    setShowRightArrow(!isCloseToEnd);
+    const slideWidth = container.clientWidth + 16;
+    const index = Math.round(container.scrollLeft / slideWidth);
+    const safeIndex = Math.max(0, Math.min(index, exercises.length));
+    setActiveSlideIndex(safeIndex);
   };
-
-  const handleScrollLeft = () => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const scrollAmount = container.clientWidth + 16;
-    container.scrollBy({ left: -scrollAmount, behavior: "smooth" });
-  };
-
-  const handleScrollRight = () => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const scrollAmount = container.clientWidth + 16;
-    container.scrollBy({ left: scrollAmount, behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    if (exercises.length > 0) {
-      setShowLeftArrow(false);
-      setShowRightArrow(true);
-    } else {
-      setShowLeftArrow(false);
-      setShowRightArrow(false);
-    }
-
-    const timer = window.setTimeout(() => {
-      handleScroll();
-    }, 100);
-    return () => window.clearTimeout(timer);
-  }, [exercises]);
 
   return (
     <PageBackground style={{ minHeight: "100%", height: "100%" }}>
@@ -636,96 +604,50 @@ export function ActiveWorkoutView({
               </div>
             </div>
 
-            {exercises.length > 0 && showLeftArrow && (
-              <button
-                type="button"
-                onClick={handleScrollLeft}
-                aria-label="Ver exercício anterior"
-                style={{
-                  position: "absolute",
-                  left: 8,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: 38,
-                  height: 38,
-                  borderRadius: "50%",
-                  background: "rgba(20, 20, 20, 0.4)",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "rgba(255, 255, 255, 0.55)",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-                  zIndex: 10,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.75)";
-                  e.currentTarget.style.color = "#FFFFFF";
-                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.4)";
-                  e.currentTarget.style.color = "rgba(255, 255, 255, 0.55)";
-                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
-                }}
-              >
-                <ChevronLeft size={20} />
-              </button>
-            )}
-
-            {exercises.length > 0 && showRightArrow && (
-              <button
-                type="button"
-                onClick={handleScrollRight}
-                aria-label="Ver próximo exercício"
-                style={{
-                  position: "absolute",
-                  right: 8,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: 38,
-                  height: 38,
-                  borderRadius: "50%",
-                  background: "rgba(20, 20, 20, 0.4)",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "rgba(255, 255, 255, 0.55)",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-                  zIndex: 10,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.75)";
-                  e.currentTarget.style.color = "#FFFFFF";
-                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(20, 20, 20, 0.4)";
-                  e.currentTarget.style.color = "rgba(255, 255, 255, 0.55)";
-                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
-                }}
-              >
-                <ChevronRight size={20} />
-              </button>
-            )}
           </IonCol>
         </IonRow>
 
-        <IonRow style={{ flex: "0 0 auto", marginTop: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "auto 0" }}>
+          {Array.from({ length: exercises.length + 1 }).map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => {
+                const container = scrollContainerRef.current;
+                const targetChild = container?.children[i] as HTMLElement | undefined;
+                targetChild?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+              }}
+              aria-label={`Ir para o exercício ${i + 1}`}
+              style={{
+                width: 6,
+                height: 6,
+                padding: 0,
+                border: "none",
+                cursor: "pointer",
+                borderRadius: "50%",
+                background: i === activeSlideIndex ? "#FFFFFF" : "rgba(255,255,255,0.2)",
+                transition: "background 0.2s",
+              }}
+            />
+          ))}
+        </div>
+
+        <IonRow style={{ flex: "0 0 auto", marginTop: 0 }}>
           <IonCol size="12">
             {finishValidationError && (
               <div style={{ margin: "0 2px 10px" }}>
                 <BeeAlert plain>{finishValidationError}</BeeAlert>
               </div>
             )}
-            <BeeButton variant="primary" size="lg" fullWidth onClick={onOpenFinish}>
-              Concluir treino
-            </BeeButton>
+            {activeSlideIndex === exercises.length ? (
+              <BeeButton variant="primary" size="lg" fullWidth onClick={onOpenFinish}>
+                Concluir treino
+              </BeeButton>
+            ) : (
+              <BeeButton variant="secondary" size="lg" fullWidth onClick={onOpenCatalog}>
+                Adicionar Exercício
+              </BeeButton>
+            )}
           </IonCol>
         </IonRow>
       </IonGrid>
