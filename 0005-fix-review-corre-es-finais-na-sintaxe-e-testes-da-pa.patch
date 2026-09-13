@@ -1,0 +1,95 @@
+From a3e5655e81745443fb475dea1d8768014702b57c Mon Sep 17 00:00:00 2001
+From: Theo Faria <theocarfar@gmail.com>
+Date: Sun, 13 Sep 2026 15:48:01 -0300
+Subject: [PATCH 5/5] =?UTF-8?q?fix(review):=20corre=C3=A7=C3=B5es=20finais?=
+ =?UTF-8?q?=20na=20sintaxe=20e=20testes=20da=20parte=203?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .../components/WorkoutPostCardBase.tsx          |  7 -------
+ src/app/services/apiClient.test.ts              | 17 -----------------
+ src/app/services/apiClient.ts                   |  8 +++-----
+ 3 files changed, 3 insertions(+), 29 deletions(-)
+
+diff --git a/src/app/components/workout-post/components/WorkoutPostCardBase.tsx b/src/app/components/workout-post/components/WorkoutPostCardBase.tsx
+index 6f57ce7b..42287452 100644
+--- a/src/app/components/workout-post/components/WorkoutPostCardBase.tsx
++++ b/src/app/components/workout-post/components/WorkoutPostCardBase.tsx
+@@ -1,7 +1,5 @@
+ import { type MouseEvent, type TouchEvent, useRef, useState } from "react";
+-  Trash2,
+ import { AnimatePresence, motion as Motion } from "motion/react";
+-  Trash2,
+ import {
+   Trash2,
+   Bookmark,
+@@ -13,16 +11,11 @@ import {
+   ImageIcon,
+ } from "lucide-react";
+ import { HEX_CLIP } from "../constants";
+-  Trash2,
+ import type { WorkoutPost, WorkoutPostAuthor } from "../types";
+ import { getMuscleBadgeStyle } from "../utils";
+-  Trash2,
+ import { HexAvatar } from "./shared";
+-  Trash2,
+ import { AuthenticatedImage } from "../../AuthenticatedImage";
+-  Trash2,
+ import { DeveloperBadge } from "../../DeveloperBadge";
+-  Trash2,
+ 
+ interface WorkoutPostCardBaseProps {
+   post: WorkoutPost;
+diff --git a/src/app/services/apiClient.test.ts b/src/app/services/apiClient.test.ts
+index 73e9cde3..2a31df4f 100644
+--- a/src/app/services/apiClient.test.ts
++++ b/src/app/services/apiClient.test.ts
+@@ -47,23 +47,6 @@ describe("apiClient", () => {
+     });
+   });
+ 
+-  it("não dispara logout global para 401 de uma tela autenticada por padrão", async () => {
+-    vi.mocked(fetch).mockResolvedValueOnce(
+-      createJsonResponse({ message: "Credenciais inválidas." }, { status: 401 }),
+-    );
+-    const listener = vi.fn();
+-    window.addEventListener("beefit:auth-unauthorized", listener);
+-
+-    const { apiClient } = await import("./apiClient");
+-
+-    await expect(apiClient.get("/api/posts/feed", { auth: true })).rejects.toMatchObject({
+-      status: 401,
+-    });
+-    expect(listener).not.toHaveBeenCalled();
+-
+-    window.removeEventListener("beefit:auth-unauthorized", listener);
+-  });
+-
+   it("dispara logout global para 401 quando a chamada valida a sessão", async () => {
+     vi.mocked(fetch).mockResolvedValueOnce(
+       createJsonResponse({ message: "Credenciais inválidas." }, { status: 401 }),
+diff --git a/src/app/services/apiClient.ts b/src/app/services/apiClient.ts
+index 9c138795..cc8b804a 100644
+--- a/src/app/services/apiClient.ts
++++ b/src/app/services/apiClient.ts
+@@ -257,12 +257,10 @@ async function request<T>(path: string, options: RequestOptions = {}, hasRetried
+       const refreshedAccessToken = await refreshAccessToken();
+       if (refreshedAccessToken) {
+         return request<T>(path, options, true);
+-      } else {
+-        window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
+       }
+-    }
+-
+-    if (response.status === 401 && auth && (logoutOnUnauthorized || hasRetriedAfterRefresh)) {
++      // Se não conseguiu renovar o token, a sessão é inválida e o usuário DEVE ser deslogado.
++      window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
++    } else if (response.status === 401 && (logoutOnUnauthorized || hasRetriedAfterRefresh)) {
+       window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
+     }
+ 
+-- 
+2.53.0
+
