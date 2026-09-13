@@ -252,8 +252,7 @@ async function request<T>(path: string, options: RequestOptions = {}, hasRetried
     if (
       response.status === 401 &&
       auth &&
-      !hasRetriedAfterRefresh &&
-      (errorCode === "TOKEN_EXPIRED" || errorCode === "TOKEN_INVALID")
+      !hasRetriedAfterRefresh
     ) {
       const refreshedAccessToken = await refreshAccessToken();
       if (refreshedAccessToken) {

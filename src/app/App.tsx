@@ -237,7 +237,7 @@ export default function App() {
                   <img
                     src={logoImg}
                     alt="BeeFit"
-                    className="h-20 w-20 object-contain drop-shadow-[0_0_24px_rgba(255,215,0,0.25)]"
+                    className="h-20 w-20 rounded-2xl object-contain drop-shadow-[0_0_24px_rgba(255,215,0,0.25)]"
                   />
                 </Motion.div>
               </div>
@@ -288,7 +288,7 @@ export default function App() {
                 <img
                   src={logoImg}
                   alt="BeeFit"
-                  className="h-20 w-20 object-contain drop-shadow-[0_0_24px_rgba(255,215,0,0.25)]"
+                  className="h-20 w-20 rounded-2xl object-contain drop-shadow-[0_0_24px_rgba(255,215,0,0.25)]"
                 />
               </Motion.div>
             </div>
