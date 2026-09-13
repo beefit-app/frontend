@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { PageBackground } from "../../PageBackground";
@@ -31,6 +31,16 @@ export function WorkoutCatalogView({
   onOpenExercise: (exerciseId: string) => void;
 }) {
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    if (activeCatalogGroupId !== "todos" && searchTerm.trim() !== "") {
+      const activeGroupCount = filterTabs.find(t => t.groupId === activeCatalogGroupId)?.count ?? 0;
+      if (activeGroupCount === 0) {
+        onSelectGroup("todos");
+      }
+    }
+  }, [searchTerm, activeCatalogGroupId, filterTabs, onSelectGroup]);
+
 
   const allExercises = useMemo(() => {
     return groupedExercises.flatMap((group) => group.items);

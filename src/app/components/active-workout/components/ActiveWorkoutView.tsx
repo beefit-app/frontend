@@ -664,7 +664,7 @@ export function ActiveWorkoutView({
           </IonCol>
         </IonRow>
 
-        <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "4px 0 16px" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "auto 0" }}>
           {Array.from({ length: exercises.length + 1 }).map((_, i) => (
             <div
               key={i}
@@ -679,7 +679,7 @@ export function ActiveWorkoutView({
           ))}
         </div>
 
-        <IonRow style={{ flex: "0 0 auto", marginTop: "auto" }}>
+        <IonRow style={{ flex: "0 0 auto", marginTop: 0 }}>
           <IonCol size="12">
             {finishValidationError && (
               <div style={{ margin: "0 2px 10px" }}>
