@@ -22,5 +22,11 @@ Este documento centraliza as ideias arquiteturais e melhorias planejadas para di
   - Implementar um mecanismo de versionamento: o app apenas baixa um novo arquivo JSON em segundo plano quando o backend notificar que o catálogo recebeu exercícios novos.
   - *Dependência:* Aguardar a curadoria e enriquecimento do banco de dados de exercícios no Backend.
 
+## 4. Refinamento de UX: Curtida por Duplo Toque
+- **Objetivo:** Tornar o gesto de duplo toque ("double tap to like") menos sensível a toques acidentais durante a rolagem do Feed, espelhando o comportamento robusto do Instagram.
+- **Ações:**
+  - Ajustar o tempo de tolerância máxima entre os toques consecutivos (ex: `300ms`).
+  - Calcular a distância/variância de pixels entre o primeiro e o segundo toque, invalidando o gesto se o usuário estiver rolando ou clicando em alvos distantes na tela.
+
 ## Funcionalidades Preservadas no Modelo Atual
 - **Sessão de Treino Ativa (Start Workout):** Decidiu-se **não** tornar o rascunho de treino 100% offline. A chamada atual ao endpoint `/api/workout/start` é indispensável para alimentar o *Server-Sent Events (SSE)* e permitir que amigos saibam, em tempo real, quais grupos musculares o usuário está treinando naquele momento.
