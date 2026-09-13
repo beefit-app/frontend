@@ -284,7 +284,7 @@ export function ActiveWorkoutView({
                 gap: 16,
                 overflowX: "auto",
                 padding: "4px 2px 8px",
-                scrollSnapType: "x proximity",
+                scrollSnapType: "x mandatory",
                 height: "100%",
                 minHeight: 0,
                 flex: 1,
