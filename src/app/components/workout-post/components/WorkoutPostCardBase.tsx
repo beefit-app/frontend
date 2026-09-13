@@ -1,7 +1,5 @@
 import { type MouseEvent, type TouchEvent, useRef, useState } from "react";
-  Trash2,
 import { AnimatePresence, motion as Motion } from "motion/react";
-  Trash2,
 import {
   Trash2,
   Bookmark,
@@ -13,16 +11,11 @@ import {
   ImageIcon,
 } from "lucide-react";
 import { HEX_CLIP } from "../constants";
-  Trash2,
 import type { WorkoutPost, WorkoutPostAuthor } from "../types";
 import { getMuscleBadgeStyle } from "../utils";
-  Trash2,
 import { HexAvatar } from "./shared";
-  Trash2,
 import { AuthenticatedImage } from "../../AuthenticatedImage";
-  Trash2,
 import { DeveloperBadge } from "../../DeveloperBadge";
-  Trash2,
 
 interface WorkoutPostCardBaseProps {
   post: WorkoutPost;

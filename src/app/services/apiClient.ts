@@ -257,12 +257,10 @@ async function request<T>(path: string, options: RequestOptions = {}, hasRetried
       const refreshedAccessToken = await refreshAccessToken();
       if (refreshedAccessToken) {
         return request<T>(path, options, true);
-      } else {
-        window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
       }
-    }
-
-    if (response.status === 401 && auth && (logoutOnUnauthorized || hasRetriedAfterRefresh)) {
+      // Se não conseguiu renovar o token, a sessão é inválida e o usuário DEVE ser deslogado.
+      window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
+    } else if (response.status === 401 && (logoutOnUnauthorized || hasRetriedAfterRefresh)) {
       window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
     }
 
