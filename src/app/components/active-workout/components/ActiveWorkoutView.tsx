@@ -153,6 +153,21 @@ export function ActiveWorkoutView({
     return () => window.clearTimeout(timer);
   }, [exercises]);
 
+  const isInteractiveElement = (target: HTMLElement | null) => {
+    if (!target) return false;
+    return !!target.closest(
+      "button:not([data-flip-card]), input, textarea, select, ion-input, ion-button, [role='button']:not([data-flip-card]), [data-no-card-flip]"
+    );
+  };
+
+  const handleCardClick = (exerciseId: string, isCurrentlyFlipped: boolean, e: React.MouseEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement | null;
+    if (!target || isInteractiveElement(target)) {
+      return;
+    }
+    setFlippedExerciseId(isCurrentlyFlipped ? null : exerciseId);
+  };
+
   return (
     <PageBackground style={{ minHeight: "100%", height: "100%" }}>
       <IonGrid
@@ -298,7 +313,12 @@ export function ActiveWorkoutView({
                   }}
                   style={ACTIVE_WORKOUT_SLIDE_STYLE}
                 >
-                  <SurfaceCard border="#2D2D2D" background="rgba(20,20,20,0.96)" style={{ ...ACTIVE_WORKOUT_CARD_STYLE, position: "relative", overflow: "hidden" }}>
+                  <SurfaceCard
+                    border="#2D2D2D"
+                    background="rgba(20,20,20,0.96)"
+                    onClick={(e) => handleCardClick(exercise.id, flippedExerciseId === exercise.id, e)}
+                    style={{ ...ACTIVE_WORKOUT_CARD_STYLE, position: "relative", overflow: "hidden", cursor: "pointer" }}
+                  >
                     <div style={{ display: "grid", gap: 14, height: "100%", gridTemplateRows: "auto minmax(0, 1fr) auto", alignContent: "start" }}>
                       <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
@@ -327,7 +347,10 @@ export function ActiveWorkoutView({
                           >
                             <EllipsisActionButton
                               type="button"
-                              onClick={() => onToggleExerciseMenu(exercise.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleExerciseMenu(exercise.id);
+                              }}
                               aria-label={`Abrir ações de ${exercise.name}`}
                             />
                             <SheetContent side="bottom" className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white">
@@ -338,7 +361,10 @@ export function ActiveWorkoutView({
                                 </SheetDescription>
                               </SheetHeader>
                               <div className="flex flex-col gap-2.5">
-                                <BeeButton variant="red" fullWidth onClick={() => onRemoveExercise(exercise.id)}>
+                                <BeeButton variant="red" fullWidth onClick={(e) => {
+                                  e.stopPropagation();
+                                  onRemoveExercise(exercise.id);
+                                }}>
                                   Remover exercício
                                 </BeeButton>
                               </div>
@@ -480,7 +506,7 @@ export function ActiveWorkoutView({
                         </div>
                       </div>
 
-                      <div style={{ paddingTop: 6 }}>
+                      <div style={{ paddingTop: 6 }} data-no-card-flip="true" onClick={(e) => e.stopPropagation()}>
                         <BeeButton variant="secondary" size="sm" onClick={() => onAddSet(exercise.id)}>
                           Adicionar Série
                         </BeeButton>
