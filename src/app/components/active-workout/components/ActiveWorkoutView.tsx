@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, forwardRef } from "react";
 import { IonCol, IonGrid, IonInput, IonRow } from "@ionic/react";
-import { Clock3, Ellipsis, Plus, ChevronRight, ChevronLeft } from "lucide-react";
+import { Clock3, Ellipsis, Plus, ChevronRight, ChevronLeft, Trash2 } from "lucide-react";
+import { motion as Motion } from "motion/react";
 import { BeeButton } from "../../BeeButton";
 import { PageBackground } from "../../PageBackground";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
@@ -31,21 +32,28 @@ function formatHistoryPerformance(weight: number | null | undefined, reps: numbe
   return weight === 0 ? `${reps} reps` : `${weight} kg × ${reps}`;
 }
 
-function EllipsisActionButton({
-  className = "",
-  type = "button",
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      type={type}
-      className={`beefit-tap-target flex h-10 w-10 items-center justify-center rounded-[12px] border border-[#2D2D2D] bg-[#181818] text-[#A3A3A3] transition-colors hover:border-[#525252] hover:text-white ${className}`}
-      {...props}
-    >
-      <Ellipsis size={16} />
-    </button>
-  );
-}
+const EllipsisActionButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Motion.button>>(
+  ({ className = "", type = "button", onClick, ...props }, ref) => {
+    return (
+      <Motion.button
+        ref={ref}
+        type={type}
+        data-no-card-flip="true"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.96 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        onClick={(e) => {
+          onClick?.(e);
+        }}
+        className={`beefit-tap-target flex h-10 w-10 cursor-pointer items-center justify-center rounded-[14px] border border-[#404040] bg-[#1A1A1A] text-white transition-colors hover:border-[#525252] hover:bg-[#222222] ${className}`}
+        {...props}
+      >
+        <Ellipsis size={18} />
+      </Motion.button>
+    );
+  },
+);
+EllipsisActionButton.displayName = "EllipsisActionButton";
 
 export function ActiveWorkoutView({
   sessionGroups,
