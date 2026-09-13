@@ -1,6 +1,9 @@
 import { type MouseEvent, type TouchEvent, useRef, useState } from "react";
+  Trash2,
 import { AnimatePresence, motion as Motion } from "motion/react";
+  Trash2,
 import {
+  Trash2,
   Bookmark,
   ChevronLeft,
   ChevronRight,
@@ -10,11 +13,16 @@ import {
   ImageIcon,
 } from "lucide-react";
 import { HEX_CLIP } from "../constants";
+  Trash2,
 import type { WorkoutPost, WorkoutPostAuthor } from "../types";
 import { getMuscleBadgeStyle } from "../utils";
+  Trash2,
 import { HexAvatar } from "./shared";
+  Trash2,
 import { AuthenticatedImage } from "../../AuthenticatedImage";
+  Trash2,
 import { DeveloperBadge } from "../../DeveloperBadge";
+  Trash2,
 
 interface WorkoutPostCardBaseProps {
   post: WorkoutPost;
@@ -25,6 +33,7 @@ interface WorkoutPostCardBaseProps {
   templateSaved: boolean;
   onToggleLike: () => void;
   onToggleTemplate: () => void;
+  onDelete?: () => void;
   muscleVariant?: "accent" | "neutral";
 }
 
@@ -37,6 +46,7 @@ export function WorkoutPostCardBase({
   templateSaved,
   onToggleLike,
   onToggleTemplate,
+  onDelete,
   muscleVariant = "accent",
 }: WorkoutPostCardBaseProps) {
   const [showExercises, setShowExercises] = useState(false);
@@ -269,26 +279,42 @@ export function WorkoutPostCardBase({
                     </span>
                   </div>
                 </button>
-                <button
-                  type="button"
-                  className="beefit-tap-target"
-                  onClick={() => setShowExercises(true)}
-                  style={{
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    borderRadius: 100,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 3,
-                    cursor: "pointer",
-                    padding: "4px 10px",
-                  }}
-                >
-                  <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 500 }}>
-                    Exercícios
-                  </span>
-                  <ChevronRight size={11} color="rgba(255,255,255,0.45)" />
-                </button>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  {onDelete && (
+                    <button
+                      type="button"
+                      className="beefit-tap-target text-[#8A8A8A] hover:text-red-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete();
+                      }}
+                      title="Apagar Treino"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="beefit-tap-target"
+                    onClick={() => setShowExercises(true)}
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: "none",
+                      borderRadius: 16,
+                      padding: "4px 10px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      cursor: "pointer",
+                      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 500 }}>
+                      Exercícios
+                    </span>
+                    <ChevronRight size={11} color="rgba(255,255,255,0.45)" />
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>

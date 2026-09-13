@@ -16,6 +16,7 @@ export function SocialFeedView({
   onToggleLike,
   onSaveTemplate,
   onOpenAuthorProfile,
+  onDeletePost,
   isLoading,
   isLoadingMore,
   hasMore,
@@ -31,6 +32,7 @@ export function SocialFeedView({
   onToggleLike: (id: string | number) => void;
   onSaveTemplate: (id: string | number) => void;
   onOpenAuthorProfile?: (username: string) => void;
+  onDeletePost?: (id: string | number) => void;
   isLoading: boolean;
   isLoadingMore: boolean;
   hasMore: boolean;
@@ -127,6 +129,7 @@ export function SocialFeedView({
                     onToggleLike={onToggleLike}
                     onSaveTemplate={onSaveTemplate}
                     onOpenAuthorProfile={onOpenAuthorProfile}
+              onDeletePost={onDeletePost}
                   />
                 ))}
                 {error && <div className="rounded-2xl border border-[rgba(248,113,113,0.28)] px-4 py-4 text-center font-inter text-sm text-[#FCA5A5]">{error}<button type="button" onClick={onRetry} className="ml-2 font-bold underline">Tentar novamente</button></div>}
