@@ -83,13 +83,13 @@ export function useConfirm() {
         if (!open && resolverRef.current) settle(options?.input ? null : false);
       }}
     >
-      <AlertDialogContent className="beefit-sheet-width border-[#2D2D2D] bg-[#141414] text-white">
+      <AlertDialogContent className="beefit-sheet-width rounded-[24px] border-[#2D2D2D] bg-[#141414] p-6 text-white">
         <AlertDialogHeader>
           <AlertDialogTitle className="font-montserrat text-[18px] font-bold text-white">
             {options?.title}
           </AlertDialogTitle>
           {options?.description && (
-            <AlertDialogDescription className="font-inter text-[13px] text-[#A3A3A3]">
+            <AlertDialogDescription className="font-inter text-[14px] leading-relaxed text-[#A3A3A3]">
               {options.description}
             </AlertDialogDescription>
           )}
@@ -110,8 +110,8 @@ export function useConfirm() {
           </div>
         )}
 
-        <AlertDialogFooter>
-          <AlertDialogCancel className="min-h-11 border-[#2D2D2D] bg-transparent text-white hover:bg-[#1F1F1F]">
+        <AlertDialogFooter className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <AlertDialogCancel className="min-h-11 rounded-[14px] border-[#2D2D2D] bg-transparent font-montserrat text-[12px] font-bold uppercase tracking-wider text-white hover:bg-[#1F1F1F]">
             {options?.cancelLabel ?? "Cancelar"}
           </AlertDialogCancel>
           <AlertDialogAction
@@ -123,8 +123,8 @@ export function useConfirm() {
             }}
             className={
               options?.destructive
-                ? "min-h-11 bg-[#EF4444] text-white hover:bg-[#DC2626]"
-                : "min-h-11 bg-[#FFD700] text-[#0A0A0A] hover:bg-[#E6C200]"
+                ? "min-h-11 rounded-[14px] bg-[#EF4444] font-montserrat text-[12px] font-bold uppercase tracking-wider text-white hover:bg-[#DC2626]"
+                : "min-h-11 rounded-[14px] bg-[#FFD700] font-montserrat text-[12px] font-bold uppercase tracking-wider text-[#0A0A0A] hover:bg-[#E6C200]"
             }
           >
             {options?.confirmLabel ?? "Confirmar"}

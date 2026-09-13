@@ -26,6 +26,7 @@ export function WorkoutCatalogDetailView({
   const style = muscleStyle(exercise.group);
   const [history, setHistory] = useState<ExerciseHistory | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -89,9 +90,43 @@ export function WorkoutCatalogDetailView({
               <h1 style={{ margin: 0, color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 30, fontWeight: 800 }}>
                 {exercise.name}
               </h1>
-              <IonText style={{ color: "#B5B5B5", fontFamily: "var(--font-inter)", fontSize: 15, lineHeight: 1.6 }}>
-                {exercise.notes}
-              </IonText>
+              <div style={{ display: "grid", gap: 4 }}>
+                <IonText
+                  style={{
+                    color: "#B5B5B5",
+                    fontFamily: "var(--font-inter)",
+                    fontSize: 15,
+                    lineHeight: 1.6,
+                    ...(isExpanded ? {} : {
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden"
+                    })
+                  }}
+                >
+                  {exercise.notes}
+                </IonText>
+                {exercise.notes && exercise.notes.length > 80 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#FFFFFF",
+                      fontFamily: "var(--font-inter)",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      padding: 0,
+                      cursor: "pointer",
+                      textAlign: "left"
+                    }}
+                  >
+                    {isExpanded ? "Ver menos" : "Ler mais"}
+                  </button>
+                )}
+              </div>
             </div>
           </IonCol>
         </IonRow>

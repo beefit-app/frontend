@@ -3,6 +3,7 @@ import { messages } from "../../../constants/messages";
 import { useConfirm } from "../../../hooks/useConfirm";
 import { useEffect, useRef, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
+import { workoutService } from "../../../services/workoutService";
 import { socialFeedStorage } from "../../../storage/socialFeedStorage";
 import { pageCacheStorage } from "../../../storage/pageCacheStorage";
 import { useAuth } from "../../../auth/AuthContext";
@@ -31,6 +32,23 @@ export function resetFeedCache() {
 }
 
 function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
+  async function handleDeletePost(postId: string | number) {
+    const ok = await confirmDialog({
+      title: "Apagar Treino",
+      message: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
+      confirmText: "Apagar",
+      cancelText: "Cancelar"
+    });
+    if (!ok) return;
+    try {
+      await workoutService.deleteWorkout(String(postId));
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      toast.success("Treino apagado com sucesso.");
+    } catch (e) {
+      toast.error("Não foi possível apagar o treino.");
+    }
+  }
+
   return {
     ...friend,
     // Os eventos SSE entregam o grupo cru (slug ou enum); o caminho REST ja chega
@@ -234,15 +252,52 @@ export function useSocialFeedState() {
   }, []);
 
   async function toggleLike(id: string | number) {
-    const result = await socialFeedService.toggleLike(id);
+    let previousLiked = false;
+    let previousLikes = 0;
+
+    // 1. Atualização otimista imediata na UI e memória (0ms)
     setPosts((current) => {
-      const next = current.map((post) => (post.id === id ? { ...post, liked: result.liked, likes: result.likes_count } : post));
+      const target = current.find((p) => p.id === id);
+      if (target) {
+        previousLiked = target.liked;
+        previousLikes = target.likes;
+      }
+      const nextLiked = !target?.liked;
+      const nextLikes = Math.max(0, (target?.likes ?? 0) + (nextLiked ? 1 : -1));
+      const next = current.map((post) =>
+        post.id === id ? { ...post, liked: nextLiked, likes: nextLikes } : post,
+      );
       if (feedMemoryCache && feedMemoryCache.userId === userId) {
         feedMemoryCache.posts = next;
       }
       return next;
     });
     void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
+
+    // 2. Chamada assíncrona para sincronizar com o backend
+    try {
+      const result = await socialFeedService.toggleLike(id);
+      setPosts((current) => {
+        const next = current.map((post) =>
+          post.id === id ? { ...post, liked: result.liked, likes: result.likes_count } : post,
+        );
+        if (feedMemoryCache && feedMemoryCache.userId === userId) {
+          feedMemoryCache.posts = next;
+        }
+        return next;
+      });
+    } catch {
+      // Reverte em caso de falha de conexão
+      setPosts((current) => {
+        const next = current.map((post) =>
+          post.id === id ? { ...post, liked: previousLiked, likes: previousLikes } : post,
+        );
+        if (feedMemoryCache && feedMemoryCache.userId === userId) {
+          feedMemoryCache.posts = next;
+        }
+        return next;
+      });
+    }
   }
 
   async function saveTemplate(id: string | number) {
@@ -296,6 +351,23 @@ export function useSocialFeedState() {
 
   function retry() {
     void loadFirstPage({ hydrateCache: false, silent: false });
+  }
+
+  async function handleDeletePost(postId: string | number) {
+    const ok = await confirmDialog({
+      title: "Apagar Treino",
+      message: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
+      confirmText: "Apagar",
+      cancelText: "Cancelar"
+    });
+    if (!ok) return;
+    try {
+      await workoutService.deleteWorkout(String(postId));
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      toast.success("Treino apagado com sucesso.");
+    } catch (e) {
+      toast.error("Não foi possível apagar o treino.");
+    }
   }
 
   return {
