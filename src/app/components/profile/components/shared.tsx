@@ -112,8 +112,8 @@ export function TrainingCalendar({ trainedDays }: { trainedDays: number[] }) {
         </span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 6 }}>
-        {DAY_LABELS.map((dayLabel) => (
-          <div key={dayLabel} style={{ textAlign: "center" }}>
+        {DAY_LABELS.map((dayLabel, index) => (
+          <div key={`${dayLabel}-${index}`} style={{ textAlign: "center" }}>
             <span
               style={{
                 fontFamily: "var(--font-inter)",

@@ -32,7 +32,7 @@ export function HexAvatar({
           width: size,
           height: Math.round(size * 1.155),
           clipPath: HEX_CLIP,
-          background: resolvedSource ? undefined : "#2D2D2D",
+          backgroundColor: resolvedSource ? "transparent" : "#2D2D2D",
           backgroundImage: resolvedSource ? `url(${resolvedSource})` : undefined,
           backgroundSize: "cover",
           backgroundPosition: "center",

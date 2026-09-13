@@ -3,6 +3,14 @@
 ## Decisoes Atuais
 
 - O produto final sera um app nativo. A versao web/PWA nao e o alvo final da arquitetura.
+- O build web ganhou manifest e metatags de iOS (`public/manifest.webmanifest`,
+  `index.html`) **como veiculo de teste do beta**, nao como produto. A Apple nao
+  permite instalar um `.ipa` em aparelho de terceiro sem o Apple Developer
+  Program pago, entao um link "Adicionar a Tela de Inicio" e a unica forma
+  gratuita de colocar o app na mao de testadores de iPhone remotamente. O alvo
+  final continua sendo o app nativo, e a validacao nativa da secao 8 do
+  `OBSERVATIONS.md` continua obrigatoria: a PWA nao exercita Secure Storage,
+  camera nativa, splash nem permissoes do sistema.
 - Capacitor ainda nao sera configurado nesta etapa. A integracao nativa fica preparada por abstracoes, sem instalar plugins agora.
 - Codigo novo deve preferir APIs assincronas e abstracoes de storage, evitando dependencia direta de `window.localStorage` nos fluxos de produto.
 - O rascunho de treino sera salvo por uma camada abstrata de storage com fallback web temporario. A chave segue `beefit.workoutDraft.{userId}.{workoutId}`.

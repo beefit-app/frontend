@@ -26,6 +26,7 @@ export function WorkoutCatalogDetailView({
   const style = muscleStyle(exercise.group);
   const [history, setHistory] = useState<ExerciseHistory | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -59,8 +60,8 @@ export function WorkoutCatalogDetailView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ padding: "32px 12px calc(16px + var(--ion-safe-area-bottom, 0px))", position: "relative", zIndex: 1 }}>
-        <IonRow>
+      <IonGrid fixed style={{ padding: "32px 12px calc(16px + var(--ion-safe-area-bottom, 0px))", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", height: "100%", boxSizing: "border-box" }}>
+        <IonRow style={{ flex: "0 0 auto" }}>
           <IonCol size="12">
             <button
               type="button"
@@ -89,14 +90,48 @@ export function WorkoutCatalogDetailView({
               <h1 style={{ margin: 0, color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 30, fontWeight: 800 }}>
                 {exercise.name}
               </h1>
-              <IonText style={{ color: "#B5B5B5", fontFamily: "var(--font-inter)", fontSize: 15, lineHeight: 1.6 }}>
-                {exercise.notes}
-              </IonText>
+              <div style={{ display: "grid", gap: 4 }}>
+                <IonText
+                  style={{
+                    color: "#B5B5B5",
+                    fontFamily: "var(--font-inter)",
+                    fontSize: 15,
+                    lineHeight: 1.6,
+                    ...(isExpanded ? {} : {
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden"
+                    })
+                  }}
+                >
+                  {exercise.notes}
+                </IonText>
+                {exercise.notes && exercise.notes.length > 80 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#FFFFFF",
+                      fontFamily: "var(--font-inter)",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      padding: 0,
+                      cursor: "pointer",
+                      textAlign: "left"
+                    }}
+                  >
+                    {isExpanded ? "Ver menos" : "Ler mais"}
+                  </button>
+                )}
+              </div>
             </div>
           </IonCol>
         </IonRow>
 
-        <IonRow className="mt-5">
+        <IonRow className="mt-5" style={{ flex: "0 0 auto" }}>
           <IonCol size="12">
             <SurfaceCard border={style.border} background={style.bg}>
               <div style={{ display: "grid", gap: 10 }}>
@@ -136,11 +171,11 @@ export function WorkoutCatalogDetailView({
           </IonCol>
         </IonRow>
 
-        <IonRow className="mt-4">
-          <IonCol size="12">
-            <div style={{ display: "grid", gap: 12 }}>
-              <SurfaceCard>
-                <div style={{ display: "grid", gap: 14 }}>
+        <IonRow className="mt-4" style={{ flex: "1 1 auto", display: "flex", minHeight: 0 }}>
+          <IonCol size="12" style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%", minHeight: 0 }}>
+              <SurfaceCard style={{ flex: "1 1 auto", overflowY: "auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
+                <div style={{ display: "grid", gap: 14, flex: "0 0 auto" }}>
                   <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700 }}>
                     Histórico recente
                   </span>
@@ -181,7 +216,7 @@ export function WorkoutCatalogDetailView({
                   </div>
               </SurfaceCard>
 
-              <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+              <div style={{ display: "flex", justifyContent: "center", width: "100%", flex: "0 0 auto", marginTop: "auto" }}>
                 <BeeButton
                   variant={alreadyAdded ? "secondary" : "primary"}
                   size="lg"
