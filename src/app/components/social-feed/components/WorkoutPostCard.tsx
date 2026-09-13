@@ -1,5 +1,6 @@
 import { WorkoutPostCardBase } from "../../workout-post";
 import type { SocialFeedPost } from "../types";
+import { useAuth } from "../../../auth/AuthContext";
 
 export function WorkoutPostCard({
   post,

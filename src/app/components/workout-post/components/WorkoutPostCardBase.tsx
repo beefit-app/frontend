@@ -1,6 +1,7 @@
 import { type MouseEvent, type TouchEvent, useRef, useState } from "react";
-import { motion as Motion } from "motion/react";
+import { AnimatePresence, motion as Motion } from "motion/react";
 import {
+  Trash2,
   Bookmark,
   ChevronLeft,
   ChevronRight,
@@ -25,22 +26,66 @@ interface WorkoutPostCardBaseProps {
   templateSaved: boolean;
   onToggleLike: () => void;
   onToggleTemplate: () => void;
+  onDelete?: () => void;
   muscleVariant?: "accent" | "neutral";
 }
 
 export function WorkoutPostCardBase({
   post,
   author,
-  bodyWeight,
+  bodyWeight: _bodyWeight,
   liked,
   likes,
   templateSaved,
   onToggleLike,
   onToggleTemplate,
+  onDelete,
   muscleVariant = "accent",
 }: WorkoutPostCardBaseProps) {
   const [showExercises, setShowExercises] = useState(false);
+  const [showHeartBurst, setShowHeartBurst] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const touchStartX = useRef(0);
+  const lastTapRef = useRef<number>(0);
+
+  function handleCardTap() {
+    const now = Date.now();
+    if (now - lastTapRef.current < 380 && now - lastTapRef.current > 0) {
+      triggerLike();
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+    }
+  }
+
+  function triggerLike() {
+    if (!liked) {
+      onToggleLike();
+    }
+    setShowHeartBurst(true);
+    setIsLiking(true);
+    setTimeout(() => setShowHeartBurst(false), 900);
+    setTimeout(() => setIsLiking(false), 500);
+  }
+
+  function handleLikeClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    setIsLiking(true);
+    if (!liked) {
+      setShowHeartBurst(true);
+      setTimeout(() => setShowHeartBurst(false), 900);
+    }
+    onToggleLike();
+    setTimeout(() => setIsLiking(false), 500);
+  }
+
+  function handleTemplateClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    setIsSavingTemplate(true);
+    onToggleTemplate();
+    setTimeout(() => setIsSavingTemplate(false), 500);
+  }
 
   const swipeHandlers = {
     onTouchStart: (event: TouchEvent) => {
@@ -50,6 +95,7 @@ export function WorkoutPostCardBase({
       const diff = event.changedTouches[0].clientX - touchStartX.current;
       if (diff < -48) setShowExercises(true);
       else if (diff > 48) setShowExercises(false);
+      else if (Math.abs(diff) <= 24) handleCardTap();
     },
     onMouseDown: (event: MouseEvent) => {
       touchStartX.current = event.clientX;
@@ -58,6 +104,9 @@ export function WorkoutPostCardBase({
       const diff = event.clientX - touchStartX.current;
       if (diff < -48) setShowExercises(true);
       else if (diff > 48) setShowExercises(false);
+    },
+    onDoubleClick: () => {
+      triggerLike();
     },
   };
 
@@ -120,6 +169,48 @@ export function WorkoutPostCardBase({
               </div>
             )}
 
+            <AnimatePresence>
+              {showHeartBurst && (
+                <Motion.div
+                  initial={{ opacity: 0, scale: 0.3 }}
+                  animate={{ opacity: [0, 1, 1, 0], scale: [0.3, 1.35, 1.2, 0.8], y: [0, -10, -25, -45] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 20,
+                    pointerEvents: "none",
+                  }}
+                >
+                  <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Heart
+                      size={88}
+                      fill="#FFD700"
+                      color="#FFD700"
+                      style={{ filter: "drop-shadow(0 0 24px rgba(255,215,0,0.9))" }}
+                    />
+                    <Motion.div
+                      initial={{ scale: 0.8, opacity: 0.8 }}
+                      animate={{ scale: 2, opacity: 0 }}
+                      transition={{ duration: 0.6, ease: "easeOut" }}
+                      style={{
+                        position: "absolute",
+                        width: 100,
+                        height: 100,
+                        borderRadius: "50%",
+                        border: "2px solid rgba(255,215,0,0.7)",
+                        pointerEvents: "none",
+                      }}
+                    />
+                  </div>
+                </Motion.div>
+              )}
+            </AnimatePresence>
+
             <div
               style={{
                 position: "absolute",
@@ -181,26 +272,42 @@ export function WorkoutPostCardBase({
                     </span>
                   </div>
                 </button>
-                <button
-                  type="button"
-                  className="beefit-tap-target"
-                  onClick={() => setShowExercises(true)}
-                  style={{
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    borderRadius: 100,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 3,
-                    cursor: "pointer",
-                    padding: "4px 10px",
-                  }}
-                >
-                  <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 500 }}>
-                    Exercícios
-                  </span>
-                  <ChevronRight size={11} color="rgba(255,255,255,0.45)" />
-                </button>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  {onDelete && (
+                    <button
+                      type="button"
+                      className="beefit-tap-target text-[#8A8A8A] hover:text-red-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete();
+                      }}
+                      title="Apagar Treino"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="beefit-tap-target"
+                    onClick={() => setShowExercises(true)}
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: "none",
+                      borderRadius: 16,
+                      padding: "4px 10px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      cursor: "pointer",
+                      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 500 }}>
+                      Exercícios
+                    </span>
+                    <ChevronRight size={11} color="rgba(255,255,255,0.45)" />
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
@@ -383,35 +490,55 @@ export function WorkoutPostCardBase({
         <div className="flex items-center gap-2">
           <Motion.button
             type="button"
-            onClick={onToggleLike}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            onClick={handleLikeClick}
+            animate={{ scale: isLiking ? [1, 1.35, 0.9, 1] : 1 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            whileTap={{ scale: 0.88 }}
             aria-label={liked ? "Descurtir treino" : "Curtir treino"}
-            className="beefit-tap-target flex h-10 w-10 items-center justify-center rounded-full border"
+            className="beefit-tap-target flex h-10 w-10 items-center justify-center rounded-full border relative overflow-hidden"
             style={{
               borderColor: liked ? "#FFD700" : "#404040",
-              background: liked ? "rgba(255,215,0,0.12)" : "#1A1A1A",
+              background: liked ? "rgba(255,215,0,0.14)" : "#1A1A1A",
               color: liked ? "#FFD700" : "#A3A3A3",
+              boxShadow: liked ? "0 0 14px rgba(255,215,0,0.3)" : "none",
+              transition: "background 0.2s, border-color 0.2s, box-shadow 0.2s",
             }}
           >
-            <Heart size={18} fill={liked ? "#FFD700" : "none"} />
+            <Heart
+              size={18}
+              fill={liked ? "#FFD700" : "none"}
+              color={liked ? "#FFD700" : "#A3A3A3"}
+              style={{
+                transition: "transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                transform: liked ? "scale(1.1)" : "scale(1)",
+              }}
+            />
           </Motion.button>
           <Motion.button
             type="button"
-            onClick={onToggleTemplate}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            onClick={handleTemplateClick}
+            animate={{ scale: isSavingTemplate ? [1, 1.35, 0.9, 1] : 1 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            whileTap={{ scale: 0.88 }}
             aria-label={templateSaved ? "Remover template salvo" : "Salvar template"}
-            className="beefit-tap-target flex h-10 w-10 items-center justify-center rounded-full border"
+            className="beefit-tap-target flex h-10 w-10 items-center justify-center rounded-full border relative overflow-hidden"
             style={{
-              borderColor: templateSaved ? "#A3A3A3" : "#404040",
-              background: templateSaved ? "rgba(163,163,163,0.14)" : "#1A1A1A",
-              color: templateSaved ? "#D4D4D4" : "#A3A3A3",
+              borderColor: templateSaved ? "#FFD700" : "#404040",
+              background: templateSaved ? "rgba(255,215,0,0.14)" : "#1A1A1A",
+              color: templateSaved ? "#FFD700" : "#A3A3A3",
+              boxShadow: templateSaved ? "0 0 14px rgba(255,215,0,0.3)" : "none",
+              transition: "background 0.2s, border-color 0.2s, box-shadow 0.2s",
             }}
           >
-            <Bookmark size={18} fill={templateSaved ? "#D4D4D4" : "none"} />
+            <Bookmark
+              size={18}
+              fill={templateSaved ? "#FFD700" : "none"}
+              color={templateSaved ? "#FFD700" : "#A3A3A3"}
+              style={{
+                transition: "transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                transform: templateSaved ? "scale(1.1)" : "scale(1)",
+              }}
+            />
           </Motion.button>
         </div>
 

@@ -363,11 +363,19 @@ const apiAuthGateway: AuthGateway = {
       return null;
     }
 
+    const cachedUser = await sessionStorage.getUser<AuthUser>();
+
     try {
-      const cachedUser = await sessionStorage.getUser<AuthUser>();
       const user = await fetchCurrentUserFromApi(cachedUser);
       return persistSession({ accessToken, refreshToken, user });
-    } catch {
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 401) {
+        await clearStoredSession();
+        return null;
+      }
+      if (cachedUser) {
+        return { accessToken, refreshToken, user: cachedUser };
+      }
       await clearStoredSession();
       return null;
     }

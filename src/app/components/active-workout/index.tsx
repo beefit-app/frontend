@@ -105,6 +105,7 @@ export function ActiveWorkoutScreen(props: ActiveWorkoutScreenProps) {
         session.setActiveExerciseMenuId((current) => (current === exerciseId ? null : exerciseId))
       }
       onRemoveExercise={session.removeExercise}
+      onRemoveSet={session.removeSet}
       onUpdateSet={session.updateSet}
       onAddSet={session.addSet}
       onOpenCatalog={() => session.setIsCatalogOpen(true)}

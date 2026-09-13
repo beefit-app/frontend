@@ -283,6 +283,17 @@ export function useActiveWorkoutSession({
     setFinishValidationError("");
   }
 
+  function removeSet(exerciseId: string, setId: string) {
+    setExercises((current) =>
+      current.map((exercise) =>
+        exercise.id === exerciseId
+          ? { ...exercise, sets: exercise.sets.filter((set) => set.id !== setId) }
+          : exercise,
+      ),
+    );
+    setFinishValidationError("");
+  }
+
   function addSet(exerciseId: string) {
     const newSet = createSet();
 
@@ -438,6 +449,7 @@ export function useActiveWorkoutSession({
     setFinishValidationError,
     addExercise,
     removeExercise,
+    removeSet,
     addSet,
     updateSet,
     openFinishWorkout,

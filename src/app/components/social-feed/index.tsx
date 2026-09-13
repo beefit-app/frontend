@@ -12,7 +12,7 @@ export function SocialFeedScreen({
   streakBurstToken: number;
   onOpenUserProfile?: (username: string) => void;
 }) {
-  const { confirmDialog, posts, liveFriends, toggleLike, saveTemplate, isLoading, isLoadingMore, hasMore, error, loadMore, retry } =
+  const { confirmDialog, posts, liveFriends, toggleLike, saveTemplate, handleDeletePost, isLoading, isLoadingMore, hasMore, error, loadMore, retry } =
     useSocialFeedState();
 
   return (
@@ -24,6 +24,7 @@ export function SocialFeedScreen({
       isStreakFedToday={isStreakFedToday}
       streakBurstToken={streakBurstToken}
       onToggleLike={toggleLike}
+      onDeletePost={handleDeletePost}
       onSaveTemplate={saveTemplate}
       onOpenAuthorProfile={onOpenUserProfile}
       isLoading={isLoading}

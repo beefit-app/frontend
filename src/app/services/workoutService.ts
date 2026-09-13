@@ -542,6 +542,10 @@ export const workoutService = {
     );
   },
 
+  async deleteWorkout(workoutId: string) {
+    await apiClient.delete(`/api/workout/${workoutId}`, { auth: true });
+  },
+
   async cancelWorkout(workoutId: string | null | undefined) {
     if (!workoutId) {
       throw new Error("Sessão de treino sem ID do backend.");

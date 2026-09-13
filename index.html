@@ -5,6 +5,17 @@
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
       <title>BeeFit</title>
+      <meta name="description" content="Acompanhe seus treinos, evolua e compartilhe com seus amigos." />
+      <meta name="theme-color" content="#0A0A0A" />
+      <link rel="manifest" href="/manifest.webmanifest" />
+      <link rel="icon" type="image/png" href="/icon-192.png" />
+      <!-- O Safari do iOS ignora o manifest para "Adicionar a Tela de Inicio": sem estas
+           tags o atalho abre com a barra de endereco e com um screenshot no lugar
+           do icone. black-translucent acompanha o viewport-fit=cover acima. -->
+      <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      <meta name="apple-mobile-web-app-title" content="BeeFit" />
       <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
     </head>
 

@@ -19,6 +19,7 @@ vi.mock("../../../services/socialService", () => ({ socialService: {
     direction: "incoming",
   }),
   rejectRequest: vi.fn().mockResolvedValue({}),
+  cancelRequest: vi.fn().mockResolvedValue({}),
   sendRequest: vi.fn().mockResolvedValue({
     id: "r-2",
     user: { id: "sent", fullName: "Sent", username: "sent", profilePicture: null },
@@ -99,6 +100,22 @@ describe("useSocialState", () => {
     await waitFor(() => expect(result.current.friendRequests).toHaveLength(1));
     act(() => result.current.acceptFriendRequest("r-1"));
     await waitFor(() => expect(result.current.feedback).toBe("Solicitação aceita."));
+  });
+
+  it("executa cancelamento de solicitação enviada e atualiza estado", async () => {
+    const { socialService } = await import("../../../services/socialService");
+    vi.mocked(socialService.loadOutgoingRequests)
+      .mockResolvedValueOnce([
+        { id: "r-2", profile: { id: "sent", name: "Sent", username: "@sent", initials: "SE", avatarUrl: null, status: "sent" } },
+      ])
+      .mockResolvedValueOnce([]);
+
+    const { result } = renderHook(() => useSocialState());
+    await waitFor(() => expect(result.current.sentRequests).toHaveLength(1));
+    act(() => result.current.cancelFriendRequest("r-2"));
+    await waitFor(() => expect(result.current.feedback).toBe("Solicitação cancelada."));
+    expect(socialService.cancelRequest).toHaveBeenCalledWith("r-2");
+    await waitFor(() => expect(result.current.sentRequests).toHaveLength(0));
   });
 
   it("adiciona solicitação recebida em tempo real", async () => {

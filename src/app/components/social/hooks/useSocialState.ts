@@ -324,6 +324,16 @@ export function useSocialState(isActive = false) {
         )));
       }
     }, "Solicitação recusada.", () => refreshFriendships(false)),
+    cancelFriendRequest: (id: string) => void action(async () => {
+      const request = sentRequests.find((item) => item.id === id);
+      await socialService.cancelRequest(id);
+      setSentRequests((current) => current.filter((item) => item.id !== id));
+      if (request) {
+        setDiscoverablePeople((current) => current.map((person) => (
+          person.id === request.profile.id ? { ...person, status: "available", friendshipId: undefined } : person
+        )));
+      }
+    }, "Solicitação cancelada.", () => refreshFriendships(false)),
     removeFriend: (id: string) => void action(async () => {
       const friend = friends.find((item) => item.friendshipId === id);
       await socialService.removeFriend(id);
