@@ -123,36 +123,10 @@ export function ActiveWorkoutView({
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    // The width of each snap point is the slide's width plus the gap (16px)
-    // Actually, each slide fills the container width (flex 0 0 100%) and gap is 16
     const slideWidth = container.clientWidth + 16;
     const index = Math.round(container.scrollLeft / slideWidth);
-    
-    // Safety clamp in case of overscroll
     const safeIndex = Math.max(0, Math.min(index, exercises.length));
     setActiveSlideIndex(safeIndex);
-  };
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      handleScroll();
-    }, 100);
-    return () => window.clearTimeout(timer);
-  }, [exercises]);
-
-  const isInteractiveElement = (target: HTMLElement | null) => {
-    if (!target) return false;
-    return !!target.closest(
-      "button:not([data-flip-card]), input, textarea, select, ion-input, ion-button, [role='button']:not([data-flip-card]), [data-no-card-flip]"
-    );
-  };
-
-  const handleCardClick = (exerciseId: string, isCurrentlyFlipped: boolean, e: React.MouseEvent<HTMLElement>) => {
-    const target = e.target as HTMLElement | null;
-    if (!target || isInteractiveElement(target)) {
-      return;
-    }
-    setFlippedExerciseId(isCurrentlyFlipped ? null : exerciseId);
   };
 
   return (
@@ -736,16 +710,27 @@ export function ActiveWorkoutView({
                 </div>
               </div>
             </div>
+
           </IonCol>
         </IonRow>
 
-        <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "4px 0 16px" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "auto 0" }}>
           {Array.from({ length: exercises.length + 1 }).map((_, i) => (
-            <div
+            <button
               key={i}
+              type="button"
+              onClick={() => {
+                const container = scrollContainerRef.current;
+                const targetChild = container?.children[i] as HTMLElement | undefined;
+                targetChild?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+              }}
+              aria-label={`Ir para o exercício ${i + 1}`}
               style={{
                 width: 6,
                 height: 6,
+                padding: 0,
+                border: "none",
+                cursor: "pointer",
                 borderRadius: "50%",
                 background: i === activeSlideIndex ? "#FFFFFF" : "rgba(255,255,255,0.2)",
                 transition: "background 0.2s",
@@ -754,7 +739,7 @@ export function ActiveWorkoutView({
           ))}
         </div>
 
-        <IonRow style={{ flex: "0 0 auto", marginTop: "auto" }}>
+        <IonRow style={{ flex: "0 0 auto", marginTop: 0 }}>
           <IonCol size="12">
             {finishValidationError && (
               <div style={{ margin: "0 2px 10px" }}>
