@@ -59,8 +59,8 @@ export function WorkoutCatalogDetailView({
 
   return (
     <PageBackground>
-      <IonGrid fixed style={{ padding: "32px 12px calc(16px + var(--ion-safe-area-bottom, 0px))", position: "relative", zIndex: 1 }}>
-        <IonRow>
+      <IonGrid fixed style={{ padding: "32px 12px calc(16px + var(--ion-safe-area-bottom, 0px))", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", height: "100%", boxSizing: "border-box" }}>
+        <IonRow style={{ flex: "0 0 auto" }}>
           <IonCol size="12">
             <button
               type="button"
@@ -96,7 +96,7 @@ export function WorkoutCatalogDetailView({
           </IonCol>
         </IonRow>
 
-        <IonRow className="mt-5">
+        <IonRow className="mt-5" style={{ flex: "0 0 auto" }}>
           <IonCol size="12">
             <SurfaceCard border={style.border} background={style.bg}>
               <div style={{ display: "grid", gap: 10 }}>
@@ -136,11 +136,11 @@ export function WorkoutCatalogDetailView({
           </IonCol>
         </IonRow>
 
-        <IonRow className="mt-4">
-          <IonCol size="12">
-            <div style={{ display: "grid", gap: 12 }}>
-              <SurfaceCard>
-                <div style={{ display: "grid", gap: 14 }}>
+        <IonRow className="mt-4" style={{ flex: "1 1 auto", display: "flex", minHeight: 0 }}>
+          <IonCol size="12" style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%", minHeight: 0 }}>
+              <SurfaceCard style={{ flex: "1 1 auto", overflowY: "auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
+                <div style={{ display: "grid", gap: 14, flex: "0 0 auto" }}>
                   <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700 }}>
                     Histórico recente
                   </span>
@@ -181,7 +181,7 @@ export function WorkoutCatalogDetailView({
                   </div>
               </SurfaceCard>
 
-              <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+              <div style={{ display: "flex", justifyContent: "center", width: "100%", flex: "0 0 auto", marginTop: "auto" }}>
                 <BeeButton
                   variant={alreadyAdded ? "secondary" : "primary"}
                   size="lg"
