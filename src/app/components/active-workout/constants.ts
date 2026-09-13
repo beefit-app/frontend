@@ -16,7 +16,8 @@ export const DEFAULT_MUSCLE_STYLE = {
 export const ACTIVE_WORKOUT_SLIDE_STYLE: React.CSSProperties = {
   minWidth: "100%",
   flex: "0 0 100%",
-  scrollSnapAlign: "start",
+  scrollSnapAlign: "center",
+  scrollSnapStop: "always",
   display: "flex",
   justifyContent: "center",
   alignItems: "stretch",
