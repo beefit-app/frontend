@@ -255,14 +255,18 @@ export default function App() {
         >
           {isBootstrapping && (
             <div className="flex min-h-full items-center justify-center px-6 text-center">
-              <div className="max-w-[280px]">
-                <span className="block font-montserrat text-[14px] font-bold uppercase tracking-[0.12em] text-[#B8A65A]">
-                  BeeFit
-                </span>
-                <span className="mt-3 block font-inter text-[15px] text-[#D4D4D4]">
-                  Restaurando sua sessão...
-                </span>
-              </div>
+              <Motion.div
+                initial={{ opacity: 0.4, scale: 0.95 }}
+                animate={{ opacity: [0.4, 1, 0.4], scale: [0.95, 1.02, 0.95] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                className="flex flex-col items-center"
+              >
+                <img
+                  src={logoImg}
+                  alt="BeeFit"
+                  className="h-20 w-20 rounded-2xl object-contain drop-shadow-[0_0_24px_rgba(255,215,0,0.25)]"
+                />
+              </Motion.div>
             </div>
           )}
 
