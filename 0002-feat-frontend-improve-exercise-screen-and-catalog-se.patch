@@ -1,0 +1,168 @@
+From 4d29a198626472763e2b35fa0e7eb76b1463503b Mon Sep 17 00:00:00 2001
+From: Theo Faria <theocarfar@gmail.com>
+Date: Sun, 13 Sep 2026 12:11:15 -0300
+Subject: [PATCH 2/5] feat(frontend): improve exercise screen and catalog
+ search
+
+---
+ .../components/ActiveWorkoutView.tsx          |  4 +-
+ .../components/WorkoutCatalogDetailView.tsx   | 61 +++++++++++++++----
+ .../components/WorkoutCatalogView.tsx         | 12 +++-
+ 3 files changed, 62 insertions(+), 15 deletions(-)
+
+diff --git a/src/app/components/active-workout/components/ActiveWorkoutView.tsx b/src/app/components/active-workout/components/ActiveWorkoutView.tsx
+index 2020af7f..21f1c727 100644
+--- a/src/app/components/active-workout/components/ActiveWorkoutView.tsx
++++ b/src/app/components/active-workout/components/ActiveWorkoutView.tsx
+@@ -664,7 +664,7 @@ export function ActiveWorkoutView({
+           </IonCol>
+         </IonRow>
+ 
+-        <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "4px 0 16px" }}>
++        <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "auto 0" }}>
+           {Array.from({ length: exercises.length + 1 }).map((_, i) => (
+             <div
+               key={i}
+@@ -679,7 +679,7 @@ export function ActiveWorkoutView({
+           ))}
+         </div>
+ 
+-        <IonRow style={{ flex: "0 0 auto", marginTop: "auto" }}>
++        <IonRow style={{ flex: "0 0 auto", marginTop: 0 }}>
+           <IonCol size="12">
+             {finishValidationError && (
+               <div style={{ margin: "0 2px 10px" }}>
+diff --git a/src/app/components/active-workout/components/WorkoutCatalogDetailView.tsx b/src/app/components/active-workout/components/WorkoutCatalogDetailView.tsx
+index 5fea9b6f..9587026d 100644
+--- a/src/app/components/active-workout/components/WorkoutCatalogDetailView.tsx
++++ b/src/app/components/active-workout/components/WorkoutCatalogDetailView.tsx
+@@ -26,6 +26,7 @@ export function WorkoutCatalogDetailView({
+   const style = muscleStyle(exercise.group);
+   const [history, setHistory] = useState<ExerciseHistory | null>(null);
+   const [historyError, setHistoryError] = useState<string | null>(null);
++  const [isExpanded, setIsExpanded] = useState(false);
+ 
+   useEffect(() => {
+     let active = true;
+@@ -59,8 +60,8 @@ export function WorkoutCatalogDetailView({
+ 
+   return (
+     <PageBackground>
+-      <IonGrid fixed style={{ padding: "32px 12px calc(16px + var(--ion-safe-area-bottom, 0px))", position: "relative", zIndex: 1 }}>
+-        <IonRow>
++      <IonGrid fixed style={{ padding: "32px 12px calc(16px + var(--ion-safe-area-bottom, 0px))", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", height: "100%", boxSizing: "border-box" }}>
++        <IonRow style={{ flex: "0 0 auto" }}>
+           <IonCol size="12">
+             <button
+               type="button"
+@@ -89,14 +90,50 @@ export function WorkoutCatalogDetailView({
+               <h1 style={{ margin: 0, color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 30, fontWeight: 800 }}>
+                 {exercise.name}
+               </h1>
+-              <IonText style={{ color: "#B5B5B5", fontFamily: "var(--font-inter)", fontSize: 15, lineHeight: 1.6 }}>
+-                {exercise.notes}
+-              </IonText>
++              
++              <div style={{ display: "grid", gap: 4 }}>
++                <IonText
++                  style={{
++                    color: "#B5B5B5",
++                    fontFamily: "var(--font-inter)",
++                    fontSize: 15,
++                    lineHeight: 1.6,
++                    ...(isExpanded ? {} : {
++                      display: "-webkit-box",
++                      WebkitLineClamp: 2,
++                      WebkitBoxOrient: "vertical",
++                      overflow: "hidden"
++                    })
++                  }}
++                >
++                  {exercise.notes}
++                </IonText>
++                {exercise.notes && exercise.notes.length > 80 && (
++                  <button
++                    type="button"
++                    onClick={() => setIsExpanded(!isExpanded)}
++                    style={{
++                      background: "transparent",
++                      border: "none",
++                      color: "#FFFFFF",
++                      fontFamily: "var(--font-inter)",
++                      fontSize: 13,
++                      fontWeight: 600,
++                      padding: 0,
++                      cursor: "pointer",
++                      textAlign: "left"
++                    }}
++                  >
++                    {isExpanded ? "Ver menos" : "Ler mais"}
++                  </button>
++                )}
++              </div>
++
+             </div>
+           </IonCol>
+         </IonRow>
+ 
+-        <IonRow className="mt-5">
++        <IonRow className="mt-5" style={{ flex: "0 0 auto" }}>
+           <IonCol size="12">
+             <SurfaceCard border={style.border} background={style.bg}>
+               <div style={{ display: "grid", gap: 10 }}>
+@@ -136,11 +173,11 @@ export function WorkoutCatalogDetailView({
+           </IonCol>
+         </IonRow>
+ 
+-        <IonRow className="mt-4">
+-          <IonCol size="12">
+-            <div style={{ display: "grid", gap: 12 }}>
+-              <SurfaceCard>
+-                <div style={{ display: "grid", gap: 14 }}>
++        <IonRow className="mt-4" style={{ flex: "1 1 auto", display: "flex", minHeight: 0 }}>
++          <IonCol size="12" style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
++            <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%", minHeight: 0 }}>
++              <SurfaceCard style={{ flex: "1 1 auto", overflowY: "auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
++                <div style={{ display: "grid", gap: 14, flex: "0 0 auto" }}>
+                   <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700 }}>
+                     Histórico recente
+                   </span>
+@@ -181,7 +218,7 @@ export function WorkoutCatalogDetailView({
+                   </div>
+               </SurfaceCard>
+ 
+-              <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
++              <div style={{ display: "flex", justifyContent: "center", width: "100%", flex: "0 0 auto", marginTop: "auto" }}>
+                 <BeeButton
+                   variant={alreadyAdded ? "secondary" : "primary"}
+                   size="lg"
+diff --git a/src/app/components/active-workout/components/WorkoutCatalogView.tsx b/src/app/components/active-workout/components/WorkoutCatalogView.tsx
+index 3276359e..57e1ea33 100644
+--- a/src/app/components/active-workout/components/WorkoutCatalogView.tsx
++++ b/src/app/components/active-workout/components/WorkoutCatalogView.tsx
+@@ -1,4 +1,4 @@
+-import { useState, useMemo } from "react";
++import { useState, useMemo, useEffect } from "react";
+ import { IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
+ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+ import { PageBackground } from "../../PageBackground";
+@@ -32,6 +32,16 @@ export function WorkoutCatalogView({
+ }) {
+   const [searchTerm, setSearchTerm] = useState("");
+ 
++  useEffect(() => {
++    if (activeCatalogGroupId !== "todos" && searchTerm.trim() !== "") {
++      const activeGroupCount = filterTabs.find(t => t.groupId === activeCatalogGroupId)?.count ?? 0;
++      if (activeGroupCount === 0) {
++        onSelectGroup("todos");
++      }
++    }
++  }, [searchTerm, activeCatalogGroupId, filterTabs, onSelectGroup]);
++
++
+   const allExercises = useMemo(() => {
+     return groupedExercises.flatMap((group) => group.items);
+   }, [groupedExercises]);
+-- 
+2.53.0
+

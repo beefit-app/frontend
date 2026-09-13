@@ -3,6 +3,7 @@ import { messages } from "../../../constants/messages";
 import { useConfirm } from "../../../hooks/useConfirm";
 import { useEffect, useRef, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
+import { workoutService } from "../../../services/workoutService";
 import { socialFeedStorage } from "../../../storage/socialFeedStorage";
 import { pageCacheStorage } from "../../../storage/pageCacheStorage";
 import { useAuth } from "../../../auth/AuthContext";
@@ -31,6 +32,23 @@ export function resetFeedCache() {
 }
 
 function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
+  async function handleDeletePost(postId: string | number) {
+    const ok = await confirmDialog({
+      title: "Apagar Treino",
+      message: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
+      confirmText: "Apagar",
+      cancelText: "Cancelar"
+    });
+    if (!ok) return;
+    try {
+      await workoutService.deleteWorkout(String(postId));
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      toast.success("Treino apagado com sucesso.");
+    } catch (e) {
+      toast.error("Não foi possível apagar o treino.");
+    }
+  }
+
   return {
     ...friend,
     // Os eventos SSE entregam o grupo cru (slug ou enum); o caminho REST ja chega
@@ -296,6 +314,23 @@ export function useSocialFeedState() {
 
   function retry() {
     void loadFirstPage({ hydrateCache: false, silent: false });
+  }
+
+  async function handleDeletePost(postId: string | number) {
+    const ok = await confirmDialog({
+      title: "Apagar Treino",
+      message: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
+      confirmText: "Apagar",
+      cancelText: "Cancelar"
+    });
+    if (!ok) return;
+    try {
+      await workoutService.deleteWorkout(String(postId));
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      toast.success("Treino apagado com sucesso.");
+    } catch (e) {
+      toast.error("Não foi possível apagar o treino.");
+    }
   }
 
   return {
