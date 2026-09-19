@@ -94,4 +94,47 @@ describe("mediaCache", () => {
     await acquireMediaUrl("/api/media/foto-1");
     expect(getBlob).toHaveBeenCalledTimes(3);
   });
+
+  it("protege fotos com pinned: true contra evicção LRU quando o cache atinge o limite", async () => {
+    const { acquireMediaUrl, releaseMediaUrl } = await import("./mediaCache");
+
+    // Fixa o avatar do amigo
+    await acquireMediaUrl("/api/media/avatar-amigo", { pinned: true });
+    releaseMediaUrl("/api/media/avatar-amigo"); // refs = 0, mas pinned = true
+
+    // Adiciona 40 fotos normais do feed que unmountam (refs = 0)
+    for (let i = 1; i <= 40; i++) {
+      await acquireMediaUrl(`/api/media/feed-foto-${i}`);
+      releaseMediaUrl(`/api/media/feed-foto-${i}`);
+    }
+
+    // O avatar fixado não pode ter sido revogado por evicção
+    expect(revokeObjectURL).not.toHaveBeenCalledWith("blob:foto-1");
+
+    // E ao pedir novamente o avatar do amigo, ele é servido da memória sem nova requisição
+    await acquireMediaUrl("/api/media/avatar-amigo");
+    // getBlob foi chamado 1 vez pro avatar + 40 pro feed = 41 vezes (e NÃO 42)
+    expect(getBlob).toHaveBeenCalledTimes(41);
+  });
+
+  it("preloadMedia pré-carrega URLs válidas ignorando nulos e strings não-mídia", async () => {
+    const { preloadMedia, acquireMediaUrl } = await import("./mediaCache");
+
+    await preloadMedia([
+      "/api/media/avatar-1",
+      null,
+      undefined,
+      "https://external.com/avatar.jpg",
+      "/api/media/avatar-2",
+      "/api/media/avatar-1", // duplicata
+    ], { pinned: true });
+
+    // Apenas os dois caminhos /api/media distintos foram baixados
+    expect(getBlob).toHaveBeenCalledTimes(2);
+
+    // E já estão em memória
+    await acquireMediaUrl("/api/media/avatar-1");
+    await acquireMediaUrl("/api/media/avatar-2");
+    expect(getBlob).toHaveBeenCalledTimes(2);
+  });
 });
