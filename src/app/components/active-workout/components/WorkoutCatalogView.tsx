@@ -32,15 +32,6 @@ export function WorkoutCatalogView({
 }) {
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    if (activeCatalogGroupId !== "todos" && searchTerm.trim() !== "") {
-      const activeGroupCount = filterTabs.find(t => t.groupId === activeCatalogGroupId)?.count ?? 0;
-      if (activeGroupCount === 0) {
-        onSelectGroup("todos");
-      }
-    }
-  }, [searchTerm, activeCatalogGroupId, filterTabs, onSelectGroup]);
-
   const allExercises = useMemo(() => {
     return groupedExercises.flatMap((group) => group.items);
   }, [groupedExercises]);
@@ -75,6 +66,15 @@ export function WorkoutCatalogView({
       }),
     ];
   }, [groupedExercises, filteredExercisesBySearch, searchTerm]);
+
+  useEffect(() => {
+    if (activeCatalogGroupId !== "todos" && searchTerm.trim() !== "") {
+      const activeGroupCount = filterTabs.find((t) => t.groupId === activeCatalogGroupId)?.count ?? 0;
+      if (activeGroupCount === 0) {
+        onSelectGroup("todos");
+      }
+    }
+  }, [searchTerm, activeCatalogGroupId, filterTabs, onSelectGroup]);
 
   const visibleItems = useMemo(() => {
     if (activeCatalogGroupId === "todos") {
