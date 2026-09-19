@@ -11,6 +11,7 @@ import { WEIGHT_MAX_KG, WEIGHT_MIN_KG, messages } from "../../../constants/messa
 import { BeeTextarea, HexAvatar } from "./shared";
 import { profileService } from "../../../services/profileService";
 import { revokeObjectUrl, validateImageFile } from "../../../platform/mediaValidation";
+import { compressImageFile } from "../../../platform/imageCompression";
 
 export function ProfileEdit({
   profile,
@@ -79,20 +80,37 @@ export function ProfileEdit({
             <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>
               <div style={{ display: "flex", justifyContent: "center" }}>
                 <label style={{ cursor: "pointer" }}>
-                  <input type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    void (async () => {
-                      try {
-                        if (file) await validateImageFile(file);
-                        revokeObjectUrl(avatarPreview);
-                        setAvatarFile(file);
-                        setAvatarPreview(file ? URL.createObjectURL(file) : profile.avatarUrl);
-                        setErrors((current) => ({ ...current, avatar: "" }));
-                      } catch (error) {
-                        setErrors((current) => ({ ...current, avatar: error instanceof Error ? error.message : "Imagem inválida." }));
-                      }
-                    })();
-                  }} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    style={{ display: "none" }}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      event.target.value = "";
+                      void (async () => {
+                        try {
+                          if (file) {
+                            await validateImageFile(file);
+                            const compressed = await compressImageFile(file, {
+                              maxWidth: 512,
+                              maxHeight: 512,
+                              quality: 0.8,
+                            });
+                            revokeObjectUrl(avatarPreview);
+                            setAvatarFile(compressed);
+                            setAvatarPreview(URL.createObjectURL(compressed));
+                          } else {
+                            revokeObjectUrl(avatarPreview);
+                            setAvatarFile(null);
+                            setAvatarPreview(profile.avatarUrl);
+                          }
+                          setErrors((current) => ({ ...current, avatar: "" }));
+                        } catch (error) {
+                          setErrors((current) => ({ ...current, avatar: error instanceof Error ? error.message : "Imagem inválida." }));
+                        }
+                      })();
+                    }}
+                  />
                   <HexAvatar src={avatarPreview} initials={initials} size={96} />
                 </label>
                 {errors.avatar && <span className="sr-only" role="alert">{errors.avatar}</span>}
