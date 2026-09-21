@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { acquireMediaUrl, releaseMediaUrl } from "../services/mediaCache";
+import { acquireMediaUrl, releaseMediaUrl, type AcquireMediaOptions } from "../services/mediaCache";
 
 function isProtectedMediaPath(value: string) {
   return value.startsWith("/api/media/");
 }
 
-export function useAuthenticatedMediaUrl(source?: string | null) {
+export function useAuthenticatedMediaUrl(source?: string | null, options?: AcquireMediaOptions) {
   const [resolvedSource, setResolvedSource] = useState<string | null>(() =>
     source && !isProtectedMediaPath(source) ? source : null,
   );
@@ -20,7 +20,7 @@ export function useAuthenticatedMediaUrl(source?: string | null) {
     let acquired = false;
     setResolvedSource(null);
 
-    void acquireMediaUrl(source)
+    void acquireMediaUrl(source, options)
       .then((url) => {
         if (!active) {
           // Desmontou enquanto a foto vinha: devolve a referencia agora, porque a

@@ -10,6 +10,7 @@ import { formatElapsedTime } from "../utils";
 import { SurfaceCard } from "./shared";
 import { BeeAlert } from "../../BeeAlert";
 import { captureWorkoutPhoto } from "../../../platform/workoutPhoto";
+import { compressImageFile } from "../../../platform/imageCompression";
 
 export function FinishWorkoutView({
   finishPhotoInputRef: _unusedPhotoInputRef,
@@ -79,6 +80,19 @@ export function FinishWorkoutView({
     finishGalleryInputRef.current?.click();
   }
 
+  async function handleFileInputChange(file: File | null) {
+    if (!file) {
+      onPhotoChange(null);
+      return;
+    }
+    const compressed = await compressImageFile(file, {
+      maxWidth: 1200,
+      maxHeight: 1200,
+      quality: 0.8,
+    });
+    onPhotoChange(compressed);
+  }
+
   const formattedVolume = new Intl.NumberFormat("pt-BR", {
     maximumFractionDigits: 0,
   }).format(totalVolumeKg);
@@ -114,9 +128,18 @@ export function FinishWorkoutView({
               Voltar para o treino
             </button>
 
-            <div style={{ display: "grid", gap: 8 }}>
-              <h1 style={{ margin: 0, color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 30, fontWeight: 800 }}>
-                Concluir treino
+            <div style={{ display: "grid", gap: 6 }}>
+              <h1
+                style={{
+                  margin: 0,
+                  color: "#FFFFFF",
+                  fontFamily: "var(--font-montserrat)",
+                  fontSize: 32,
+                  fontWeight: 800,
+                  letterSpacing: "-0.04em",
+                }}
+              >
+                Concluir Treino
               </h1>
               <IonText style={{ color: "#B5B5B5", fontFamily: "var(--font-inter)", fontSize: 15, lineHeight: 1.6 }}>
                 Adicione uma foto, escolha um título e defina se este treino deve ser publicado no seu perfil.
@@ -134,14 +157,22 @@ export function FinishWorkoutView({
                 accept="image/*"
                 capture="environment"
                 style={{ display: "none" }}
-                onChange={(event) => onPhotoChange(event.target.files?.[0] ?? null)}
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  void handleFileInputChange(file);
+                  event.target.value = "";
+                }}
               />
               <input
                 ref={finishGalleryInputRef}
                 type="file"
                 accept="image/*"
                 style={{ display: "none" }}
-                onChange={(event) => onPhotoChange(event.target.files?.[0] ?? null)}
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  void handleFileInputChange(file);
+                  event.target.value = "";
+                }}
               />
 
               {finishPhotoUrl ? (

@@ -26,7 +26,9 @@ export async function captureWorkoutPhoto(source: CameraSource): Promise<File | 
     const photo = await Camera.getPhoto({
       source,
       resultType: CameraResultType.DataUrl,
-      quality: 85,
+      quality: 80,
+      width: 1200,
+      height: 1200,
       correctOrientation: true,
       allowEditing: false,
     });

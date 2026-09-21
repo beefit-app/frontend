@@ -8,6 +8,11 @@ const MAX_CACHED_MEDIA = 40;
 interface CacheEntry {
   url: string;
   refs: number;
+  pinned?: boolean;
+}
+
+export interface AcquireMediaOptions {
+  pinned?: boolean;
 }
 
 // A ordem de insercao do Map serve de LRU: a entrada mais recente vai para o fim.
@@ -24,17 +29,20 @@ function evictUnused() {
 
   for (const [path, entry] of cache) {
     if (cache.size <= MAX_CACHED_MEDIA) break;
-    if (entry.refs > 0) continue;
+    if (entry.refs > 0 || entry.pinned) continue;
     URL.revokeObjectURL(entry.url);
     cache.delete(path);
   }
 }
 
-export async function acquireMediaUrl(path: string) {
+export async function acquireMediaUrl(path: string, options?: AcquireMediaOptions) {
   const generationAoPedir = generation;
   const cached = cache.get(path);
   if (cached) {
     cached.refs += 1;
+    if (options?.pinned) {
+      cached.pinned = true;
+    }
     // Reinsere para marcar como usada mais recentemente.
     cache.delete(path);
     cache.set(path, cached);
@@ -64,12 +72,41 @@ export async function acquireMediaUrl(path: string) {
   const entry = cache.get(path);
   if (entry) {
     entry.refs += 1;
+    if (options?.pinned) {
+      entry.pinned = true;
+    }
     return entry.url;
   }
 
-  cache.set(path, { url, refs: 1 });
+  cache.set(path, { url, refs: 1, pinned: options?.pinned });
   evictUnused();
   return url;
+}
+
+export async function preloadMedia(
+  paths: (string | null | undefined)[],
+  options?: AcquireMediaOptions,
+): Promise<void> {
+  const validPaths = Array.from(
+    new Set(
+      paths.filter((p): p is string => typeof p === "string" && p.startsWith("/api/media/")),
+    ),
+  );
+
+  await Promise.allSettled(
+    validPaths.map(async (path) => {
+      try {
+        await acquireMediaUrl(path, options);
+        // O preload garante que a foto entre na memória; se for pinned, não será descartada por evicção LRU.
+        const entry = cache.get(path);
+        if (entry) {
+          entry.refs = Math.max(0, entry.refs - 1);
+        }
+      } catch {
+        // Falha no pré-carregamento não bloqueia a aplicação
+      }
+    }),
+  );
 }
 
 export function releaseMediaUrl(path: string) {

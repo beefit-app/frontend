@@ -8,7 +8,7 @@ Este documento centraliza as ideias arquiteturais e melhorias planejadas para di
   - Implementar o componente nativo `<IonRefresher>` (Arrastar para Atualizar) nas abas principais: Feed Social, Perfil e Catálogo.
   - Adicionar uma camada de cache local estruturado (ex: via `Preferences` do Capacitor ou banco `IndexedDB`) para armazenar o Feed Social e o Histórico de Treinos, garantindo suporte offline.
 
-## 2. Compressão Severa de Mídia no Cliente (Prioridade Média)
+## 2. Compressão Severa de Mídia no Cliente (Prioridade Média) - Já implementado, mas mantendo "Jpeg"
 - **Objetivo:** Economizar armazenamento no servidor, baratear custos de banda e acelerar o upload em redes móveis (3G/4G).
 - **Ações:**
   - Interceptar a foto tirada pelo usuário (câmera ou galeria) antes do upload.

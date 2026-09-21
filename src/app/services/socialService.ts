@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import { preloadMedia } from "./mediaCache";
 import type { CreateHiveRequest } from "../types/api";
 import type { FriendProfile, FriendRequest, Hive, HiveMember, HiveRankingPeriod } from "../components/social/types";
 
@@ -26,13 +27,20 @@ function datesForPeriod(value: HiveRankingPeriod) {
 }
 
 export const socialService = {
-  async loadFriends() { return (await apiClient.get<ApiFriendship[]>("/api/social/friends", { auth: true })).map((item) => ({ ...profile(item.user, "friend"), friendshipId: item.id })); },
+  async loadFriends() {
+    const items = await apiClient.get<ApiFriendship[]>("/api/social/friends", { auth: true });
+    const friends = items.map((item) => ({ ...profile(item.user, "friend"), friendshipId: item.id }));
+    void preloadMedia(friends.map((f) => f.avatarUrl), { pinned: true });
+    return friends;
+  },
   async loadIncomingRequests(): Promise<FriendRequest[]> {
     const items = await apiClient.get<ApiFriendship[]>("/api/social/friends/requests/incoming", { auth: true });
+    void preloadMedia(items.map((item) => item.user.profilePicture), { pinned: true });
     return items.map((item) => ({ id: item.id, profile: profile(item.user, "available") }));
   },
   async loadOutgoingRequests(): Promise<FriendRequest[]> {
     const items = await apiClient.get<ApiFriendship[]>("/api/social/friends/requests/outgoing", { auth: true });
+    void preloadMedia(items.map((item) => item.user.profilePicture), { pinned: true });
     return items.map((item) => ({ id: item.id, profile: profile(item.user, "sent") }));
   },
   async search(query: string) {
@@ -48,6 +56,7 @@ export const socialService = {
     const hives = await apiClient.get<ApiHive[]>("/api/hives/mine", { auth: true });
     return Promise.all(hives.map(async (item): Promise<Hive> => {
       const ranking = await apiClient.get<ApiRanking[]>(`/api/hives/${item.id}/getData`, { auth: true });
+      void preloadMedia(ranking.map((member) => member.profilePicture), { pinned: true });
       return { id: item.id, name: item.name, period: period(item), inviteCode: item.inviteCode, creatorId: item.creatorId,
         members: ranking.map((member) => ({ ...hiveMember(member), isCurrentUser: member.userId === currentUserId })) };
     }));
