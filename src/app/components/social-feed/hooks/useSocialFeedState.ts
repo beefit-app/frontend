@@ -337,6 +337,13 @@ export function useSocialFeedState() {
   }
 
   async function handleDeletePost(postId: string | number) {
+    // DELETE /api/workout/{id} opera sobre a sessao de treino; passar o id do
+    // post devolve 404.
+    const alvo = posts.find((p) => p.id === postId);
+    if (!alvo?.workoutSessionId) {
+      toast.error(messages.actionFailed("apagar o treino"));
+      return;
+    }
     const ok = await confirm({
       title: "Apagar Treino",
       description: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
@@ -346,7 +353,7 @@ export function useSocialFeedState() {
     });
     if (!ok) return;
     try {
-      await workoutService.deleteWorkout(String(postId));
+      await workoutService.deleteWorkout(alvo.workoutSessionId);
       setPosts((prev) => prev.filter((p) => p.id !== postId));
       toast.success("Treino apagado com sucesso.");
     } catch (e) {

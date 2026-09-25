@@ -30,6 +30,7 @@ import type { UpdateProfileRequest } from "../types/api";
 
 interface BackendProfilePost {
   postId: string;
+  workoutSessionId?: string;
   title?: string;
   publishedAt: string;
   totalLikes?: number;
@@ -162,6 +163,7 @@ function normalizeProfilePost(post: BackendProfilePost): WorkoutPost {
 
   return {
     id: post.postId,
+    workoutSessionId: post.workoutSessionId,
     title: post.title || "Treino concluído",
     date: new Date(post.publishedAt).toLocaleDateString("pt-BR"),
     duration: `${Math.floor(durationSeconds / 60)} min`,

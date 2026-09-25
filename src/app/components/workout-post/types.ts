@@ -21,6 +21,9 @@ export interface Comment {
 export interface WorkoutPost {
   // A API devolve UUID; os mocks locais ainda usam numero sequencial.
   id: string | number;
+  // Sessao que originou o post. Apagar o treino opera sobre a sessao, nao sobre
+  // o post, entao o card precisa dos dois identificadores.
+  workoutSessionId?: string;
   date: string;
   title: string;
   duration: string;

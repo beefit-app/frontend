@@ -7,6 +7,7 @@ import { workoutService } from "../../../services/workoutService";
 import { useConfirm } from "../../../hooks/useConfirm";
 import { ReportSheet } from "../../ReportSheet";
 import { toast } from "sonner";
+import { messages } from "../../../constants/messages";
 
 export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile: ProfileData; }) {
   const [liked, setLiked] = useState(post.liked);
@@ -39,12 +40,18 @@ export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile:
       destructive: true,
     });
     if (!ok) return;
+    // DELETE /api/workout/{id} opera sobre a sessao de treino; passar o id do
+    // post devolve 404.
+    if (!post.workoutSessionId) {
+      toast.error(messages.actionFailed("apagar o treino"));
+      return;
+    }
     try {
-      await workoutService.deleteWorkout(String(post.id));
+      await workoutService.deleteWorkout(post.workoutSessionId);
       setIsDeleted(true);
       toast.success("Treino apagado com sucesso.");
     } catch (e) {
-      toast.error("Não foi possível apagar o treino.");
+      toast.error(messages.actionFailed("apagar o treino"));
     }
   }
 

@@ -1330,6 +1330,8 @@ export interface components {
             postId?: string;
             /** Format: uuid */
             userId?: string;
+            /** Format: uuid */
+            workoutSessionId?: string;
             username?: string;
             userProfilePicture?: string;
             developer?: boolean;
