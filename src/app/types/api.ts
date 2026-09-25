@@ -35,3 +35,7 @@ export type WorkoutTemplateRequest = Schemas["WorkoutTemplateRequestDTO"];
 // Social e moderacao
 export type CreateHiveRequest = Schemas["HiveCreationDTO"];
 export type UpdatePostMetadataRequest = Schemas["UpdatePostMetadataDTO"];
+export type CreateReportRequest = Schemas["CreateReportDTO"];
+export type ReportResponse = Schemas["ReportResponseDTO"];
+export type ReportTargetType = CreateReportRequest["targetType"];
+export type ReportReason = CreateReportRequest["reason"];

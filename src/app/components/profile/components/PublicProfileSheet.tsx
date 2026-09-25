@@ -4,6 +4,7 @@ import { socialService } from "../../../services/socialService";
 import type { PublicUserProfile } from "../../../types/user";
 import type { WorkoutPost } from "../types";
 import { ProfileView } from "./ProfileView";
+import { ReportSheet } from "../../ReportSheet";
 import { Sheet, SheetContent } from "../../ui/sheet";
 
 function actionLabel(profile: PublicUserProfile | null) {
@@ -74,6 +75,7 @@ function PublicProfileContent({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [postsLoadError, setPostsLoadError] = useState<string | null>(null);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   useEffect(() => {
     if (!username) return;
@@ -180,6 +182,7 @@ function PublicProfileContent({
   }
 
   return (
+    <>
     <ProfileView
       profile={profile}
       isLoading={isLoading || isSubmitting}
@@ -188,6 +191,7 @@ function PublicProfileContent({
       trainedDays={trainedDays}
       recentPosts={posts}
       managementEnabled={false}
+      onReportProfile={() => setIsReportOpen(true)}
       publicActionLabel={isSubmitting ? "Atualizando..." : actionLabel(profile)}
       publicActionDisabled={actionDisabled(profile, isSubmitting)}
       onPublicAction={handlePublicAction}
@@ -195,5 +199,13 @@ function PublicProfileContent({
       onDismissError={() => setLoadError(null)}
       onDismissPostsError={() => setPostsLoadError(null)}
     />
+    <ReportSheet
+      open={isReportOpen}
+      onOpenChange={setIsReportOpen}
+      targetType="USER"
+      targetId={profile.userId}
+      targetLabel={`o perfil de ${profile.displayName}`}
+    />
+    </>
   );
 }

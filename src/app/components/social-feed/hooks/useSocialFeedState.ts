@@ -32,23 +32,6 @@ export function resetFeedCache() {
 }
 
 function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
-  async function handleDeletePost(postId: string | number) {
-    const ok = await confirmDialog({
-      title: "Apagar Treino",
-      message: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
-      confirmText: "Apagar",
-      cancelText: "Cancelar"
-    });
-    if (!ok) return;
-    try {
-      await workoutService.deleteWorkout(String(postId));
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
-      toast.success("Treino apagado com sucesso.");
-    } catch (e) {
-      toast.error("Não foi possível apagar o treino.");
-    }
-  }
-
   return {
     ...friend,
     // Os eventos SSE entregam o grupo cru (slug ou enum); o caminho REST ja chega
@@ -354,11 +337,12 @@ export function useSocialFeedState() {
   }
 
   async function handleDeletePost(postId: string | number) {
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: "Apagar Treino",
-      message: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
-      confirmText: "Apagar",
-      cancelText: "Cancelar"
+      description: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
+      confirmLabel: "Apagar",
+      cancelLabel: "Cancelar",
+      destructive: true,
     });
     if (!ok) return;
     try {
@@ -373,6 +357,7 @@ export function useSocialFeedState() {
   return {
     confirmDialog,
     posts,
+    handleDeletePost,
     liveFriends,
     isLoading,
     isLoadingMore,
