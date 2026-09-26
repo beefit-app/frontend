@@ -121,3 +121,55 @@ export async function compressImageFile(
     return file;
   }
 }
+
+export interface CropArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ImageCropOptions {
+  width: number;
+  height: number;
+  quality?: number;
+}
+
+/**
+ * Recorta a área escolhida (em pixels da imagem original) e a entrega já no
+ * tamanho final, em JPEG.
+ *
+ * Diferente de compressImageFile, falhar aqui lança erro em vez de devolver o
+ * original: salvar a foto inteira ignoraria o enquadramento que o usuário escolheu.
+ */
+export async function cropImageFile(file: File, area: CropArea, options: ImageCropOptions): Promise<File> {
+  const { width, height, quality = 0.8 } = options;
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const img = await loadImage(objectUrl);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("Não foi possível recortar a imagem neste dispositivo.");
+    }
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", quality);
+    });
+    if (!blob) {
+      throw new Error("Não foi possível recortar a imagem neste dispositivo.");
+    }
+
+    const baseName = file.name.replace(/\.[^/.]+$/, "") || "photo";
+    return new File([blob], `${baseName}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
