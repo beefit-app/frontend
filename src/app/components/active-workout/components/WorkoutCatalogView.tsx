@@ -6,6 +6,7 @@ import type { ExerciseCatalogItem } from "../../../types/workout";
 import { muscleStyle } from "../utils";
 import { MuscleTag } from "./shared";
 import { BeeInput } from "../../BeeInput";
+import { matchesSearch } from "../../../services/textSearch";
 
 export function WorkoutCatalogView({
   groupedExercises,
@@ -37,13 +38,7 @@ export function WorkoutCatalogView({
   }, [groupedExercises]);
 
   const filteredExercisesBySearch = useMemo(() => {
-    const term = searchTerm.toLowerCase().trim();
-    if (!term) {
-      return allExercises;
-    }
-    return allExercises.filter((exercise) =>
-      exercise.name.toLowerCase().includes(term)
-    );
+    return allExercises.filter((exercise) => matchesSearch(exercise.name, searchTerm));
   }, [searchTerm, allExercises]);
 
   const filterTabs = useMemo(() => {
@@ -54,10 +49,7 @@ export function WorkoutCatalogView({
         count: filteredExercisesBySearch.length,
       },
       ...groupedExercises.map((g) => {
-        const term = searchTerm.toLowerCase().trim();
-        const count = term
-          ? g.items.filter((item) => item.name.toLowerCase().includes(term)).length
-          : g.items.length;
+        const count = g.items.filter((item) => matchesSearch(item.name, searchTerm)).length;
         return {
           groupId: g.groupId,
           group: g.group,
@@ -85,13 +77,7 @@ export function WorkoutCatalogView({
   }, [activeCatalogGroupId, groupedExercises, allExercises]);
 
   const filteredItems = useMemo(() => {
-    const term = searchTerm.toLowerCase().trim();
-    if (!term) {
-      return visibleItems;
-    }
-    return visibleItems.filter((exercise) =>
-      exercise.name.toLowerCase().includes(term)
-    );
+    return visibleItems.filter((exercise) => matchesSearch(exercise.name, searchTerm));
   }, [searchTerm, visibleItems]);
 
   return (
