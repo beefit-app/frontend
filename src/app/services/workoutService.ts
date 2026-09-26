@@ -543,7 +543,7 @@ export const workoutService = {
   },
 
   async deleteWorkout(workoutId: string) {
-    await apiClient.delete(`/api/workout/${workoutId}`, { auth: true });
+    await apiClient.delete(`/api/workout/${workoutId}`, undefined, { auth: true });
   },
 
   async cancelWorkout(workoutId: string | null | undefined) {

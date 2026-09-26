@@ -5,17 +5,20 @@ import { getProfileInitials } from "../utils";
 import { useAuth } from "../../../auth/AuthContext";
 import { workoutService } from "../../../services/workoutService";
 import { useConfirm } from "../../../hooks/useConfirm";
+import { ReportSheet } from "../../ReportSheet";
 import { toast } from "sonner";
+import { messages } from "../../../constants/messages";
 
 export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile: ProfileData; }) {
   const [liked, setLiked] = useState(post.liked);
   const [likes, setLikes] = useState(post.likes);
   const [templateSaved, setTemplateSaved] = useState(post.templateSaved);
   const [isDeleted, setIsDeleted] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const initials = getProfileInitials(profile);
   const { user } = useAuth();
   const isMe = user?.id === profile.id;
-  const confirmDialog = useConfirm();
+  const { confirm, dialog } = useConfirm();
 
   function toggleLike() {
     setLiked((current) => {
@@ -24,20 +27,31 @@ export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile:
     });
   }
 
+  function handleReport() {
+    setIsReportOpen(true);
+  }
+
   async function handleDelete() {
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: "Apagar Treino",
-      message: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
-      confirmText: "Apagar",
-      cancelText: "Cancelar"
+      description: "Tem certeza que deseja apagar este treino? Essa ação não pode ser desfeita.",
+      confirmLabel: "Apagar",
+      cancelLabel: "Cancelar",
+      destructive: true,
     });
     if (!ok) return;
+    // DELETE /api/workout/{id} opera sobre a sessao de treino; passar o id do
+    // post devolve 404.
+    if (!post.workoutSessionId) {
+      toast.error(messages.actionFailed("apagar o treino"));
+      return;
+    }
     try {
-      await workoutService.deleteWorkout(String(post.id));
+      await workoutService.deleteWorkout(post.workoutSessionId);
       setIsDeleted(true);
       toast.success("Treino apagado com sucesso.");
     } catch (e) {
-      toast.error("Não foi possível apagar o treino.");
+      toast.error(messages.actionFailed("apagar o treino"));
     }
   }
 
@@ -56,6 +70,15 @@ export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile:
         onToggleTemplate={() => setTemplateSaved((current) => !current)}
         muscleVariant="accent"
         onDelete={isMe ? handleDelete : undefined}
+        onReport={isMe ? undefined : handleReport}
+      />
+      {dialog}
+      <ReportSheet
+        open={isReportOpen}
+        onOpenChange={setIsReportOpen}
+        targetType="POST"
+        targetId={String(post.id)}
+        targetLabel={post.title ?? "esta publicação"}
       />
     </>
   );

@@ -270,6 +270,9 @@ export function BeeTextarea({
           placeholder={placeholder}
           rows={4}
           autoGrow={false}
+          // onIonChange sozinho so dispara no blur: um toque direto no botao de enviar
+          // submetia o formulario com o texto de antes da digitacao.
+          onIonInput={(event) => onChange(event.detail.value ?? "")}
           onIonChange={(event) => onChange(event.detail.value ?? "")}
           onIonFocus={() => setFocused(true)}
           onIonBlur={() => setFocused(false)}

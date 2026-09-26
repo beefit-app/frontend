@@ -47,4 +47,9 @@ export const messages = {
    * <verbo> <objeto>." — e virou o padrão; `acao` completa a frase.
    */
   actionFailed: (acao: string) => `Não foi possível ${acao}.`,
+
+  reportReasonRequired: "Selecione um motivo para a denúncia.",
+  reportSent: "Denúncia enviada. Nossa equipe vai analisar.",
+  reportDuplicate: "Você já denunciou este conteúdo. Nossa equipe está analisando.",
+  reportDetailsHint: "Conte o que aconteceu, se quiser. Isso ajuda nossa análise.",
 } as const;

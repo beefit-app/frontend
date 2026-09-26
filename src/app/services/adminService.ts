@@ -1,5 +1,12 @@
 import { apiClient } from "./apiClient";
-import type { UpdatePostMetadataRequest } from "../types/api";
+import type {
+  ReportReason,
+  ReportResolutionAction,
+  ReportStatus,
+  ReportTargetType,
+  ResolveReportRequest,
+  UpdatePostMetadataRequest,
+} from "../types/api";
 
 export interface AdminDashboardMetrics {
   totalActiveUsers: number;
@@ -37,6 +44,28 @@ export interface AdminPost {
   removed: boolean;
   durationSeconds: number | null;
   totalVolume: number | null;
+}
+
+export interface AdminReport {
+  id: string;
+  reporterId: string;
+  reporterUsername: string;
+  targetType: ReportTargetType;
+  targetId: string;
+  targetPostTitle: string | null;
+  targetOwnerId: string;
+  targetOwnerUsername: string;
+  reason: ReportReason;
+  details: string | null;
+  status: ReportStatus;
+  createdAt: string;
+}
+
+export interface AdminReportResolution {
+  reportId: string;
+  action: ReportResolutionAction;
+  status: ReportStatus;
+  closedReports: number;
 }
 
 export interface AdminPage<T> {
@@ -101,5 +130,24 @@ export const adminService = {
 
   async removePost(postId: string) {
     return apiClient.delete(`/api/admin/posts/${postId}`, undefined, { auth: true });
+  },
+
+  async getReports(status: ReportStatus, page: number, size = 10) {
+    const params = new URLSearchParams({
+      status,
+      page: String(page),
+      size: String(size),
+      sort: "createdAt,desc",
+    });
+    const response = await apiClient.get<Partial<AdminPage<AdminReport>>>(`/api/admin/reports?${params}`, { auth: true });
+    return normalizePage(response);
+  },
+
+  async resolveReport(reportId: string, action: ReportResolutionAction, banDays?: number) {
+    return apiClient.post<AdminReportResolution>(
+      `/api/admin/reports/${reportId}/resolve`,
+      { action, banDays } satisfies ResolveReportRequest,
+      { auth: true },
+    );
   },
 };
