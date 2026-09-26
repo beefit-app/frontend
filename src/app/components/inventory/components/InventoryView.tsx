@@ -30,6 +30,7 @@ import type { InventoryCard, InventoryFilters, InventoryMuscleGroup, InventoryRa
 import { toast } from "sonner";
 import { messages } from "../../../constants/messages";
 import { useConfirm } from "../../../hooks/useConfirm";
+import { matchesSearch } from "../../../services/textSearch";
 
 type InventoryTab = "cards" | "templates";
 
@@ -782,14 +783,10 @@ function TemplateFormSheet({
   const selectedExercises = exerciseIds
     .map((exerciseId) => catalog.find((exercise) => exercise.id === exerciseId) ?? null)
     .filter((exercise): exercise is ExerciseCatalogItem => exercise !== null);
-  const normalizedQuery = query.trim().toLowerCase();
   const filteredCatalog = catalog
     .filter((exercise) => !exerciseIds.includes(exercise.id))
     .filter((exercise) => exerciseMatchesMuscleGroup(exercise, catalogMuscleGroupFilter))
-    .filter((exercise) => {
-      if (!normalizedQuery) return true;
-      return `${exercise.name} ${exercise.group}`.toLowerCase().includes(normalizedQuery);
-    })
+    .filter((exercise) => matchesSearch(`${exercise.name} ${exercise.group}`, query))
     .slice(0, 24);
   const canSubmit = name.trim().length > 0 && exerciseIds.length > 0 && !isSaving;
 
