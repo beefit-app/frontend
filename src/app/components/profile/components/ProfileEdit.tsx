@@ -11,7 +11,9 @@ import { WEIGHT_MAX_KG, WEIGHT_MIN_KG, messages } from "../../../constants/messa
 import { BeeTextarea, HexAvatar } from "./shared";
 import { profileService } from "../../../services/profileService";
 import { revokeObjectUrl, validateImageFile } from "../../../platform/mediaValidation";
-import { compressImageFile } from "../../../platform/imageCompression";
+import { cropImageFile, type CropArea } from "../../../platform/imageCompression";
+import { AVATAR_OUTPUT_SIZE } from "../constants";
+import { AvatarCropSheet } from "./AvatarCropSheet";
 
 export function ProfileEdit({
   profile,
@@ -34,8 +36,38 @@ export function ProfileEdit({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState(profile.avatarUrl);
+  const [pendingAvatar, setPendingAvatar] = useState<{ file: File; url: string } | null>(null);
+  const [isCropping, setIsCropping] = useState(false);
 
   useEffect(() => () => revokeObjectUrl(avatarPreview), [avatarPreview]);
+  useEffect(() => () => revokeObjectUrl(pendingAvatar?.url), [pendingAvatar]);
+
+  async function handleAvatarSelected(file: File | null) {
+    if (!file) return;
+    try {
+      await validateImageFile(file);
+      setPendingAvatar({ file, url: URL.createObjectURL(file) });
+      setErrors((current) => ({ ...current, avatar: "" }));
+    } catch (error) {
+      setErrors((current) => ({ ...current, avatar: error instanceof Error ? error.message : "Imagem inválida." }));
+    }
+  }
+
+  async function handleCropConfirm(area: CropArea) {
+    if (!pendingAvatar) return;
+    setIsCropping(true);
+    try {
+      const cropped = await cropImageFile(pendingAvatar.file, area, { ...AVATAR_OUTPUT_SIZE, quality: 0.8 });
+      setAvatarFile(cropped);
+      setAvatarPreview(URL.createObjectURL(cropped));
+      setErrors((current) => ({ ...current, avatar: "" }));
+      setPendingAvatar(null);
+    } catch (error) {
+      setErrors((current) => ({ ...current, avatar: error instanceof Error ? error.message : "Imagem inválida." }));
+    } finally {
+      setIsCropping(false);
+    }
+  }
 
   function validate() {
     const nextErrors: Record<string, string> = {};
@@ -78,43 +110,38 @@ export function ProfileEdit({
         <IonRow className="ion-justify-content-center">
           <IonCol size="12">
             <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "12px 12px 0" }}>
-              <div style={{ display: "flex", justifyContent: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                 <label style={{ cursor: "pointer" }}>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     style={{ display: "none" }}
+                    aria-label="Escolher foto de perfil"
                     onChange={(event) => {
                       const file = event.target.files?.[0] ?? null;
                       event.target.value = "";
-                      void (async () => {
-                        try {
-                          if (file) {
-                            await validateImageFile(file);
-                            const compressed = await compressImageFile(file, {
-                              maxWidth: 512,
-                              maxHeight: 512,
-                              quality: 0.8,
-                            });
-                            revokeObjectUrl(avatarPreview);
-                            setAvatarFile(compressed);
-                            setAvatarPreview(URL.createObjectURL(compressed));
-                          } else {
-                            revokeObjectUrl(avatarPreview);
-                            setAvatarFile(null);
-                            setAvatarPreview(profile.avatarUrl);
-                          }
-                          setErrors((current) => ({ ...current, avatar: "" }));
-                        } catch (error) {
-                          setErrors((current) => ({ ...current, avatar: error instanceof Error ? error.message : "Imagem inválida." }));
-                        }
-                      })();
+                      void handleAvatarSelected(file);
                     }}
                   />
                   <HexAvatar src={avatarPreview} initials={initials} size={96} />
                 </label>
-                {errors.avatar && <span className="sr-only" role="alert">{errors.avatar}</span>}
+                {errors.avatar && !pendingAvatar && (
+                  <span role="alert" style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#EF4444", fontWeight: 500 }}>
+                    {errors.avatar}
+                  </span>
+                )}
               </div>
+
+              <AvatarCropSheet
+                imageUrl={pendingAvatar?.url ?? null}
+                isProcessing={isCropping}
+                error={errors.avatar}
+                onCancel={() => {
+                  setPendingAvatar(null);
+                  setErrors((current) => ({ ...current, avatar: "" }));
+                }}
+                onConfirm={(area) => void handleCropConfirm(area)}
+              />
 
               <BeeCard hover={false}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
