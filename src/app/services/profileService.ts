@@ -4,6 +4,7 @@ import type { AuthUser } from "../types/auth";
 import type { PublicProfileRelationshipStatus, PublicUserProfile, UserProfile, UserProfileUpdate } from "../types/user";
 import { apiClient } from "./apiClient";
 import { normalizeMuscleGroupLabels } from "./muscleGroups";
+import { formatPostDate } from "./postDate";
 
 const LEGACY_PROFILE_STORAGE_KEY = "beefit.profile.current";
 
@@ -165,7 +166,7 @@ function normalizeProfilePost(post: BackendProfilePost): WorkoutPost {
     id: post.postId,
     workoutSessionId: post.workoutSessionId,
     title: post.title || "Treino concluído",
-    date: new Date(post.publishedAt).toLocaleDateString("pt-BR"),
+    date: formatPostDate(post.publishedAt),
     duration: `${Math.floor(durationSeconds / 60)} min`,
     rarity: "comum",
     muscles: normalizeMuscleGroupLabels(post.bodyHeatMap),
