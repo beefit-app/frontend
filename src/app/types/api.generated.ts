@@ -388,6 +388,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/reports/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resolveReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users/{id}/unban": {
         parameters: {
             query?: never;
@@ -1211,6 +1227,22 @@ export interface components {
             /** Format: date */
             endDate: string;
         };
+        ResolveReportDTO: {
+            /** @enum {string} */
+            action: "REMOVE_POST" | "BAN_USER" | "DISMISS";
+            /** Format: int32 */
+            banDays?: number;
+        };
+        ResolvedReportResponseDTO: {
+            /** Format: uuid */
+            reportId?: string;
+            /** @enum {string} */
+            action?: "REMOVE_POST" | "BAN_USER" | "DISMISS";
+            /** @enum {string} */
+            status?: "PENDING" | "REVIEWED" | "DISMISSED";
+            /** Format: int32 */
+            closedReports?: number;
+        };
         BannedUserResponseDTO: {
             /** Format: uuid */
             userId?: string;
@@ -1523,6 +1555,7 @@ export interface components {
             targetType?: "POST" | "USER";
             /** Format: uuid */
             targetId?: string;
+            targetPostTitle?: string;
             /** Format: uuid */
             targetOwnerId?: string;
             targetOwnerUsername?: string;
@@ -3948,6 +3981,95 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["HiveResponseDTO"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Content Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    resolveReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveReportDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResolvedReportResponseDTO"];
                 };
             };
             /** @description Bad Request */
