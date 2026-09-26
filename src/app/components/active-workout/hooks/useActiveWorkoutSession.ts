@@ -9,6 +9,7 @@ import type {
 } from "../../../types/workout";
 import type { ActiveWorkoutScreenProps, DetailViewSource } from "../types";
 import {
+  appendSetCopyingLast,
   calculateEstimatedCalories,
   calculateWorkoutVolume,
   createExerciseCard,
@@ -295,13 +296,12 @@ export function useActiveWorkoutSession({
   }
 
   function addSet(exerciseId: string) {
-    const newSet = createSet();
+    // O id sai fora do updater, que roda duas vezes em StrictMode e precisa ser puro.
+    const { id } = createSet();
 
-    setExercises((current) =>
-      current.map((exercise) =>
-        exercise.id === exerciseId ? { ...exercise, sets: [...exercise.sets, newSet] } : exercise,
-      ),
-    );
+    // A última série é lida do estado atual, não da closure: um toque logo depois
+    // de digitar o peso precisa copiar o valor recém-digitado.
+    setExercises((current) => appendSetCopyingLast(current, exerciseId, id));
     setPendingSetFocusExerciseId(exerciseId);
     setFinishValidationError("");
   }
