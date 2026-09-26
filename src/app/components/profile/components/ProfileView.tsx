@@ -137,13 +137,19 @@ export function ProfileView({
               )}
               {!managementEnabled && onReportProfile && (
                 <Sheet open={isReportMenuOpen} onOpenChange={setIsReportMenuOpen}>
-                  <SheetContent side="right" className="border-l border-[#2D2D2D] bg-[#141414] text-white sm:max-w-[360px] pt-[calc(var(--ion-safe-area-top,0px)+16px)]">
-                    <SheetHeader className="border-b border-[#2D2D2D] px-5 pb-5 pt-2 text-left">
-                      <SheetTitle className="font-montserrat text-[18px] font-bold text-white">
+                  <SheetContent
+                    side="bottom"
+                    className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white"
+                  >
+                    <SheetHeader>
+                      <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
                         Ações do perfil
                       </SheetTitle>
+                      <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
+                        Escolha uma ação para este perfil.
+                      </SheetDescription>
                     </SheetHeader>
-                    <div className="px-4 py-4">
+                    <div className="flex flex-col gap-2.5">
                       <BeeButton
                         variant="outline-red"
                         fullWidth
