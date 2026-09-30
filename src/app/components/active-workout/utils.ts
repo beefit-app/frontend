@@ -7,8 +7,21 @@ export function createId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function createSet(): WorkoutSet {
-  return { id: createId("set"), backendId: null, weight: "", reps: "" };
+/**
+ * Série nova. Com `previous`, já vem com o peso e as repetições dela, porque a
+ * série seguinte quase sempre repete a anterior. Id e backendId nunca são copiados:
+ * é outra série, e o finish a trataria como a anterior.
+ */
+export function createSet(previous?: Pick<WorkoutSet, "weight" | "reps">): WorkoutSet {
+  return { id: createId("set"), backendId: null, weight: previous?.weight ?? "", reps: previous?.reps ?? "" };
+}
+
+export function appendSetCopyingLast(exercises: WorkoutExercise[], exerciseId: string, setId: string): WorkoutExercise[] {
+  return exercises.map((exercise) =>
+    exercise.id === exerciseId
+      ? { ...exercise, sets: [...exercise.sets, { ...createSet(exercise.sets.at(-1)), id: setId }] }
+      : exercise,
+  );
 }
 
 export function formatElapsedTime(totalSeconds: number) {

@@ -1,7 +1,7 @@
 import { type MouseEvent, type TouchEvent, useRef, useState } from "react";
 import { AnimatePresence, motion as Motion } from "motion/react";
 import {
-  Trash2,
+  EllipsisVertical,
   Bookmark,
   ChevronLeft,
   ChevronRight,
@@ -16,6 +16,8 @@ import { getMuscleBadgeStyle } from "../utils";
 import { HexAvatar } from "./shared";
 import { AuthenticatedImage } from "../../AuthenticatedImage";
 import { DeveloperBadge } from "../../DeveloperBadge";
+import { BeeButton } from "../../BeeButton";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
 
 interface WorkoutPostCardBaseProps {
   post: WorkoutPost;
@@ -27,6 +29,7 @@ interface WorkoutPostCardBaseProps {
   onToggleLike: () => void;
   onToggleTemplate: () => void;
   onDelete?: () => void;
+  onReport?: () => void;
   muscleVariant?: "accent" | "neutral";
 }
 
@@ -40,12 +43,14 @@ export function WorkoutPostCardBase({
   onToggleLike,
   onToggleTemplate,
   onDelete,
+  onReport,
   muscleVariant = "accent",
 }: WorkoutPostCardBaseProps) {
   const [showExercises, setShowExercises] = useState(false);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
   const touchStartX = useRef(0);
   const lastTapRef = useRef<number>(0);
 
@@ -223,6 +228,76 @@ export function WorkoutPostCardBase({
               }}
             />
 
+            {(onDelete || onReport) && (
+              // O wrapper posiciona o botao porque .beefit-tap-target sobrescreve position,
+              // e segura os eventos de toque para o botao nao virar swipe nem curtida dupla.
+              <div
+                style={{ position: "absolute", top: 10, right: 10, zIndex: 10 }}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+              >
+                <Sheet open={isActionMenuOpen} onOpenChange={setIsActionMenuOpen}>
+                  <button
+                    type="button"
+                    data-no-card-flip="true"
+                    className="beefit-tap-target flex h-8 w-8 items-center justify-center rounded-full text-white/80 transition-colors hover:text-white"
+                    style={{ background: "rgba(10,10,10,0.55)", backdropFilter: "blur(6px)", border: "none" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsActionMenuOpen(true);
+                    }}
+                    aria-label="Abrir ações da publicação"
+                  >
+                    <EllipsisVertical size={18} />
+                  </button>
+                  <SheetContent
+                    side="bottom"
+                    className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white"
+                  >
+                    <SheetHeader>
+                      <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
+                        {post.title ?? "Publicação"}
+                      </SheetTitle>
+                      <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
+                        Escolha uma ação para esta publicação.
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="flex flex-col gap-2.5">
+                      {onReport && (
+                        <BeeButton
+                          variant="outline-red"
+                          fullWidth
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsActionMenuOpen(false);
+                            onReport();
+                          }}
+                        >
+                          Denunciar
+                        </BeeButton>
+                      )}
+                      {onDelete && (
+                        <BeeButton
+                          variant="red"
+                          fullWidth
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsActionMenuOpen(false);
+                            onDelete();
+                          }}
+                        >
+                          Apagar treino
+                        </BeeButton>
+                      )}
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+            )}
+
             <div
               style={{
                 position: "absolute",
@@ -273,19 +348,6 @@ export function WorkoutPostCardBase({
                   </div>
                 </button>
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  {onDelete && (
-                    <button
-                      type="button"
-                      className="beefit-tap-target text-[#8A8A8A] hover:text-red-500 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete();
-                      }}
-                      title="Apagar Treino"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
                   <button
                     type="button"
                     className="beefit-tap-target"

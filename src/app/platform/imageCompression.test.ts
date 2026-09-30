@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
   calculateTargetDimensions,
   compressImageFile,
+  cropImageFile,
 } from "./imageCompression";
 
 describe("calculateTargetDimensions", () => {
@@ -180,5 +181,72 @@ describe("compressImageFile", () => {
     } finally {
       window.Image = originalImage;
     }
+  });
+});
+
+describe("cropImageFile", () => {
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+  const originalImage = window.Image;
+
+  class MockImage {
+    naturalWidth = 3000;
+    naturalHeight = 2000;
+    onload: (() => void) | null = null;
+    onerror: ((err: unknown) => void) | null = null;
+    set src(_val: string) {
+      setTimeout(() => this.onload?.(), 0);
+    }
+  }
+
+  function mockCanvas(ctx: unknown, blob: Blob | null) {
+    const originalCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+      if (tagName === "canvas") {
+        const canvas = originalCreateElement("canvas");
+        // @ts-expect-error Mock getContext
+        canvas.getContext = () => ctx;
+        canvas.toBlob = (callback: BlobCallback) => callback(blob);
+        return canvas;
+      }
+      return originalCreateElement(tagName);
+    });
+  }
+
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => "blob:crop-source");
+    URL.revokeObjectURL = vi.fn();
+    // @ts-expect-error Mock Image for testing
+    window.Image = MockImage;
+  });
+
+  afterEach(() => {
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+    window.Image = originalImage;
+    vi.restoreAllMocks();
+  });
+
+  it("desenha so a area escolhida, ja no tamanho final, e devolve JPEG", async () => {
+    const ctx = { fillStyle: "", fillRect: vi.fn(), drawImage: vi.fn() };
+    mockCanvas(ctx, new Blob(["cropped"], { type: "image/jpeg" }));
+    const source = new File(["bytes"], "selfie.png", { type: "image/png" });
+
+    const result = await cropImageFile(source, { x: 900, y: 150, width: 1000, height: 1155 }, { width: 512, height: 591 });
+
+    expect(ctx.drawImage).toHaveBeenCalledWith(expect.anything(), 900, 150, 1000, 1155, 0, 0, 512, 591);
+    expect(result.name).toBe("selfie.jpg");
+    expect(result.type).toBe("image/jpeg");
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:crop-source");
+  });
+
+  it("falha em vez de devolver a foto inteira quando nao ha canvas", async () => {
+    mockCanvas(null, null);
+    const source = new File(["bytes"], "selfie.jpg", { type: "image/jpeg" });
+
+    await expect(
+      cropImageFile(source, { x: 0, y: 0, width: 10, height: 10 }, { width: 512, height: 591 }),
+    ).rejects.toThrow("Não foi possível recortar");
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:crop-source");
   });
 });

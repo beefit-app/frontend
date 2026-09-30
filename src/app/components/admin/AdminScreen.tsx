@@ -3,6 +3,7 @@ import {
   AlertCircle,
   Ban,
   BarChart3,
+  Flag,
   Loader2,
   LogOut,
   Newspaper,
@@ -12,16 +13,20 @@ import {
   Trash2,
   Undo2,
   Users,
+  X,
 } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
+import { useConfirm } from "../../hooks/useConfirm";
 import {
   adminService,
   type AdminDashboardMetrics,
   type AdminPage,
   type AdminPost,
+  type AdminReport,
   type AdminUser,
 } from "../../services/adminService";
 import { ApiError } from "../../services/apiClient";
+import type { ReportReason, ReportResolutionAction, ReportStatus } from "../../types/api";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -34,12 +39,13 @@ import {
   TableRow,
 } from "../ui/table";
 
-type AdminView = "dashboard" | "users" | "posts";
+type AdminView = "dashboard" | "users" | "posts" | "reports";
 
 const ADMIN_NAV_ITEMS: { id: AdminView; label: string; Icon: typeof BarChart3 }[] = [
   { id: "dashboard", label: "Dashboard", Icon: BarChart3 },
   { id: "users", label: "Usuários", Icon: Users },
   { id: "posts", label: "Posts", Icon: Newspaper },
+  { id: "reports", label: "Denúncias", Icon: Flag },
 ];
 
 const EMPTY_USERS_PAGE: AdminPage<AdminUser> = {
@@ -61,6 +67,37 @@ const EMPTY_POSTS_PAGE: AdminPage<AdminPost> = {
   first: true,
   last: true,
 };
+
+const EMPTY_REPORTS_PAGE: AdminPage<AdminReport> = {
+  content: [],
+  number: 0,
+  size: 10,
+  totalElements: 0,
+  totalPages: 1,
+  first: true,
+  last: true,
+};
+
+const REPORT_STATUS_FILTERS: { id: ReportStatus; label: string }[] = [
+  { id: "PENDING", label: "Pendentes" },
+  { id: "REVIEWED", label: "Analisadas" },
+  { id: "DISMISSED", label: "Descartadas" },
+];
+
+const REPORT_REASON_LABELS: Record<ReportReason, string> = {
+  SPAM: "Spam",
+  HARASSMENT: "Assédio",
+  NUDITY: "Nudez",
+  VIOLENCE: "Violência",
+  OTHER: "Outros",
+};
+
+function describeResolution(action: ReportResolutionAction, username: string, closedReports: number) {
+  const closed = closedReports === 1 ? "1 denúncia fechada" : `${closedReports} denúncias fechadas`;
+  if (action === "REMOVE_POST") return `Post removido da plataforma. ${closed}.`;
+  if (action === "BAN_USER") return `@${username} banido. ${closed}.`;
+  return `Denúncia descartada. ${closed}.`;
+}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
@@ -505,6 +542,159 @@ function PostsView({
   );
 }
 
+function ReportsView({
+  page,
+  status,
+  loading,
+  error,
+  actionId,
+  notice,
+  onStatusChange,
+  onPageChange,
+  onResolve,
+}: {
+  page: AdminPage<AdminReport>;
+  status: ReportStatus;
+  loading: boolean;
+  error: string | null;
+  actionId: string | null;
+  notice: string | null;
+  onStatusChange: (status: ReportStatus) => void;
+  onPageChange: (page: number) => void;
+  onResolve: (report: AdminReport, action: ReportResolutionAction) => void;
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="font-montserrat text-2xl font-bold text-white">Denúncias</h1>
+          <p className="mt-1 font-inter text-sm text-[#A3A3A3]">
+            Analise o conteúdo denunciado e decida: remover o post, banir a conta ou descartar.
+          </p>
+        </div>
+        <div className="flex gap-2" role="group" aria-label="Filtrar denúncias por status">
+          {REPORT_STATUS_FILTERS.map(({ id, label }) => (
+            <Button
+              key={id}
+              type="button"
+              size="sm"
+              variant="outline"
+              aria-pressed={status === id}
+              onClick={() => onStatusChange(id)}
+              className={
+                status === id
+                  ? "border-[#FFD700] bg-[#FFD700] text-[#0A0A0A] hover:bg-[#E0BC00] hover:text-[#0A0A0A]"
+                  : "border-[#3A3A3A] bg-[#141414] text-white hover:bg-[#202020] hover:text-white"
+              }
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {notice && (
+        <div className="rounded-lg border border-[#3A5F45] bg-[#122016] px-4 py-3 font-inter text-sm text-[#86EFAC]">
+          {notice}
+        </div>
+      )}
+
+      <div className="overflow-hidden rounded-lg border border-[#2D2D2D] bg-[#141414]">
+        <PageStatus loading={loading} error={error} empty={!loading && !error && page.content.length === 0} />
+        {!loading && !error && page.content.length > 0 && (
+          <>
+            <Table>
+              <TableHeader className="bg-[#101010]">
+                <TableRow className="border-[#2D2D2D] hover:bg-[#101010]">
+                  <TableHead className="px-4 text-[#D4D4D4]">Data</TableHead>
+                  <TableHead className="px-4 text-[#D4D4D4]">Motivo</TableHead>
+                  <TableHead className="px-4 text-[#D4D4D4]">Alvo</TableHead>
+                  <TableHead className="px-4 text-[#D4D4D4]">Denunciado</TableHead>
+                  <TableHead className="px-4 text-[#D4D4D4]">Por</TableHead>
+                  <TableHead className="px-4 text-[#D4D4D4]">Detalhes</TableHead>
+                  {status === "PENDING" && <TableHead className="px-4 text-right text-[#D4D4D4]">Decisão</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {page.content.map((report) => {
+                  const busy = actionId === report.id;
+                  return (
+                    <TableRow key={report.id} className="border-[#2D2D2D] align-top hover:bg-[#191919]">
+                      <TableCell className="px-4 text-[#D4D4D4]">{formatDate(report.createdAt)}</TableCell>
+                      <TableCell className="px-4">
+                        <Badge variant="outline" className="border-[#5F3B3B] text-[#FCA5A5]">
+                          {REPORT_REASON_LABELS[report.reason] ?? report.reason}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="min-w-[180px] px-4 text-[#D4D4D4]">
+                        <span className="block text-xs uppercase text-[#A3A3A3]">
+                          {report.targetType === "POST" ? "Post" : "Perfil"}
+                        </span>
+                        <span className="font-medium text-white">
+                          {report.targetType === "POST"
+                            ? report.targetPostTitle || "Sem título"
+                            : `@${report.targetOwnerUsername}`}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-4 text-[#D4D4D4]">@{report.targetOwnerUsername}</TableCell>
+                      <TableCell className="px-4 text-[#D4D4D4]">@{report.reporterUsername}</TableCell>
+                      <TableCell className="min-w-[220px] max-w-[360px] whitespace-pre-wrap break-words px-4 text-[#D4D4D4]">
+                        {report.details || <span className="text-[#737373]">Sem detalhes</span>}
+                      </TableCell>
+                      {status === "PENDING" && (
+                        <TableCell className="px-4">
+                          <div className="flex flex-wrap justify-end gap-2">
+                            {report.targetType === "POST" && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={busy}
+                                onClick={() => onResolve(report, "REMOVE_POST")}
+                                className="border-[#5F3B3B] bg-[#211313] text-[#FCA5A5] hover:bg-[#2A1717] hover:text-[#FCA5A5]"
+                              >
+                                {busy ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                                Remover post
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={busy}
+                              onClick={() => onResolve(report, "BAN_USER")}
+                              className="border-[#5F3B3B] bg-[#211313] text-[#FCA5A5] hover:bg-[#2A1717] hover:text-[#FCA5A5]"
+                            >
+                              <Ban className="size-4" />
+                              Banir @{report.targetOwnerUsername}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={busy}
+                              onClick={() => onResolve(report, "DISMISS")}
+                              className="border-[#3A3A3A] bg-[#101010] text-white hover:bg-[#202020] hover:text-white"
+                            >
+                              <X className="size-4" />
+                              Descartar
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            <Pagination page={page.number} totalPages={page.totalPages} disabled={loading} onChange={onPageChange} />
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function AdminScreen() {
   const { user, logout } = useAuth();
   const [view, setView] = useState<AdminView>("dashboard");
@@ -524,6 +714,12 @@ export function AdminScreen() {
   const [usersNotice, setUsersNotice] = useState<string | null>(null);
   const [postsNotice, setPostsNotice] = useState<string | null>(null);
   const [editedTitles, setEditedTitles] = useState<Record<string, string>>({});
+  const [reportsPage, setReportsPage] = useState<AdminPage<AdminReport>>(EMPTY_REPORTS_PAGE);
+  const [reportsStatus, setReportsStatus] = useState<ReportStatus>("PENDING");
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState<string | null>(null);
+  const [reportsNotice, setReportsNotice] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirm();
 
   const isPermissionError = dashboardError?.includes("não tem permissão") ?? false;
 
@@ -569,6 +765,19 @@ export function AdminScreen() {
     }
   }
 
+  async function loadReports(page = reportsPage.number, { keepNotice = false } = {}) {
+    setReportsLoading(true);
+    setReportsError(null);
+    if (!keepNotice) setReportsNotice(null);
+    try {
+      setReportsPage(await adminService.getReports(reportsStatus, page));
+    } catch (error) {
+      setReportsError(getErrorMessage(error));
+    } finally {
+      setReportsLoading(false);
+    }
+  }
+
   useEffect(() => {
     void loadDashboard();
   }, []);
@@ -584,6 +793,60 @@ export function AdminScreen() {
       void loadPosts(0);
     }
   }, [view]);
+
+  useEffect(() => {
+    if (view === "reports") {
+      void loadReports(0);
+    }
+  }, [view, reportsStatus]);
+
+  async function handleResolveReport(report: AdminReport, action: ReportResolutionAction) {
+    let banDays: number | undefined;
+    if (action === "REMOVE_POST") {
+      const ok = await confirm({
+        title: "Remover post",
+        description: `O post "${report.targetPostTitle || "Sem título"}" de @${report.targetOwnerUsername} sai da plataforma.`,
+        confirmLabel: "Remover",
+        destructive: true,
+      });
+      if (!ok) return;
+    } else if (action === "BAN_USER") {
+      const days = await confirm({
+        title: `Banir @${report.targetOwnerUsername}`,
+        description: "A conta inteira fica bloqueada pelo período escolhido.",
+        confirmLabel: "Banir",
+        destructive: true,
+        input: {
+          label: "Dias de banimento",
+          initialValue: "7",
+          validate: (value) => {
+            const parsed = Number(value);
+            return Number.isInteger(parsed) && parsed >= 1 && parsed <= 365 ? "" : "Informe de 1 a 365 dias.";
+          },
+        },
+      });
+      if (typeof days !== "string") return;
+      banDays = Number(days);
+    }
+
+    setActionId(report.id);
+    setReportsError(null);
+    setReportsNotice(null);
+    try {
+      const result = await adminService.resolveReport(report.id, action, banDays);
+      setReportsNotice(describeResolution(action, report.targetOwnerUsername, result.closedReports));
+    } catch (error) {
+      // 409 significa que outro admin decidiu antes; recarregar mostra a fila real.
+      if (!(error instanceof ApiError && error.status === 409)) {
+        setReportsError(getErrorMessage(error));
+        setActionId(null);
+        return;
+      }
+      setReportsNotice("Essa denúncia já tinha sido resolvida.");
+    }
+    setActionId(null);
+    await loadReports(reportsPage.number, { keepNotice: true });
+  }
 
   async function handleBanUser(userId: string) {
     setActionId(userId);
@@ -748,10 +1011,24 @@ export function AdminScreen() {
                   onRemovePost={(postId) => void handleRemovePost(postId)}
                 />
               )}
+              {view === "reports" && (
+                <ReportsView
+                  page={reportsPage}
+                  status={reportsStatus}
+                  loading={reportsLoading}
+                  error={reportsError}
+                  actionId={actionId}
+                  notice={reportsNotice}
+                  onStatusChange={setReportsStatus}
+                  onPageChange={(page) => void loadReports(page)}
+                  onResolve={(report, action) => void handleResolveReport(report, action)}
+                />
+              )}
             </>
           )}
         </main>
       </div>
+      {dialog}
     </div>
   );
 }

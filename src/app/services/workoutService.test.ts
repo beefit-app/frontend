@@ -5,6 +5,7 @@ vi.mock("./apiClient", () => ({
   apiClient: {
     get: vi.fn(),
     post: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -256,5 +257,17 @@ describe("workoutService.finishWorkout", () => {
     await workoutService.cancelWorkout("workout-1");
 
     expect(apiClient.post).toHaveBeenCalledWith("/api/workout/workout-1/cancel", undefined, { auth: true });
+  });
+
+  it("apaga treino autenticado e sem corpo", async () => {
+    const { apiClient } = await import("./apiClient");
+    vi.mocked(apiClient.delete).mockResolvedValueOnce(undefined);
+
+    const { workoutService } = await import("./workoutService");
+    await workoutService.deleteWorkout("workout-1");
+
+    // O segundo argumento do delete é o corpo: passar { auth: true } nele mandava
+    // o pedido sem token, e o backend respondia 401.
+    expect(apiClient.delete).toHaveBeenCalledWith("/api/workout/workout-1", undefined, { auth: true });
   });
 });

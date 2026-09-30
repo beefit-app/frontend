@@ -9,6 +9,7 @@ import { GoldDivider, HexAvatar, SectionLabel, StatCard, TrainingCalendar } from
 import { WorkoutPostCard } from "./WorkoutPostCard";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
 import { DeveloperBadge } from "../../DeveloperBadge";
+import { BeeButton } from "../../BeeButton";
 
 export function ProfileView({
   profile,
@@ -20,6 +21,7 @@ export function ProfileView({
   onEdit,
   onManageAccount,
   managementEnabled = true,
+  onReportProfile,
   publicActionLabel,
   publicActionDisabled = false,
   onPublicAction,
@@ -37,6 +39,7 @@ export function ProfileView({
   onEdit?: () => void;
   onManageAccount?: () => void;
   managementEnabled?: boolean;
+  onReportProfile?: () => void;
   publicActionLabel?: string | null;
   publicActionDisabled?: boolean;
   onPublicAction?: () => void;
@@ -47,6 +50,7 @@ export function ProfileView({
 }) {
   const initials = getProfileInitials(profile);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isReportMenuOpen, setIsReportMenuOpen] = useState(false);
 
   return (
     <PageBackground>
@@ -104,6 +108,61 @@ export function ProfileView({
                 >
                   <MoreVertical size={18} />
                 </button>
+              )}
+              {!managementEnabled && onReportProfile && (
+                <button
+                  type="button"
+                  className="beefit-tap-target"
+                  onClick={() => setIsReportMenuOpen(true)}
+                  style={{
+                    position: "absolute",
+                    top: 16,
+                    right: 16,
+                    zIndex: 10,
+                    width: 40,
+                    height: 40,
+                    borderRadius: 14,
+                    border: "1px solid #2D2D2D",
+                    background: "#141414",
+                    color: "#D4D4D4",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                  }}
+                  aria-label="Abrir ações do perfil"
+                >
+                  <MoreVertical size={18} />
+                </button>
+              )}
+              {!managementEnabled && onReportProfile && (
+                <Sheet open={isReportMenuOpen} onOpenChange={setIsReportMenuOpen}>
+                  <SheetContent
+                    side="bottom"
+                    className="beefit-sheet-width rounded-t-[28px] border-[#2D2D2D] bg-[#141414] px-5 pb-7 pt-3 text-white"
+                  >
+                    <SheetHeader>
+                      <SheetTitle className="font-montserrat text-[20px] font-bold text-white">
+                        Ações do perfil
+                      </SheetTitle>
+                      <SheetDescription className="font-inter text-[13px] text-[#8A8A8A]">
+                        Escolha uma ação para este perfil.
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="flex flex-col gap-2.5">
+                      <BeeButton
+                        variant="outline-red"
+                        fullWidth
+                        onClick={() => {
+                          setIsReportMenuOpen(false);
+                          onReportProfile();
+                        }}
+                      >
+                        Denunciar perfil
+                      </BeeButton>
+                    </div>
+                  </SheetContent>
+                </Sheet>
               )}
 
               {managementEnabled && (
