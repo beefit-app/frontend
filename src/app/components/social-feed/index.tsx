@@ -6,14 +6,16 @@ export function SocialFeedScreen({
   isStreakFedToday,
   streakBurstToken,
   onOpenUserProfile,
+  onWorkoutDeleted,
 }: {
   streakCount: number;
   isStreakFedToday: boolean;
   streakBurstToken: number;
   onOpenUserProfile?: (username: string) => void;
+  onWorkoutDeleted?: () => void;
 }) {
   const { confirmDialog, posts, liveFriends, toggleLike, saveTemplate, handleDeletePost, isLoading, isLoadingMore, hasMore, error, loadMore, retry } =
-    useSocialFeedState();
+    useSocialFeedState({ onWorkoutDeleted });
 
   return (
     <>

@@ -8,7 +8,18 @@ const loadFeed = vi.hoisted(() => vi.fn());
 const loadLive = vi.hoisted(() => vi.fn());
 const getCachedPage = vi.hoisted(() => vi.fn());
 const subscribeSocialEvents = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const invalidateWorkoutCaches = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const deleteWorkout = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const confirmModal = vi.hoisted(() => vi.fn().mockResolvedValue(true));
 
+vi.mock("../../../services/workoutService", () => ({
+  workoutService: {
+    deleteWorkout,
+  },
+}));
+vi.mock("../../../hooks/useConfirm", () => ({
+  useConfirm: () => ({ confirm: confirmModal, dialog: null }),
+}));
 vi.mock("../../../services/socialFeedService", () => ({ socialFeedService: {
   load: loadFeed,
   loadLive,
@@ -16,9 +27,12 @@ vi.mock("../../../services/socialFeedService", () => ({ socialFeedService: {
 } }));
 vi.mock("../../../services/socialEventsService", () => ({ subscribeSocialEvents }));
 vi.mock("../../../auth/AuthContext", () => ({ useAuth: () => ({ user: { id: "user-1" } }) }));
-vi.mock("../../../storage/pageCacheStorage", () => ({ pageCacheStorage: {
-  get: getCachedPage, set: vi.fn(), remove: vi.fn(),
-} }));
+vi.mock("../../../storage/pageCacheStorage", () => ({
+  pageCacheStorage: {
+    get: getCachedPage, set: vi.fn(), remove: vi.fn(),
+  },
+  invalidateWorkoutCaches,
+}));
 vi.mock("../../../storage/socialFeedStorage", () => ({ socialFeedStorage: {
   getLiveFriends,
   setLiveFriends,
@@ -36,6 +50,9 @@ describe("useSocialFeedState", () => {
     loadLive.mockReset().mockResolvedValue([]);
     getCachedPage.mockReset().mockResolvedValue(null);
     subscribeSocialEvents.mockReset().mockResolvedValue(undefined);
+    deleteWorkout.mockReset().mockResolvedValue(undefined);
+    invalidateWorkoutCaches.mockReset().mockResolvedValue(undefined);
+    confirmModal.mockReset().mockResolvedValue(true);
   });
 
   it("atualiza curtida com a resposta da API", async () => {
@@ -112,5 +129,38 @@ describe("useSocialFeedState", () => {
     expect(result.current.posts[0]?.author).toBe("Friend Updated");
     expect(result.current.posts[0]?.initials).toBe("FU");
     expect(result.current.liveFriends[0]?.photoUrl).toBe("/api/media/new-avatar");
+  });
+
+  it("exclui treino do feed, atualiza cache em memória, invalida storage e aciona callback", async () => {
+    const onWorkoutDeleted = vi.fn();
+    loadFeed.mockResolvedValue({
+      posts: [
+        { id: "post-1", workoutSessionId: "session-1", authorId: "user-1", author: "User", username: "@user", initials: "US", authorAvatarUrl: null, likes: 0, liked: false },
+        { id: "post-2", workoutSessionId: "session-2", authorId: "friend-1", author: "Friend", username: "@friend", initials: "FR", authorAvatarUrl: null, likes: 0, liked: false },
+      ],
+      last: true,
+    });
+
+    const { result, unmount } = renderHook(() => useSocialFeedState({ onWorkoutDeleted }));
+    await waitFor(() => expect(result.current.posts).toHaveLength(2));
+
+    await act(async () => {
+      await result.current.handleDeletePost("post-1");
+    });
+
+    expect(deleteWorkout).toHaveBeenCalledWith("session-1");
+    expect(result.current.posts).toHaveLength(1);
+    expect(result.current.posts[0].id).toBe("post-2");
+    expect(invalidateWorkoutCaches).toHaveBeenCalledWith("user-1");
+    expect(onWorkoutDeleted).toHaveBeenCalled();
+
+    // Ao remontar, o cache em memória não deve ressuscitar o post excluído
+    unmount();
+    loadFeed.mockClear();
+
+    const secondRender = renderHook(() => useSocialFeedState());
+    expect(secondRender.result.current.posts).toHaveLength(1);
+    expect(secondRender.result.current.posts[0].id).toBe("post-2");
+    expect(loadFeed).not.toHaveBeenCalled();
   });
 });

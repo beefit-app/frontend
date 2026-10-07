@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
 import { workoutService } from "../../../services/workoutService";
 import { socialFeedStorage } from "../../../storage/socialFeedStorage";
-import { pageCacheStorage } from "../../../storage/pageCacheStorage";
+import { invalidateWorkoutCaches, pageCacheStorage } from "../../../storage/pageCacheStorage";
 import { useAuth } from "../../../auth/AuthContext";
 import { subscribeSocialEvents } from "../../../services/socialEventsService";
 import { normalizeMuscleGroupLabels } from "../../../services/muscleGroups";
@@ -51,7 +51,7 @@ function initials(fullName: string) {
     .toUpperCase();
 }
 
-export function useSocialFeedState() {
+export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: () => void } = {}) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   // O dialogo e devolvido para a view montar: este arquivo e .ts e nao renderiza.
@@ -354,7 +354,17 @@ export function useSocialFeedState() {
     if (!ok) return;
     try {
       await workoutService.deleteWorkout(alvo.workoutSessionId);
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      setPosts((prev) => {
+        const next = prev.filter((p) => p.id !== postId);
+        if (feedMemoryCache && feedMemoryCache.userId === userId) {
+          feedMemoryCache.posts = next;
+        }
+        return next;
+      });
+      if (userId) {
+        void invalidateWorkoutCaches(userId);
+      }
+      onWorkoutDeleted?.();
       toast.success("Treino apagado com sucesso.");
     } catch (e) {
       toast.error("Não foi possível apagar o treino.");
