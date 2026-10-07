@@ -7,7 +7,7 @@ const keys = vi.hoisted(() => vi.fn());
 
 vi.mock("./appStorage", () => ({ appStorage: { getItem, setItem, removeItem, keys } }));
 
-import { pageCacheStorage } from "./pageCacheStorage";
+import { invalidateWorkoutCaches, pageCacheStorage } from "./pageCacheStorage";
 
 describe("pageCacheStorage", () => {
   beforeEach(() => {
@@ -48,5 +48,29 @@ describe("pageCacheStorage", () => {
 
     expect(keys).toHaveBeenCalledWith("beefit.page-cache.user-1.");
     expect(removeItem).toHaveBeenCalledTimes(2);
+  });
+
+  it("remove chaves por prefixo", async () => {
+    keys.mockResolvedValue([
+      "beefit.page-cache.user-1.inventory.0.all.all",
+      "beefit.page-cache.user-1.inventory.1.all.all",
+    ]);
+
+    await pageCacheStorage.removeByPrefix("user-1", "inventory.");
+
+    expect(keys).toHaveBeenCalledWith("beefit.page-cache.user-1.inventory.");
+    expect(removeItem).toHaveBeenCalledTimes(2);
+  });
+
+  it("invalida todos os caches relacionados a treino", async () => {
+    keys.mockResolvedValue(["beefit.page-cache.user-1.inventory.0.all.all"]);
+
+    await invalidateWorkoutCaches("user-1");
+
+    expect(removeItem).toHaveBeenCalledWith("beefit.page-cache.user-1.feed.page-0");
+    expect(removeItem).toHaveBeenCalledWith("beefit.page-cache.user-1.profile.posts");
+    expect(removeItem).toHaveBeenCalledWith("beefit.page-cache.user-1.profile.trained-days");
+    expect(removeItem).toHaveBeenCalledWith("beefit.page-cache.user-1.profile");
+    expect(removeItem).toHaveBeenCalledWith("beefit.page-cache.user-1.inventory.0.all.all");
   });
 });
