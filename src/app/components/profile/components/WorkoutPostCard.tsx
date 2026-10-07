@@ -9,7 +9,15 @@ import { ReportSheet } from "../../ReportSheet";
 import { toast } from "sonner";
 import { messages } from "../../../constants/messages";
 
-export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile: ProfileData; }) {
+export function WorkoutPostCard({
+  post,
+  profile,
+  onDeletePost,
+}: {
+  post: WorkoutPost;
+  profile: ProfileData;
+  onDeletePost?: (workoutSessionId: string, postId: string | number) => Promise<void>;
+}) {
   const [liked, setLiked] = useState(post.liked);
   const [likes, setLikes] = useState(post.likes);
   const [templateSaved, setTemplateSaved] = useState(post.templateSaved);
@@ -47,7 +55,11 @@ export function WorkoutPostCard({ post, profile }: { post: WorkoutPost; profile:
       return;
     }
     try {
-      await workoutService.deleteWorkout(post.workoutSessionId);
+      if (onDeletePost) {
+        await onDeletePost(post.workoutSessionId, post.id);
+      } else {
+        await workoutService.deleteWorkout(post.workoutSessionId);
+      }
       setIsDeleted(true);
       toast.success("Treino apagado com sucesso.");
     } catch (e) {

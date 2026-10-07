@@ -18,6 +18,7 @@ export function ProfileView({
   postsLoadError,
   trainedDays,
   recentPosts,
+  onDeleteWorkoutPost,
   onEdit,
   onManageAccount,
   managementEnabled = true,
@@ -36,6 +37,7 @@ export function ProfileView({
   postsLoadError?: string | null;
   trainedDays: number[];
   recentPosts: WorkoutPost[];
+  onDeleteWorkoutPost?: (workoutSessionId: string, postId: string | number) => Promise<void>;
   onEdit?: () => void;
   onManageAccount?: () => void;
   managementEnabled?: boolean;
@@ -419,7 +421,12 @@ export function ProfileView({
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                       {recentPosts.map((post) => (
-                        <WorkoutPostCard key={post.id} post={post} profile={profile} />
+                        <WorkoutPostCard
+                          key={post.id}
+                          post={post}
+                          profile={profile}
+                          onDeletePost={onDeleteWorkoutPost}
+                        />
                       ))}
                     </div>
                   )}

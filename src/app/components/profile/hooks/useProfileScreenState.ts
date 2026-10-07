@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import type { AuthUser } from "../../../types/auth";
 import { accountSettingsService } from "../../../services/accountSettingsService";
 import { profileService } from "../../../services/profileService";
+import { workoutService } from "../../../services/workoutService";
 import { subscribeSocialEvents } from "../../../services/socialEventsService";
-import { pageCacheStorage } from "../../../storage/pageCacheStorage";
+import { invalidateWorkoutCaches, pageCacheStorage } from "../../../storage/pageCacheStorage";
+import { resetFeedCache } from "../../social-feed/hooks/useSocialFeedState";
 import type {
   AccountSettingsData,
   AccountSettingsSaveInput,
@@ -20,10 +22,12 @@ export function useProfileScreenState({
   authUser,
   accountSettings,
   onAccountSettingsChange,
+  onWorkoutDeleted,
 }: {
   authUser: AuthUser | null;
   accountSettings: AccountSettingsData;
   onAccountSettingsChange?: (data: AccountSettingsData) => void;
+  onWorkoutDeleted?: () => void;
 }) {
   const [profile, setProfile] = useState<ProfileData>(() => profileService.getProfileFallback(authUser));
   const [screenMode, setScreenMode] = useState<ProfileScreenMode>("view");
@@ -209,6 +213,21 @@ export function useProfileScreenState({
     finally { setIsSubmitting(false); }
   }
 
+  async function handleDeleteWorkoutPost(workoutSessionId: string, postId: string | number) {
+    await workoutService.deleteWorkout(workoutSessionId);
+    setRecentPosts((current) => current.filter((p) => p.id !== postId));
+    setProfile((current) => ({
+      ...current,
+      totalWorkouts: Math.max(0, current.totalWorkouts - 1),
+      cards: Math.max(0, current.cards - 1),
+    }));
+    resetFeedCache();
+    if (authUser?.id) {
+      await invalidateWorkoutCaches(authUser.id);
+    }
+    onWorkoutDeleted?.();
+  }
+
   return {
     profile,
     accountSettings,
@@ -227,6 +246,7 @@ export function useProfileScreenState({
     handleProfileSave,
     handleAccountSettingsSave,
     handleAccountDelete,
+    handleDeleteWorkoutPost,
     clearLoadError: () => setLoadError(null),
     clearSaveError: () => setSaveError(null),
     clearAccountSettingsError: () => setAccountSettingsError(null),
