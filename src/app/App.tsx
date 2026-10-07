@@ -203,6 +203,22 @@ export default function App() {
     })();
   }
 
+  function handleWorkoutDeleted(source: "feed" | "profile") {
+    if (source === "feed") {
+      setProfileRefreshToken((v) => v + 1);
+    } else {
+      setFeedRefreshToken((v) => v + 1);
+    }
+    void (async () => {
+      try {
+        const profile = await profileService.getProfile(user);
+        syncStreakCount(profile.streak);
+      } catch {
+        // Mantem o valor atual quando o refresh do perfil falha.
+      }
+    })();
+  }
+
   function openSocialProfile(username: string) {
     setSocialProfileUsername(username);
     setSocialProfileReturnScreen("feed");
@@ -362,6 +378,7 @@ export default function App() {
                           isStreakFedToday={isStreakFedToday}
                           streakBurstToken={streak.burstToken}
                           onOpenUserProfile={openSocialProfile}
+                          onWorkoutDeleted={() => handleWorkoutDeleted("feed")}
                         />
                       </DeferredScreen>
                     </div>
@@ -430,6 +447,7 @@ export default function App() {
                         key={profileRefreshToken}
                         accountSettings={accountSettings}
                         onAccountSettingsChange={setAccountSettings}
+                        onWorkoutDeleted={() => handleWorkoutDeleted("profile")}
                       />
                     </div>
                   )}
