@@ -13,6 +13,7 @@ export type { AccountSettingsData, ProfileScreenProps } from "./types";
 export function ProfileScreen({
   accountSettings = DEFAULT_ACCOUNT_SETTINGS,
   onAccountSettingsChange,
+  onWorkoutDeleted,
 }: ProfileScreenProps) {
   const { logout, user } = useAuth();
   const {
@@ -32,6 +33,7 @@ export function ProfileScreen({
     handleProfileSave,
     handleAccountSettingsSave,
     handleAccountDelete,
+    handleDeleteWorkoutPost,
     clearLoadError,
     clearSaveError,
     clearAccountSettingsError,
@@ -40,6 +42,7 @@ export function ProfileScreen({
     authUser: user,
     accountSettings,
     onAccountSettingsChange,
+    onWorkoutDeleted,
   });
 
   if (screenMode === "edit") {
@@ -81,6 +84,7 @@ export function ProfileScreen({
       postsLoadError={postsLoadError}
       trainedDays={trainedDays}
       recentPosts={recentPosts}
+      onDeleteWorkoutPost={handleDeleteWorkoutPost}
       onEdit={goToEdit}
       onManageAccount={goToAccount}
       onDismissError={clearLoadError}

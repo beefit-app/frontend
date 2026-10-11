@@ -15,4 +15,5 @@ export type ProfileScreenMode = "view" | "edit" | "account";
 export interface ProfileScreenProps {
   accountSettings?: AccountSettingsData;
   onAccountSettingsChange?: (data: AccountSettingsData) => void;
+  onWorkoutDeleted?: () => void;
 }

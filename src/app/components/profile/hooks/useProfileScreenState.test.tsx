@@ -10,7 +10,12 @@ const subscribeSocialEvents = vi.hoisted(() => vi.fn());
 const cacheGet = vi.hoisted(() => vi.fn());
 const cacheSet = vi.hoisted(() => vi.fn());
 const cacheRemove = vi.hoisted(() => vi.fn());
+const invalidateWorkoutCaches = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const deleteWorkout = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const resetFeedCache = vi.hoisted(() => vi.fn());
 
+vi.mock("../../../services/workoutService", () => ({ workoutService: { deleteWorkout } }));
+vi.mock("../../social-feed/hooks/useSocialFeedState", () => ({ resetFeedCache }));
 vi.mock("../../../services/profileService", () => ({ profileService: {
   getProfileFallback,
   getProfile,
@@ -19,11 +24,14 @@ vi.mock("../../../services/profileService", () => ({ profileService: {
 } }));
 vi.mock("../../../services/socialEventsService", () => ({ subscribeSocialEvents }));
 vi.mock("../../../services/accountSettingsService", () => ({ accountSettingsService: {} }));
-vi.mock("../../../storage/pageCacheStorage", () => ({ pageCacheStorage: {
-  get: cacheGet,
-  set: cacheSet,
-  remove: cacheRemove,
-} }));
+vi.mock("../../../storage/pageCacheStorage", () => ({
+  pageCacheStorage: {
+    get: cacheGet,
+    set: cacheSet,
+    remove: cacheRemove,
+  },
+  invalidateWorkoutCaches,
+}));
 
 import { useProfileScreenState } from "./useProfileScreenState";
 
@@ -57,6 +65,9 @@ describe("useProfileScreenState", () => {
     cacheGet.mockReset().mockResolvedValue(null);
     cacheSet.mockReset();
     cacheRemove.mockReset();
+    deleteWorkout.mockReset().mockResolvedValue(undefined);
+    resetFeedCache.mockReset();
+    invalidateWorkoutCaches.mockReset().mockResolvedValue(undefined);
   });
 
   it("invalida o cache e reconcilia o perfil próprio quando recebe PROFILE_UPDATED", async () => {
@@ -99,5 +110,36 @@ describe("useProfileScreenState", () => {
     await new Promise((resolve) => window.setTimeout(resolve, 0));
     expect(getProfile).toHaveBeenCalledTimes(1);
     expect(cacheRemove).not.toHaveBeenCalledWith("user-1", "profile");
+  });
+
+  it("exclui treino do perfil, atualiza estado e contadores, reseta feed e invalida caches", async () => {
+    const onWorkoutDeleted = vi.fn();
+    getRecentPosts.mockResolvedValue([
+      { id: "post-1", workoutSessionId: "session-1", title: "Treino 1", liked: false, likes: 0 },
+      { id: "post-2", workoutSessionId: "session-2", title: "Treino 2", liked: false, likes: 0 },
+    ]);
+
+    const { result } = renderHook(() => useProfileScreenState({
+      authUser,
+      accountSettings: { ghostModeEnabled: false },
+      onWorkoutDeleted,
+    }));
+
+    await waitFor(() => expect(result.current.recentPosts).toHaveLength(2));
+    expect(result.current.profile.totalWorkouts).toBe(4);
+    expect(result.current.profile.cards).toBe(2);
+
+    await act(async () => {
+      await result.current.handleDeleteWorkoutPost("session-1", "post-1");
+    });
+
+    expect(deleteWorkout).toHaveBeenCalledWith("session-1");
+    expect(result.current.recentPosts).toHaveLength(1);
+    expect(result.current.recentPosts[0].id).toBe("post-2");
+    expect(result.current.profile.totalWorkouts).toBe(3);
+    expect(result.current.profile.cards).toBe(1);
+    expect(resetFeedCache).toHaveBeenCalled();
+    expect(invalidateWorkoutCaches).toHaveBeenCalledWith("user-1");
+    expect(onWorkoutDeleted).toHaveBeenCalled();
   });
 });
