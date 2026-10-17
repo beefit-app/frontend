@@ -32,6 +32,15 @@ export interface TemplateImportedEvent {
   exercises: { catalogExerciseId: string; catalogExerciseName: string; order: number }[];
 }
 export interface PostLikedEvent { postId: string; totalLikes: number; }
+export interface ProfileUpdatedEvent { userId: string; fullName: string; username: string; profilePicture: string | null; }
+export interface FriendRequestPendingEvent {
+  friendshipId: string;
+  requesterId: string;
+  requesterFullName: string;
+  requesterUsername: string;
+  requesterProfilePicture?: string | null;
+  sentAt: string;
+}
 
 type WorkoutPresenceEventType = "WORKOUT_STARTED" | "WORKOUT_MUSCLE_GROUP_ADDED" | "WORKOUT_FINISHED" | "WORKOUT_CANCELED";
 
@@ -43,6 +52,7 @@ export type SocialEvent =
   | { type: "FRIEND_REMOVED"; data: FriendRemovedEvent }
   | { type: "TEMPLATE_IMPORTED"; data: TemplateImportedEvent }
   | { type: "POST_LIKED"; data: PostLikedEvent }
+  | { type: "POST_COMMENTS_CHANGED"; data: { postId: string } }
   | { type: "PROFILE_UPDATED"; data: ProfileUpdatedEvent };
 
 type SocialEventListener = (event: SocialEvent) => void;
@@ -50,6 +60,7 @@ type SocialEventListener = (event: SocialEvent) => void;
 const listeners = new Set<SocialEventListener>();
 let connectionAbortController: AbortController | null = null;
 let connectionPromise: Promise<void> | null = null;
+let hasConnected = false;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -132,6 +143,7 @@ export function parseSocialEvent(type: string, data: unknown): SocialEvent | nul
     case "FRIEND_REMOVED": return isFriendRemovedEvent(data) ? { type, data } : null;
     case "TEMPLATE_IMPORTED": return isTemplateImportedEvent(data) ? { type, data } : null;
     case "POST_LIKED": return isPostLikedEvent(data) ? { type, data } : null;
+    case "POST_COMMENTS_CHANGED": return isRecord(data) && hasString(data, "postId") ? { type, data: { postId: data.postId as string } } : null;
     case "PROFILE_UPDATED": return isProfileUpdatedEvent(data) ? { type, data } : null;
     default: return null;
   }
@@ -146,6 +158,8 @@ async function openSocialEventsConnection(signal: AbortSignal) {
   const base = import.meta.env?.VITE_API_URL?.replace(/\/$/, "") ?? "";
   const response = await fetch(`${base}/api/social/feed`, { headers: token ? { Authorization: `Bearer ${token}` } : {}, signal });
   if (!response.ok || !response.body) throw new Error("Não foi possível conectar aos eventos sociais.");
+  if (hasConnected) window.dispatchEvent(new Event("beefit:social-connected"));
+  hasConnected = true;
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -201,6 +215,7 @@ function ensureConnection() {
 }
 
 export function closeSocialEventsConnection() {
+  hasConnected = false;
   listeners.clear();
   connectionAbortController?.abort();
   connectionAbortController = null;

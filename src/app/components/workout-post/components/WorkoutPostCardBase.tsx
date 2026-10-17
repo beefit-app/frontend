@@ -18,6 +18,7 @@ import { AuthenticatedImage } from "../../AuthenticatedImage";
 import { DeveloperBadge } from "../../DeveloperBadge";
 import { BeeButton } from "../../BeeButton";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../ui/sheet";
+import { PostComments } from "../../post-comments";
 
 interface WorkoutPostCardBaseProps {
   post: WorkoutPost;
@@ -576,6 +577,7 @@ export function WorkoutPostCardBase({
               }}
             />
           </Motion.button>
+          <PostComments postId={String(post.id)} initialCount={post.commentsCount ?? 0} />
           <Motion.button
             type="button"
             onClick={handleTemplateClick}
