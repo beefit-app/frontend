@@ -27,6 +27,7 @@ import {
   RARITY_META,
 } from "../constants";
 import type { InventoryCard, InventoryFilters, InventoryMuscleGroup, InventoryRarity } from "../types";
+import type { ExerciseCatalogItem, WorkoutTemplate } from "../../../types/workout";
 import { toast } from "sonner";
 import { messages } from "../../../constants/messages";
 import { useConfirm } from "../../../hooks/useConfirm";
