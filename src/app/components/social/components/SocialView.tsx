@@ -54,7 +54,7 @@ function SmallButton({
   disabled = false,
 }: {
   children: ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
   variant?: "gold" | "neutral" | "danger";
   disabled?: boolean;
 }) {

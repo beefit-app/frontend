@@ -13,6 +13,7 @@ export interface ExerciseCatalogItem {
   anatomicalMuscles?: string[];
   primaryAnatomicalMuscles?: string[];
   secondaryAnatomicalMuscles?: string[];
+  images?: string[];
 }
 
 export interface ExerciseHistory {
@@ -40,6 +41,7 @@ export interface WorkoutExercise {
   anatomicalMuscles?: string[];
   primaryAnatomicalMuscles?: string[];
   secondaryAnatomicalMuscles?: string[];
+  images?: string[];
   sets: WorkoutSet[];
 }
 
