@@ -1494,6 +1494,7 @@ export interface components {
             primaryMusclesList?: ("ABS" | "ADDUCTORS" | "BICEPS" | "CALVES" | "CHEST" | "DELTOIDS" | "FOREARM" | "GLUTEAL" | "HAMSTRING" | "LOWER_BACK" | "NECK" | "QUADRICEPS" | "TRAPEZIUS" | "TRICEPS" | "UPPER_BACK")[];
             secondaryMusclesList?: ("ABS" | "ADDUCTORS" | "BICEPS" | "CALVES" | "CHEST" | "DELTOIDS" | "FOREARM" | "GLUTEAL" | "HAMSTRING" | "LOWER_BACK" | "NECK" | "QUADRICEPS" | "TRAPEZIUS" | "TRICEPS" | "UPPER_BACK")[];
             instructions?: string;
+            images?: string[];
         };
         PageCatalogExerciseResponseDTO: {
             /** Format: int32 */

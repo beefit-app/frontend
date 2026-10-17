@@ -7,6 +7,7 @@ import { muscleStyle } from "../utils";
 import { MuscleTag } from "./shared";
 import { BeeInput } from "../../BeeInput";
 import { matchesSearch } from "../../../services/textSearch";
+import { getExerciseImageUrl } from "../../../utils/exerciseImage";
 
 export function WorkoutCatalogView({
   groupedExercises,
@@ -229,6 +230,7 @@ export function WorkoutCatalogView({
               {filteredItems.map((exercise) => {
                 const alreadyAdded = selectedCatalogIds.has(exercise.id);
                 const style = muscleStyle(exercise.group);
+                const thumbUrl = getExerciseImageUrl(exercise.images?.[0]);
 
                 return (
                   <button
@@ -247,13 +249,31 @@ export function WorkoutCatalogView({
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                      <div style={{ display: "grid", gap: 8 }}>
-                        <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700 }}>
-                          {exercise.name}
-                        </span>
-                        <MuscleTag group={exercise.group} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                        {thumbUrl ? (
+                          <img
+                            src={thumbUrl}
+                            alt=""
+                            style={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 12,
+                              objectFit: "contain",
+                              background: "#D8ECF8",
+                              border: "1px solid #282828",
+                              flexShrink: 0,
+                            }}
+                            loading="lazy"
+                          />
+                        ) : null}
+                        <div style={{ display: "grid", gap: 8, minWidth: 0 }}>
+                          <span style={{ color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 18, fontWeight: 700 }}>
+                            {exercise.name}
+                          </span>
+                          <MuscleTag group={exercise.group} />
+                        </div>
                       </div>
-                      <ChevronRight size={18} color={alreadyAdded ? style.text : "#A3A3A3"} />
+                      <ChevronRight size={18} color={alreadyAdded ? style.text : "#A3A3A3"} style={{ flexShrink: 0 }} />
                     </div>
                     <span style={{ color: "#8F8F8F", fontFamily: "var(--font-inter)", fontSize: 13, lineHeight: 1.5 }}>
                       {exercise.notes}
