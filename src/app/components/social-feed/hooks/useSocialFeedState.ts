@@ -3,6 +3,7 @@ import { messages } from "../../../constants/messages";
 import { useConfirm } from "../../../hooks/useConfirm";
 import { useEffect, useRef, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
+import { commentService } from "../../../services/commentService";
 import { workoutService } from "../../../services/workoutService";
 import { socialFeedStorage } from "../../../storage/socialFeedStorage";
 import { invalidateWorkoutCaches, pageCacheStorage } from "../../../storage/pageCacheStorage";
@@ -30,6 +31,10 @@ export function resetFeedCache() {
   feedMemoryCache = null;
   lastLiveFriendsFetchedAt = 0;
 }
+
+// A mutação pode acontecer no perfil enquanto o feed está desmontado.
+// O cache de módulo precisa ser invalidado mesmo sem um hook montado.
+commentService.subscribe(resetFeedCache);
 
 function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
   return {
@@ -75,6 +80,19 @@ export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: ()
   // Um evento pode chegar enquanto a primeira página ainda está em trânsito. O
   // contador pendente é aplicado à resposta para que ela não reverta o SSE.
   const likeCountsByPostId = useRef(new Map<string, number>());
+
+  useEffect(() => {
+    const invalidateComments = () => {
+      resetFeedCache();
+      void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
+    };
+    const unsubscribe = commentService.subscribe(invalidateComments);
+    const controller = new AbortController();
+    void subscribeSocialEvents((event) => {
+      if (event.type === "POST_COMMENTS_CHANGED") invalidateComments();
+    }, controller.signal);
+    return () => { unsubscribe(); controller.abort(); };
+  }, [userId]);
 
   function withPendingLikeCounts(nextPosts: SocialFeedPost[]) {
     return nextPosts.map((post) => {

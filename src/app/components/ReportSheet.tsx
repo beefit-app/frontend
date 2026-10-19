@@ -81,7 +81,7 @@ export function ReportSheet({
     }
   }
 
-  const title = targetType === "POST" ? "Denunciar publicação" : "Denunciar perfil";
+  const title = targetType === "POST" ? "Denunciar publicação" : targetType === "COMMENT" ? "Denunciar comentário" : "Denunciar perfil";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

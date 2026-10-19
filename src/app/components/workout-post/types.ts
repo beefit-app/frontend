@@ -36,6 +36,7 @@ export interface WorkoutPost {
   liked: boolean;
   templateSaved: boolean;
   comments: Comment[];
+  commentsCount?: number;
 }
 
 export interface WorkoutPostAuthor {

@@ -3,7 +3,7 @@ import type { LiveFriend, SocialFeedPost } from "../components/social-feed/types
 import { normalizeMuscleGroupLabels } from "./muscleGroups";
 import { formatPostDate } from "./postDate";
 
-interface ApiPost { postId: string; userId: string; workoutSessionId?: string; username: string; userProfilePicture?: string | null; developer?: boolean; publishedAt: string; totalLikes: number; likedByCurrentUser: boolean; title?: string | null; photoUrl?: string | null; durationSeconds: number; bodyHeatMap: string[]; exercises: { exerciseName: string; sets: { weightKg: number; reps: number }[] }[] }
+interface ApiPost { postId: string; userId: string; workoutSessionId?: string; username: string; userProfilePicture?: string | null; developer?: boolean; publishedAt: string; totalLikes: number; commentsCount?: number; likedByCurrentUser: boolean; title?: string | null; photoUrl?: string | null; durationSeconds: number; bodyHeatMap: string[]; exercises: { exerciseName: string; sets: { weightKg: number; reps: number }[] }[] }
 interface ApiLiveWorkout { workoutId: string; userId: string; username: string; fullName: string; profilePicture?: string | null; status: string; occurredAt: string; muscleGroups: string[] }
 function initials(username: string) { return username.slice(0, 2).toUpperCase(); }
 function toPost(post: ApiPost): SocialFeedPost {
@@ -11,7 +11,7 @@ function toPost(post: ApiPost): SocialFeedPost {
     date: formatPostDate(post.publishedAt), title: post.title || "Treino concluído",
     duration: `${Math.floor((post.durationSeconds ?? 0) / 60)} min`, rarity: "comum", muscles: normalizeMuscleGroupLabels(post.bodyHeatMap), emoji: "💪", photoUrl: post.photoUrl ?? null,
     exerciseDetails: post.exercises.map((exercise) => ({ name: exercise.exerciseName, sets: exercise.sets.map((set) => ({ weight: set.weightKg, reps: set.reps })) })),
-    authorAvatarUrl: post.userProfilePicture ?? null, authorIsDeveloper: post.developer === true, likes: post.totalLikes, liked: post.likedByCurrentUser, templateSaved: false, comments: [] };
+    authorAvatarUrl: post.userProfilePicture ?? null, authorIsDeveloper: post.developer === true, likes: post.totalLikes, liked: post.likedByCurrentUser, templateSaved: false, comments: [], commentsCount: post.commentsCount ?? 0 };
 }
 function toLiveFriend(item: ApiLiveWorkout): LiveFriend {
   return {
