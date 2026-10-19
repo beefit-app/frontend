@@ -736,15 +736,9 @@ export function ActiveWorkoutView({
                 <BeeAlert plain>{finishValidationError}</BeeAlert>
               </div>
             )}
-            {activeSlideIndex === exercises.length ? (
-              <BeeButton variant="primary" size="lg" fullWidth onClick={onOpenFinish}>
-                Concluir treino
-              </BeeButton>
-            ) : (
-              <BeeButton variant="secondary" size="lg" fullWidth onClick={onOpenCatalog}>
-                Adicionar Exercício
-              </BeeButton>
-            )}
+            <BeeButton variant="secondary" size="lg" fullWidth onClick={onOpenCatalog}>
+              Adicionar Exercício
+            </BeeButton>
           </IonCol>
         </IonRow>
       </IonGrid>
