@@ -4,6 +4,7 @@ import {
   STORY_WIDTH,
   buildStoryMetrics,
   computePhotoLayout,
+  formatStoryDate,
   formatStoryDuration,
   wrapText,
 } from "./storyCard";
@@ -42,7 +43,7 @@ describe("computePhotoLayout", () => {
     expect(layout.target.x).toBeGreaterThan(0);
     // Abaixo do cabeçalho com o logo e acima do bloco de métricas.
     expect(layout.target.y).toBeGreaterThanOrEqual(240);
-    expect(layout.target.y + layout.target.height).toBeLessThanOrEqual(STORY_HEIGHT - 780);
+    expect(layout.target.y + layout.target.height).toBeLessThanOrEqual(STORY_HEIGHT - 640);
   });
 });
 
@@ -65,6 +66,16 @@ describe("wrapText", () => {
   });
 });
 
+describe("formatStoryDate", () => {
+  it("usa dia, mes e ano numericos", () => {
+    expect(formatStoryDate("2026-10-19T12:00:00.000Z")).toBe("19/10/2026");
+  });
+
+  it("devolve vazio para data invalida, sem desenhar lixo no card", () => {
+    expect(formatStoryDate("")).toBe("");
+  });
+});
+
 describe("formatStoryDuration", () => {
   it.each([
     [0, "0 min"],
@@ -84,10 +95,8 @@ describe("buildStoryMetrics", () => {
       durationSeconds: 3900,
       totalVolumeKg: 12345.6,
       estimatedCalories: 410.2,
-      exerciseCount: 5,
-      setCount: 18,
       photo: null,
     });
-    expect(metrics.map((metric) => metric.value)).toEqual(["1h 5min", "12.346 kg", "410 kcal", "5", "18"]);
+    expect(metrics.map((metric) => metric.value)).toEqual(["1h 5min", "12.346 kg", "410 kcal"]);
   });
 });

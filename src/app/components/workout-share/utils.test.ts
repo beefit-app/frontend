@@ -18,7 +18,7 @@ function exercise(id: string, sets: Array<{ weight: string; reps: string }>): Wo
 }
 
 describe("buildStoryCardData", () => {
-  it("usa as metricas do servidor e conta so series com repeticoes", () => {
+  it("usa as metricas do servidor, nao o calculo local do treino", () => {
     const photo = new File(["x"], "foto.jpg", { type: "image/jpeg" });
     const data = buildStoryCardData({
       draft: {
@@ -46,8 +46,6 @@ describe("buildStoryCardData", () => {
       durationSeconds: 3600,
       totalVolumeKg: 800,
       estimatedCalories: 300,
-      exerciseCount: 2,
-      setCount: 2,
       photo,
     });
   });

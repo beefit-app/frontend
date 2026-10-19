@@ -6,7 +6,7 @@ export const STORY_HEIGHT = 1920;
 const SIDE_PADDING = 72;
 // Altura reservada no rodapé para data, título e métricas. Uma foto que não cobre
 // o card é encaixada acima dela, para não ficar escondida atrás das métricas.
-const INFO_BLOCK_HEIGHT = 780;
+const INFO_BLOCK_HEIGHT = 640;
 // Acima disso o cover cortaria demais a foto do usuário; um quadrado perderia 44%
 // da largura. Nesses casos a foto inteira aparece sobre um fundo desfocado dela.
 const MAX_COVER_CROP = 0.25;
@@ -22,8 +22,6 @@ export interface StoryCardData {
   durationSeconds: number;
   totalVolumeKg: number;
   estimatedCalories: number;
-  exerciseCount: number;
-  setCount: number;
   photo: Blob | null;
 }
 
@@ -112,7 +110,7 @@ export function formatStoryDuration(totalSeconds: number) {
 export function formatStoryDate(isoDate: string) {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
 }
 
 export function buildStoryMetrics(data: StoryCardData) {
@@ -121,8 +119,6 @@ export function buildStoryMetrics(data: StoryCardData) {
     { label: "Duração", value: formatStoryDuration(data.durationSeconds) },
     { label: "Volume", value: `${number.format(data.totalVolumeKg)} kg` },
     { label: "Calorias", value: `${number.format(data.estimatedCalories)} kcal` },
-    { label: "Exercícios", value: number.format(data.exerciseCount) },
-    { label: "Séries", value: number.format(data.setCount) },
   ];
 }
 
@@ -144,19 +140,23 @@ async function loadBlobImage(blob: Blob) {
   }
 }
 
-// O canvas não espera a webfont: sem isto, a primeira geração do card sai com a
-// fonte de fallback e a largura medida para o título fica errada. O `ready` vem
-// antes porque `load` resolve vazio enquanto a folha do Google Fonts ainda não
-// registrou o @font-face.
+const CARD_FONTS = ["800 88px Montserrat", "600 32px Inter"];
+const FONT_RETRY_DELAY_MS = 300;
+const FONT_MAX_ATTEMPTS = 10;
+
+// O canvas não espera a webfont: sem isto o card sai com a fonte de fallback e a
+// largura medida para o título fica errada. `load` devolve lista vazia enquanto a
+// folha do Google Fonts ainda não registrou o @font-face, e `check` daria true
+// nesse caso; por isso a espera olha o retorno de `load` e tenta de novo.
 async function ensureFontsLoaded() {
   if (typeof document === "undefined" || !document.fonts) return;
   try {
-    await document.fonts.ready;
-    await Promise.all([
-      document.fonts.load("800 96px Montserrat"),
-      document.fonts.load("700 40px Montserrat"),
-      document.fonts.load("600 32px Inter"),
-    ]);
+    for (let attempt = 0; attempt < FONT_MAX_ATTEMPTS; attempt += 1) {
+      await document.fonts.ready;
+      const loaded = await Promise.all(CARD_FONTS.map((font) => document.fonts.load(font)));
+      if (loaded.every((faces) => faces.length > 0)) return;
+      await new Promise((resolve) => setTimeout(resolve, FONT_RETRY_DELAY_MS));
+    }
   } catch {
     // Sem a fonte o card continua legível com a fonte do sistema.
   }
@@ -291,9 +291,7 @@ function drawBadge(ctx: CanvasRenderingContext2D, rect: Rect, label: string, val
 function drawInfo(ctx: CanvasRenderingContext2D, data: StoryCardData) {
   const contentWidth = STORY_WIDTH - SIDE_PADDING * 2;
   const metrics = buildStoryMetrics(data);
-  const rows = [metrics.slice(0, 3), metrics.slice(3)];
-  const badgesHeight = rows.length * BADGE_HEIGHT + (rows.length - 1) * BADGE_GAP;
-  const badgesTop = STORY_HEIGHT - 120 - badgesHeight;
+  const badgesTop = STORY_HEIGHT - 120 - BADGE_HEIGHT;
 
   ctx.font = "800 88px Montserrat, sans-serif";
   const titleLines = wrapText(data.title, (value) => ctx.measureText(value).width, contentWidth, 2);
@@ -306,7 +304,7 @@ function drawInfo(ctx: CanvasRenderingContext2D, data: StoryCardData) {
     ctx.fillStyle = "#FFD700";
     ctx.font = "600 34px Inter, sans-serif";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText(date.toUpperCase(), SIDE_PADDING, titleTop - 28);
+    ctx.fillText(date, SIDE_PADDING, titleTop - 28);
   }
 
   ctx.fillStyle = "#FFFFFF";
@@ -316,21 +314,14 @@ function drawInfo(ctx: CanvasRenderingContext2D, data: StoryCardData) {
     ctx.fillText(line, SIDE_PADDING, titleTop + (index + 1) * lineHeight - 18);
   });
 
-  rows.forEach((row, rowIndex) => {
-    const width = (contentWidth - BADGE_GAP * (row.length - 1)) / row.length;
-    row.forEach((metric, index) => {
-      drawBadge(
-        ctx,
-        {
-          x: SIDE_PADDING + index * (width + BADGE_GAP),
-          y: badgesTop + rowIndex * (BADGE_HEIGHT + BADGE_GAP),
-          width,
-          height: BADGE_HEIGHT,
-        },
-        metric.label,
-        metric.value,
-      );
-    });
+  const width = (contentWidth - BADGE_GAP * (metrics.length - 1)) / metrics.length;
+  metrics.forEach((metric, index) => {
+    drawBadge(
+      ctx,
+      { x: SIDE_PADDING + index * (width + BADGE_GAP), y: badgesTop, width, height: BADGE_HEIGHT },
+      metric.label,
+      metric.value,
+    );
   });
 }
 
