@@ -238,6 +238,18 @@ export function ActiveWorkoutView({
                         </SheetDescription>
                       </SheetHeader>
                       <div className="flex flex-col gap-2.5">
+                        <BeeButton
+                          variant="primary"
+                          fullWidth
+                          onClick={() => {
+                            // Fecha o menu antes: se faltar série preenchida, o aviso
+                            // de validação aparece na tela e não atrás do sheet.
+                            onToggleWorkoutMenu();
+                            onOpenFinish();
+                          }}
+                        >
+                          Finalizar treino
+                        </BeeButton>
                         <BeeButton variant="dark" fullWidth onClick={onSaveTemplate}>
                           Salvar como template
                         </BeeButton>
