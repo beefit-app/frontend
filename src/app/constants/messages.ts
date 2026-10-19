@@ -52,4 +52,8 @@ export const messages = {
   reportSent: "Denúncia enviada. Nossa equipe vai analisar.",
   reportDuplicate: "Você já denunciou este conteúdo. Nossa equipe está analisando.",
   reportDetailsHint: "Conte o que aconteceu, se quiser. Isso ajuda nossa análise.",
+
+  storyInstagramUnavailable:
+    "Não encontramos o Instagram neste aparelho. Escolha outro app ou salve a imagem.",
+  storyDownloaded: "Card do treino baixado. Publique-o nos seus Stories.",
 } as const;
