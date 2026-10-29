@@ -238,10 +238,22 @@ export function ActiveWorkoutView({
                         </SheetDescription>
                       </SheetHeader>
                       <div className="flex flex-col gap-2.5">
-                        <BeeButton variant="dark" fullWidth onClick={onSaveTemplate}>
+                        <BeeButton variant="secondary" fullWidth onClick={onSaveTemplate}>
                           Salvar como template
                         </BeeButton>
-                        <BeeButton variant="red" fullWidth onClick={onCancelWorkout}>
+                        <BeeButton
+                          variant="secondary"
+                          fullWidth
+                          onClick={() => {
+                            // Fecha o menu antes: se faltar série preenchida, o aviso
+                            // de validação aparece na tela e não atrás do sheet.
+                            onToggleWorkoutMenu();
+                            onOpenFinish();
+                          }}
+                        >
+                          Finalizar treino
+                        </BeeButton>
+                        <BeeButton variant="secondary" fullWidth onClick={onCancelWorkout}>
                           Cancelar treino
                         </BeeButton>
                       </div>
@@ -724,15 +736,9 @@ export function ActiveWorkoutView({
                 <BeeAlert plain>{finishValidationError}</BeeAlert>
               </div>
             )}
-            {activeSlideIndex === exercises.length ? (
-              <BeeButton variant="primary" size="lg" fullWidth onClick={onOpenFinish}>
-                Concluir treino
-              </BeeButton>
-            ) : (
-              <BeeButton variant="secondary" size="lg" fullWidth onClick={onOpenCatalog}>
-                Adicionar Exercício
-              </BeeButton>
-            )}
+            <BeeButton variant="secondary" size="lg" fullWidth onClick={onOpenCatalog}>
+              Adicionar Exercício
+            </BeeButton>
           </IonCol>
         </IonRow>
       </IonGrid>

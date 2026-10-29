@@ -49,6 +49,10 @@ vi.mock("./components/WorkoutStartScreen", () => ({
   ),
   resetActiveWorkoutMemory: vi.fn(),
 }));
+vi.mock("./components/workout-share", () => ({
+  WorkoutShareSheet: ({ target }: { target: unknown }) => (target ? <div>workout-share-sheet</div> : null),
+}));
+
 vi.mock("./storage/pageCacheStorage", () => ({ pageCacheStorage: { remove: removeCachedPage } }));
 
 vi.mock("./components/InventoryScreen", () => ({
@@ -147,5 +151,20 @@ describe("App", () => {
 
     expect(removeCachedPage).toHaveBeenCalledWith("user-1", "profile.posts");
     expect(removeCachedPage).toHaveBeenCalledWith("user-1", "profile.trained-days");
+  });
+
+  it("abre o card de compartilhamento ao concluir um treino", () => {
+    authState.current = {
+      isAuthenticated: true,
+      isBootstrapping: false,
+    };
+    Object.assign(authState.current, { user: { id: "user-1" } });
+
+    render(<App />);
+    expect(screen.queryByText("workout-share-sheet")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Treino" }));
+    fireEvent.click(screen.getByRole("button", { name: "complete-workout" }));
+
+    expect(screen.getByText("workout-share-sheet")).toBeInTheDocument();
   });
 });
