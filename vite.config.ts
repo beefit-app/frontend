@@ -23,7 +23,7 @@ function beefitContentSecurityPolicy(apiUrl: string) {
     // src/styles/fonts.css; gstatic serve os arquivos .woff2.
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "img-src 'self' data: blob:",
+    `img-src 'self' data: blob: ${apiOrigin}`,
     "media-src 'self' blob:",
     `connect-src 'self' ${apiOrigin}`,
     "object-src 'none'",
@@ -109,6 +109,7 @@ export default defineConfig(({ command, mode }) => {
       "/auth": "http://localhost:8080",
       "/api": "http://localhost:8080",
       "/users": "http://localhost:8080",
+      "/images": "http://localhost:8080",
     },
   },
   test: {

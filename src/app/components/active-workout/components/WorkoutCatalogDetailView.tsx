@@ -9,6 +9,7 @@ import { muscleStyle } from "../utils";
 import { workoutService } from "../../../services/workoutService";
 import { MuscleTag, SurfaceCard } from "./shared";
 import { ExerciseMuscleMap } from "./ExerciseMuscleMap";
+import { ExerciseImageGallery } from "./ExerciseImageGallery";
 
 export function WorkoutCatalogDetailView({
   exercise,
@@ -90,6 +91,7 @@ export function WorkoutCatalogDetailView({
               <h1 style={{ margin: 0, color: "#FFFFFF", fontFamily: "var(--font-montserrat)", fontSize: 30, fontWeight: 800 }}>
                 {exercise.name}
               </h1>
+              <ExerciseImageGallery images={exercise.images} exerciseName={exercise.name} />
               <div style={{ display: "grid", gap: 4 }}>
                 <IonText
                   style={{

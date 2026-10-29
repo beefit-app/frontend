@@ -27,6 +27,7 @@ interface BackendCatalogExercise {
   secondaryMuscleGroupsList?: string[] | null;
   primaryMusclesList?: string[] | null;
   secondaryMusclesList?: string[] | null;
+  images?: string[] | null;
 }
 
 interface BackendTemplateExercise {
@@ -165,6 +166,7 @@ function normalizeCatalogExercise(exercise: BackendCatalogExercise): ExerciseCat
       ...(exercise.primaryMusclesList ?? []),
       ...(exercise.secondaryMusclesList ?? []),
     ])),
+    images: exercise.images ?? [],
   };
 }
 
