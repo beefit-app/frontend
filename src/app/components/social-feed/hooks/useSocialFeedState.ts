@@ -3,9 +3,10 @@ import { messages } from "../../../constants/messages";
 import { useConfirm } from "../../../hooks/useConfirm";
 import { useEffect, useRef, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
+import { commentService } from "../../../services/commentService";
 import { workoutService } from "../../../services/workoutService";
 import { socialFeedStorage } from "../../../storage/socialFeedStorage";
-import { pageCacheStorage } from "../../../storage/pageCacheStorage";
+import { invalidateWorkoutCaches, pageCacheStorage } from "../../../storage/pageCacheStorage";
 import { useAuth } from "../../../auth/AuthContext";
 import { subscribeSocialEvents } from "../../../services/socialEventsService";
 import { normalizeMuscleGroupLabels } from "../../../services/muscleGroups";
@@ -31,6 +32,10 @@ export function resetFeedCache() {
   lastLiveFriendsFetchedAt = 0;
 }
 
+// A mutação pode acontecer no perfil enquanto o feed está desmontado.
+// O cache de módulo precisa ser invalidado mesmo sem um hook montado.
+commentService.subscribe(resetFeedCache);
+
 function normalizeLiveFriend(friend: LiveFriend): LiveFriend {
   return {
     ...friend,
@@ -51,7 +56,7 @@ function initials(fullName: string) {
     .toUpperCase();
 }
 
-export function useSocialFeedState() {
+export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: () => void } = {}) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   // O dialogo e devolvido para a view montar: este arquivo e .ts e nao renderiza.
@@ -75,6 +80,19 @@ export function useSocialFeedState() {
   // Um evento pode chegar enquanto a primeira página ainda está em trânsito. O
   // contador pendente é aplicado à resposta para que ela não reverta o SSE.
   const likeCountsByPostId = useRef(new Map<string, number>());
+
+  useEffect(() => {
+    const invalidateComments = () => {
+      resetFeedCache();
+      void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
+    };
+    const unsubscribe = commentService.subscribe(invalidateComments);
+    const controller = new AbortController();
+    void subscribeSocialEvents((event) => {
+      if (event.type === "POST_COMMENTS_CHANGED") invalidateComments();
+    }, controller.signal);
+    return () => { unsubscribe(); controller.abort(); };
+  }, [userId]);
 
   function withPendingLikeCounts(nextPosts: SocialFeedPost[]) {
     return nextPosts.map((post) => {
@@ -354,7 +372,17 @@ export function useSocialFeedState() {
     if (!ok) return;
     try {
       await workoutService.deleteWorkout(alvo.workoutSessionId);
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      setPosts((prev) => {
+        const next = prev.filter((p) => p.id !== postId);
+        if (feedMemoryCache && feedMemoryCache.userId === userId) {
+          feedMemoryCache.posts = next;
+        }
+        return next;
+      });
+      if (userId) {
+        void invalidateWorkoutCaches(userId);
+      }
+      onWorkoutDeleted?.();
       toast.success("Treino apagado com sucesso.");
     } catch (e) {
       toast.error("Não foi possível apagar o treino.");

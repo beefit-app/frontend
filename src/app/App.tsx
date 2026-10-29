@@ -13,6 +13,7 @@ import { RegisterScreen } from "./components/RegisterScreen";
 import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } from "./components/ProfileScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
 import { LegalDocuments } from "./components/LegalDocuments";
+import { WorkoutShareSheet, type WorkoutShareTarget } from "./components/workout-share";
 import { App as CapApp } from "@capacitor/app";
 import { useAuth } from "./auth/AuthContext";
 import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
@@ -130,6 +131,7 @@ export default function App() {
   const [profileRefreshToken, setProfileRefreshToken] = useState(0);
   const [socialProfileUsername, setSocialProfileUsername] = useState<string | null>(null);
   const [socialProfileReturnScreen, setSocialProfileReturnScreen] = useState<"feed" | "social">("social");
+  const [workoutShareTarget, setWorkoutShareTarget] = useState<WorkoutShareTarget | null>(null);
   const isAdminRoute = pathname.startsWith("/admin");
   const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
 
@@ -150,6 +152,12 @@ export default function App() {
       void warmupAppData(user);
     }
   }, [isAuthenticated, user]);
+
+  // O alvo guarda a foto do treino em memória; quem entra depois de um logout não
+  // pode reabrir o card de outra conta.
+  useEffect(() => {
+    if (!isAuthenticated) setWorkoutShareTarget(null);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const backListener = CapApp.addListener("backButton", () => {
@@ -183,7 +191,8 @@ export default function App() {
     );
   }
 
-  function handleWorkoutCompleted(_draft: WorkoutCompletionDraft, _summary: WorkoutCompletionSummary) {
+  function handleWorkoutCompleted(draft: WorkoutCompletionDraft, summary: WorkoutCompletionSummary) {
+    setWorkoutShareTarget({ draft, summary });
     clearPendingFeed();
     completeWorkout();
     resetFeedCache();
@@ -193,6 +202,22 @@ export default function App() {
     setFeedRefreshToken((v) => v + 1);
     setScreen("feed");
     void contentRef.current?.scrollToTop(320);
+    void (async () => {
+      try {
+        const profile = await profileService.getProfile(user);
+        syncStreakCount(profile.streak);
+      } catch {
+        // Mantem o valor atual quando o refresh do perfil falha.
+      }
+    })();
+  }
+
+  function handleWorkoutDeleted(source: "feed" | "profile") {
+    if (source === "feed") {
+      setProfileRefreshToken((v) => v + 1);
+    } else {
+      setFeedRefreshToken((v) => v + 1);
+    }
     void (async () => {
       try {
         const profile = await profileService.getProfile(user);
@@ -362,6 +387,7 @@ export default function App() {
                           isStreakFedToday={isStreakFedToday}
                           streakBurstToken={streak.burstToken}
                           onOpenUserProfile={openSocialProfile}
+                          onWorkoutDeleted={() => handleWorkoutDeleted("feed")}
                         />
                       </DeferredScreen>
                     </div>
@@ -430,6 +456,7 @@ export default function App() {
                         key={profileRefreshToken}
                         accountSettings={accountSettings}
                         onAccountSettingsChange={setAccountSettings}
+                        onWorkoutDeleted={() => handleWorkoutDeleted("profile")}
                       />
                     </div>
                   )}
@@ -513,6 +540,9 @@ export default function App() {
           </IonFooter>
         )}
       </IonPage>
+      {isAuthenticated && (
+        <WorkoutShareSheet target={workoutShareTarget} onClose={() => setWorkoutShareTarget(null)} />
+      )}
       <Toaster />
     </IonApp>
   );

@@ -26,6 +26,12 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>O BeeFit usa a câmera para adicionar fotos aos seus treinos e perfil.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>instagram-stories</string>
+	</array>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O BeeFit salva na sua galeria o card do treino que você escolher guardar.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>O BeeFit acessa suas fotos para adicionar imagens aos seus treinos e perfil.</string>
 	<key>UILaunchStoryboardName</key>

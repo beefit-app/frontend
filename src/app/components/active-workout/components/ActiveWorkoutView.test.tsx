@@ -134,4 +134,39 @@ describe("ActiveWorkoutView", () => {
     expect(screen.getAllByText("Peito").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Braços")).toBeInTheDocument();
   });
+
+  it("finaliza o treino pelo menu de 3 pontos, fechando o menu antes", () => {
+    const onToggleWorkoutMenu = vi.fn();
+    const onOpenFinish = vi.fn();
+
+    render(
+      <ActiveWorkoutView
+        sessionGroups={["Peito"]}
+        elapsedSeconds={300}
+        exercises={[mockExercise]}
+        finishValidationError=""
+        exerciseSlideRefs={{ current: {} }}
+        seriesContainerRefs={{ current: {} }}
+        isWorkoutMenuOpen
+        activeExerciseMenuId={null}
+        onToggleWorkoutMenu={onToggleWorkoutMenu}
+        onCancelWorkout={vi.fn()}
+        onSaveTemplate={vi.fn()}
+        onToggleExerciseMenu={vi.fn()}
+        onRemoveExercise={vi.fn()}
+        onRemoveSet={vi.fn()}
+        onUpdateSet={vi.fn()}
+        onAddSet={vi.fn()}
+        onOpenCatalog={vi.fn()}
+        onOpenFinish={onOpenFinish}
+      />
+    );
+
+    expect(screen.getByText("Salvar como template")).toBeInTheDocument();
+    expect(screen.getByText("Cancelar treino")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Finalizar treino"));
+
+    expect(onToggleWorkoutMenu).toHaveBeenCalledTimes(1);
+    expect(onOpenFinish).toHaveBeenCalledTimes(1);
+  });
 });

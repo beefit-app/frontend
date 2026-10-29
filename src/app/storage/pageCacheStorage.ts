@@ -49,9 +49,27 @@ export const pageCacheStorage = {
     await appStorage.removeItem(cacheKey(userId, key));
   },
 
+  async removeByPrefix(userId: string | null | undefined, keyPrefix: string) {
+    if (!userId) return;
+    const storagePrefix = cacheKey(userId, keyPrefix);
+    const keys = await appStorage.keys(storagePrefix);
+    await Promise.all(keys.map((key) => appStorage.removeItem(key)));
+  },
+
   async clearUser(userId: string | null | undefined) {
     if (!userId) return;
     const keys = await appStorage.keys(`${CACHE_PREFIX}${encodeURIComponent(userId)}.`);
     await Promise.all(keys.map((key) => appStorage.removeItem(key)));
   },
 };
+
+export async function invalidateWorkoutCaches(userId: string | null | undefined) {
+  if (!userId) return;
+  await Promise.all([
+    pageCacheStorage.remove(userId, "feed.page-0"),
+    pageCacheStorage.remove(userId, "profile.posts"),
+    pageCacheStorage.remove(userId, "profile.trained-days"),
+    pageCacheStorage.remove(userId, "profile"),
+    pageCacheStorage.removeByPrefix(userId, "inventory."),
+  ]);
+}

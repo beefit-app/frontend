@@ -95,6 +95,7 @@ const REPORT_REASON_LABELS: Record<ReportReason, string> = {
 function describeResolution(action: ReportResolutionAction, username: string, closedReports: number) {
   const closed = closedReports === 1 ? "1 denúncia fechada" : `${closedReports} denúncias fechadas`;
   if (action === "REMOVE_POST") return `Post removido da plataforma. ${closed}.`;
+  if (action === "REMOVE_COMMENT") return `Comentário removido da plataforma. ${closed}.`;
   if (action === "BAN_USER") return `@${username} banido. ${closed}.`;
   return `Denúncia descartada. ${closed}.`;
 }
@@ -628,10 +629,10 @@ function ReportsView({
                       </TableCell>
                       <TableCell className="min-w-[180px] px-4 text-[#D4D4D4]">
                         <span className="block text-xs uppercase text-[#A3A3A3]">
-                          {report.targetType === "POST" ? "Post" : "Perfil"}
+                          {report.targetType === "POST" ? "Post" : report.targetType === "COMMENT" ? "Comentário" : "Perfil"}
                         </span>
-                        <span className="font-medium text-white">
-                          {report.targetType === "POST"
+                        <span className="block max-w-[360px] whitespace-pre-wrap break-words font-medium text-white">
+                          {report.targetType !== "USER"
                             ? report.targetPostTitle || "Sem título"
                             : `@${report.targetOwnerUsername}`}
                         </span>
@@ -644,17 +645,17 @@ function ReportsView({
                       {status === "PENDING" && (
                         <TableCell className="px-4">
                           <div className="flex flex-wrap justify-end gap-2">
-                            {report.targetType === "POST" && (
+                            {report.targetType !== "USER" && (
                               <Button
                                 type="button"
                                 size="sm"
                                 variant="outline"
                                 disabled={busy}
-                                onClick={() => onResolve(report, "REMOVE_POST")}
+                                onClick={() => onResolve(report, report.targetType === "COMMENT" ? "REMOVE_COMMENT" : "REMOVE_POST")}
                                 className="border-[#5F3B3B] bg-[#211313] text-[#FCA5A5] hover:bg-[#2A1717] hover:text-[#FCA5A5]"
                               >
                                 {busy ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-                                Remover post
+                                {report.targetType === "COMMENT" ? "Remover comentário" : "Remover post"}
                               </Button>
                             )}
                             <Button
@@ -802,10 +803,10 @@ export function AdminScreen() {
 
   async function handleResolveReport(report: AdminReport, action: ReportResolutionAction) {
     let banDays: number | undefined;
-    if (action === "REMOVE_POST") {
+    if (action === "REMOVE_POST" || action === "REMOVE_COMMENT") {
       const ok = await confirm({
-        title: "Remover post",
-        description: `O post "${report.targetPostTitle || "Sem título"}" de @${report.targetOwnerUsername} sai da plataforma.`,
+        title: action === "REMOVE_COMMENT" ? "Remover comentário" : "Remover post",
+        description: `O conteúdo "${report.targetPostTitle || "Sem título"}" de @${report.targetOwnerUsername} sai da plataforma.`,
         confirmLabel: "Remover",
         destructive: true,
       });

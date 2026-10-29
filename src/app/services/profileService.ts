@@ -35,6 +35,7 @@ interface BackendProfilePost {
   title?: string;
   publishedAt: string;
   totalLikes?: number;
+  commentsCount?: number;
   likedByCurrentUser?: boolean;
   photoUrl?: string | null;
   durationSeconds?: number | null;
@@ -183,6 +184,7 @@ function normalizeProfilePost(post: BackendProfilePost): WorkoutPost {
     liked: Boolean(post.likedByCurrentUser),
     templateSaved: false,
     comments: [],
+    commentsCount: post.commentsCount ?? 0,
   };
 }
 

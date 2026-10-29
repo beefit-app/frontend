@@ -35,6 +35,12 @@
         </provider>
     </application>
 
+    <!-- O Android 11+ esconde os outros apps instalados; sem isso o compartilhamento
+         nos Stories nunca encontra o Instagram e sempre cai no share sheet. -->
+    <queries>
+        <package android:name="com.instagram.android" />
+    </queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
