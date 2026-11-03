@@ -137,7 +137,9 @@ export default function App() {
   const [workoutShareTarget, setWorkoutShareTarget] = useState<WorkoutShareTarget | null>(null);
   const isAdminRoute = pathname.startsWith("/admin");
   const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
-  const isSocialCallbackRoute = pathname === "/auth/callback";
+  // Não pode começar com /auth: o vite.config.ts faz proxy de /auth/** pro
+  // backend em dev, e essa rota nunca chegaria na SPA se começasse assim.
+  const isSocialCallbackRoute = pathname === "/oauth-callback";
 
   const [visitedScreens, setVisitedScreens] = useState<Set<TabId>>(() => new Set(["feed"]));
 

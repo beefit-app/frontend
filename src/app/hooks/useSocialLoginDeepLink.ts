@@ -13,7 +13,7 @@ const CALLBACK_HOST = "auth";
  * via @capacitor/browser) depois do fluxo OAuth2 do Google/Microsoft, fecha o
  * navegador e troca o código de uso único pela sessão real.
  *
- * Equivalente mobile do SocialLoginCallbackScreen (rota web /auth/callback).
+ * Equivalente mobile do SocialLoginCallbackScreen (rota web /oauth-callback).
  */
 export function useSocialLoginDeepLink() {
   const { loginWithSocialCode } = useAuth();
