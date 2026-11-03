@@ -17,7 +17,15 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const { authError, clearAuthError, isSubmitting, login } = useAuth();
+  const { authError, clearAuthError, isSubmitting, login, loginWithProvider } = useAuth();
+
+  async function handleSocialLogin(provider: "google" | "microsoft") {
+    try {
+      await loginWithProvider(provider);
+    } catch {
+      // O estado de erro já é tratado pelo AuthProvider.
+    }
+  }
 
   function validate() {
     const e: typeof errors = {};
@@ -205,6 +213,29 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                     OU
                   </IonText>
                   <div className="h-px flex-1 bg-[#2D2D2D]" />
+                </div>
+
+                <div className="mt-6 flex flex-col gap-3">
+                  <BeeButton
+                    type="button"
+                    variant="dark"
+                    shape="soft"
+                    fullWidth
+                    onClick={() => handleSocialLogin("google")}
+                    disabled={isSubmitting}
+                  >
+                    Continuar com Google
+                  </BeeButton>
+                  <BeeButton
+                    type="button"
+                    variant="dark"
+                    shape="soft"
+                    fullWidth
+                    onClick={() => handleSocialLogin("microsoft")}
+                    disabled={isSubmitting}
+                  >
+                    Continuar com Microsoft
+                  </BeeButton>
                 </div>
 
                 <div className="mt-6">

@@ -30,7 +30,7 @@ interface ParsedResponse {
   rawResponse: string;
 }
 
-const API_BASE_URL = import.meta.env?.VITE_API_URL?.replace(/\/$/, "") ?? "";
+export const API_BASE_URL = import.meta.env?.VITE_API_URL?.replace(/\/$/, "") ?? "";
 const DEFAULT_TIMEOUT_MS = 15_000;
 export const AUTH_UNAUTHORIZED_EVENT = "beefit:auth-unauthorized";
 let refreshRequest: Promise<string | null> | null = null;

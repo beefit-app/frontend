@@ -5,7 +5,7 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { authService } from "../services/authService";
+import { authService, type SocialLoginProvider } from "../services/authService";
 import { AUTH_UNAUTHORIZED_EVENT, ApiError } from "../services/apiClient";
 import type { AuthSession, AuthUser, LoginInput, RegisterInput } from "../types/auth";
 
@@ -20,6 +20,8 @@ interface AuthContextValue {
   register: (input: RegisterInput) => Promise<void>;
   logout: (options?: { isAccountDeletion?: boolean }) => Promise<void>;
   clearAuthError: () => void;
+  loginWithProvider: (provider: SocialLoginProvider) => Promise<void>;
+  loginWithSocialCode: (code: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -116,6 +118,35 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }
 
+  async function loginWithProvider(provider: SocialLoginProvider) {
+    setAuthError(null);
+
+    try {
+      await authService.startSocialLogin(provider);
+    } catch (error) {
+      setAuthError(getErrorMessage(error));
+      throw error;
+    }
+  }
+
+  async function loginWithSocialCode(code: string) {
+    setIsSubmitting(true);
+    setAuthError(null);
+
+    try {
+      const session = await authService.exchangeSocialCode(code);
+      establishSession(session);
+    } catch (error) {
+      await authService.logout();
+      setAccessToken(null);
+      setUser(null);
+      setAuthError(getErrorMessage(error));
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   async function logout(options?: { isAccountDeletion?: boolean }) {
     await authService.logout(options);
     setAccessToken(null);
@@ -138,6 +169,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     register,
     logout,
     clearAuthError,
+    loginWithProvider,
+    loginWithSocialCode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

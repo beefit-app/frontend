@@ -13,10 +13,12 @@ import { RegisterScreen } from "./components/RegisterScreen";
 import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } from "./components/ProfileScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
 import { LegalDocuments } from "./components/LegalDocuments";
+import { SocialLoginCallbackScreen } from "./components/SocialLoginCallbackScreen";
 import { WorkoutShareSheet, type WorkoutShareTarget } from "./components/workout-share";
 import { App as CapApp } from "@capacitor/app";
 import { useAuth } from "./auth/AuthContext";
 import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
+import { useSocialLoginDeepLink } from "./hooks/useSocialLoginDeepLink";
 import { useStreakState } from "./hooks/useStreakState";
 import { useWorkoutSessionState } from "./hooks/useWorkoutSessionState";
 import { useKeyboardState } from "./hooks/useKeyboardState";
@@ -121,6 +123,7 @@ export default function App() {
   const [pathname, setPathname] = useState(() => window.location.pathname);
   const { authScreen, screen, direction: _direction, setAuthScreen, setScreen, goBack, handleTabChange } = useAppNavigation(isAuthenticated);
   const isKeyboardVisible = useKeyboardState();
+  useSocialLoginDeepLink();
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
   const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState(
@@ -134,6 +137,7 @@ export default function App() {
   const [workoutShareTarget, setWorkoutShareTarget] = useState<WorkoutShareTarget | null>(null);
   const isAdminRoute = pathname.startsWith("/admin");
   const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
+  const isSocialCallbackRoute = pathname === "/auth/callback";
 
   const [visitedScreens, setVisitedScreens] = useState<Set<TabId>>(() => new Set(["feed"]));
 
@@ -178,6 +182,23 @@ export default function App() {
       void backListener.then((handle) => handle.remove());
     };
   }, [goBack, setScreen, socialProfileReturnScreen, socialProfileUsername]);
+
+  if (isSocialCallbackRoute) {
+    return (
+      <IonApp>
+        <IonPage>
+          <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>
+            <SocialLoginCallbackScreen
+              onDone={() => {
+                window.history.replaceState(null, "", "/");
+                setPathname("/");
+              }}
+            />
+          </IonContent>
+        </IonPage>
+      </IonApp>
+    );
+  }
 
   if (legalDocument) {
     return (
