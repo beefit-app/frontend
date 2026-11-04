@@ -7,7 +7,7 @@ import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { BeeAlert } from "./BeeAlert";
 import { messages } from "../constants/messages";
-import { AppleLogo, GoogleLogo, MicrosoftLogo } from "./SocialProviderIcons";
+import { AppleLogo, GoogleLogo } from "./SocialProviderIcons";
 import type { SocialLoginProvider } from "../services/authService";
 
 interface LoginScreenProps {
@@ -242,19 +242,6 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                     <span className="flex items-center justify-center gap-2">
                       <GoogleLogo />
                       Continuar com o Google
-                    </span>
-                  </BeeButton>
-                  <BeeButton
-                    type="button"
-                    variant="dark"
-                    shape="soft"
-                    fullWidth
-                    onClick={() => handleSocialLogin("microsoft")}
-                    disabled={isSubmitting}
-                  >
-                    <span className="flex items-center justify-center gap-2">
-                      <MicrosoftLogo />
-                      Continuar com a Microsoft
                     </span>
                   </BeeButton>
                 </div>
