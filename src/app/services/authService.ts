@@ -21,7 +21,7 @@ const AUTH_REGISTER_PATH = "/auth/register";
 const AUTH_SOCIAL_EXCHANGE_PATH = "/auth/social/exchange";
 const CURRENT_USER_PATHS = ["/auth/me", "/api/profile/me"] as const;
 
-export type SocialLoginProvider = "google" | "microsoft";
+export type SocialLoginProvider = "google" | "microsoft" | "apple";
 
 interface BackendAuthSessionResponse {
   accessToken: string;

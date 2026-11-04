@@ -7,6 +7,8 @@ import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { BeeAlert } from "./BeeAlert";
 import { messages } from "../constants/messages";
+import { AppleLogo, GoogleLogo, MicrosoftLogo } from "./SocialProviderIcons";
+import type { SocialLoginProvider } from "../services/authService";
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
@@ -19,7 +21,7 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const { authError, clearAuthError, isSubmitting, login, loginWithProvider } = useAuth();
 
-  async function handleSocialLogin(provider: "google" | "microsoft") {
+  async function handleSocialLogin(provider: SocialLoginProvider) {
     try {
       await loginWithProvider(provider);
     } catch {
@@ -221,10 +223,26 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                     variant="dark"
                     shape="soft"
                     fullWidth
+                    onClick={() => handleSocialLogin("apple")}
+                    disabled={isSubmitting}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <AppleLogo />
+                      Continuar com a Apple
+                    </span>
+                  </BeeButton>
+                  <BeeButton
+                    type="button"
+                    variant="dark"
+                    shape="soft"
+                    fullWidth
                     onClick={() => handleSocialLogin("google")}
                     disabled={isSubmitting}
                   >
-                    Continuar com Google
+                    <span className="flex items-center justify-center gap-2">
+                      <GoogleLogo />
+                      Continuar com o Google
+                    </span>
                   </BeeButton>
                   <BeeButton
                     type="button"
@@ -234,7 +252,10 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                     onClick={() => handleSocialLogin("microsoft")}
                     disabled={isSubmitting}
                   >
-                    Continuar com Microsoft
+                    <span className="flex items-center justify-center gap-2">
+                      <MicrosoftLogo />
+                      Continuar com a Microsoft
+                    </span>
                   </BeeButton>
                 </div>
 
