@@ -14,6 +14,7 @@ import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } fro
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
 import { LegalDocuments } from "./components/LegalDocuments";
 import { SocialLoginCallbackScreen } from "./components/SocialLoginCallbackScreen";
+import { CompleteProfileScreen } from "./components/CompleteProfileScreen";
 import { WorkoutShareSheet, type WorkoutShareTarget } from "./components/workout-share";
 import { App as CapApp } from "@capacitor/app";
 import { useAuth } from "./auth/AuthContext";
@@ -118,7 +119,11 @@ class ScreenErrorBoundary extends Component<
 }
 
 export default function App() {
-  const { isAuthenticated, isBootstrapping, user } = useAuth();
+  const { isAuthenticated: hasSession, isBootstrapping, user, needsProfileCompletion } = useAuth();
+  // Conta social com cadastro incompleto tem sessão, mas o app em si (e as rotas
+  // /api/** no backend) fica travado até a CompleteProfileScreen: para tudo abaixo
+  // — navegação, warmup, streak, abas — ela conta como não autenticada.
+  const isAuthenticated = hasSession && !needsProfileCompletion;
   const contentRef = useRef<HTMLIonContentElement | null>(null);
   const [pathname, setPathname] = useState(() => window.location.pathname);
   const { authScreen, screen, direction: _direction, setAuthScreen, setScreen, goBack, handleTabChange } = useAppNavigation(isAuthenticated);
@@ -208,6 +213,20 @@ export default function App() {
         <IonPage>
           <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>
             <LegalDocuments document={legalDocument} />
+          </IonContent>
+        </IonPage>
+      </IonApp>
+    );
+  }
+
+  // Depois de /terms e /privacy (os links do aceite abrem em nova aba e precisam
+  // renderizar o documento) e antes de qualquer tela do app ou do admin.
+  if (!isBootstrapping && needsProfileCompletion) {
+    return (
+      <IonApp>
+        <IonPage>
+          <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>
+            <CompleteProfileScreen />
           </IonContent>
         </IonPage>
       </IonApp>

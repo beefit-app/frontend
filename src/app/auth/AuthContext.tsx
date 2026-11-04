@@ -7,8 +7,14 @@ import {
   type PropsWithChildren,
 } from "react";
 import { authService, type SocialLoginProvider } from "../services/authService";
-import { AUTH_UNAUTHORIZED_EVENT, ApiError } from "../services/apiClient";
-import type { AuthSession, AuthUser, LoginInput, RegisterInput } from "../types/auth";
+import { AUTH_UNAUTHORIZED_EVENT, ApiError, PROFILE_INCOMPLETE_EVENT } from "../services/apiClient";
+import type {
+  AuthSession,
+  AuthUser,
+  CompleteProfileInput,
+  LoginInput,
+  RegisterInput,
+} from "../types/auth";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -25,6 +31,9 @@ interface AuthContextValue {
   loginWithSocialCode: (code: string) => Promise<void>;
   /** Pro deep link mobile reportar "?error=oauth_failed" sem precisar simular uma troca de código. */
   setSocialLoginError: (message: string) => void;
+  /** Conta criada via login social que ainda não informou peso, meta e aceite dos termos. */
+  needsProfileCompletion: boolean;
+  completeProfile: (input: CompleteProfileInput) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -89,6 +98,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     return () => {
       window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    };
+  }, []);
+
+  // O backend é a fonte da verdade: se ele recusou por cadastro incompleto, a
+  // sessão local (possivelmente restaurada do cache) estava desatualizada.
+  useEffect(() => {
+    function handleProfileIncomplete() {
+      setUser((current) => (current ? { ...current, profileComplete: false } : current));
+    }
+
+    window.addEventListener(PROFILE_INCOMPLETE_EVENT, handleProfileIncomplete);
+
+    return () => {
+      window.removeEventListener(PROFILE_INCOMPLETE_EVENT, handleProfileIncomplete);
     };
   }, []);
 
@@ -190,10 +213,28 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setAuthError(message);
   }, []);
 
+  // Diferente de login/register, uma falha aqui não derruba a sessão: o usuário
+  // continua autenticado na tela de completar e pode corrigir e reenviar.
+  const completeProfile = useCallback(async (input: CompleteProfileInput) => {
+    setIsSubmitting(true);
+    setAuthError(null);
+
+    try {
+      setUser(await authService.completeProfile(input));
+    } catch (error) {
+      setAuthError(getErrorMessage(error));
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, []);
+
+  const isAuthenticated = Boolean(user && accessToken);
+
   const value: AuthContextValue = {
     user,
     accessToken,
-    isAuthenticated: Boolean(user && accessToken),
+    isAuthenticated,
     isBootstrapping,
     isSubmitting,
     authError,
@@ -204,6 +245,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     loginWithProvider,
     loginWithSocialCode,
     setSocialLoginError,
+    needsProfileCompletion: isAuthenticated && user?.profileComplete === false,
+    completeProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

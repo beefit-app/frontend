@@ -68,6 +68,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/social/exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["exchangeSocialCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/register": {
         parameters: {
             query?: never;
@@ -126,6 +142,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/complete-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["completeProfile"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1053,19 +1085,8 @@ export interface components {
             currentPassword: string;
             newPassword: string;
         };
-        RegisterDTO: {
-            fullName: string;
-            username: string;
-            /** Format: email */
-            email: string;
-            password: string;
-            /** Format: float */
-            bodyWeight: number;
-            /** Format: int32 */
-            weeklyGoal: number;
-            deviceId: string;
-            acceptedTermsVersion: string;
-            acceptedPrivacyVersion: string;
+        SocialExchangeRequestDTO: {
+            code: string;
         };
         LoginResponseDTO: {
             accessToken?: string;
@@ -1084,6 +1105,21 @@ export interface components {
             weeklyGoal?: number;
             /** @enum {string} */
             role?: "ADMIN" | "DEVELOPER" | "USER";
+            profileComplete?: boolean;
+        };
+        RegisterDTO: {
+            fullName: string;
+            username: string;
+            /** Format: email */
+            email: string;
+            password: string;
+            /** Format: float */
+            bodyWeight: number;
+            /** Format: int32 */
+            weeklyGoal: number;
+            deviceId: string;
+            acceptedTermsVersion: string;
+            acceptedPrivacyVersion: string;
         };
         RefreshTokenRequestDTO: {
             refreshToken: string;
@@ -1102,6 +1138,14 @@ export interface components {
             email: string;
             password: string;
             deviceId: string;
+        };
+        CompleteProfileRequestDTO: {
+            /** Format: float */
+            bodyWeight: number;
+            /** Format: int32 */
+            weeklyGoal: number;
+            acceptedTermsVersion: string;
+            acceptedPrivacyVersion: string;
         };
         SessionExerciseResponseDTO: {
             /** Format: uuid */
@@ -1576,8 +1620,8 @@ export interface components {
             name?: string;
             primaryMuscleGroupsList?: ("CHEST" | "BACK" | "LEGS" | "GLUTES" | "SHOULDERS" | "ARMS" | "CORE" | "TRAPS")[];
             secondaryMuscleGroupsList?: ("CHEST" | "BACK" | "LEGS" | "GLUTES" | "SHOULDERS" | "ARMS" | "CORE" | "TRAPS")[];
-            primaryMusclesList?: ("ABS" | "ADDUCTORS" | "BICEPS" | "CALVES" | "CHEST" | "DELTOIDS" | "FOREARM" | "GLUTEAL" | "HAMSTRING" | "LOWER_BACK" | "NECK" | "QUADRICEPS" | "TRAPEZIUS" | "TRICEPS" | "UPPER_BACK")[];
-            secondaryMusclesList?: ("ABS" | "ADDUCTORS" | "BICEPS" | "CALVES" | "CHEST" | "DELTOIDS" | "FOREARM" | "GLUTEAL" | "HAMSTRING" | "LOWER_BACK" | "NECK" | "QUADRICEPS" | "TRAPEZIUS" | "TRICEPS" | "UPPER_BACK")[];
+            primaryMusclesList?: ("ABS" | "ADDUCTORS" | "BICEPS" | "CALVES" | "CHEST" | "DELTOIDS" | "FOREARM" | "GLUTEAL" | "HAMSTRING" | "LOWER_BACK" | "NECK" | "QUADRICEPS" | "RHOMBOIDS" | "SERRATUS" | "TRAPEZIUS" | "TRICEPS" | "UPPER_BACK")[];
+            secondaryMusclesList?: ("ABS" | "ADDUCTORS" | "BICEPS" | "CALVES" | "CHEST" | "DELTOIDS" | "FOREARM" | "GLUTEAL" | "HAMSTRING" | "LOWER_BACK" | "NECK" | "QUADRICEPS" | "RHOMBOIDS" | "SERRATUS" | "TRAPEZIUS" | "TRICEPS" | "UPPER_BACK")[];
             instructions?: string;
             images?: string[];
         };
@@ -2322,6 +2366,93 @@ export interface operations {
             };
         };
     };
+    exchangeSocialCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SocialExchangeRequestDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LoginResponseDTO"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Content Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     register: {
         parameters: {
             query?: never;
@@ -2601,6 +2732,93 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LoginResponseDTO"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Content Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    completeProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteProfileRequestDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponseDTO"];
                 };
             };
             /** @description Bad Request */

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { IonCard, IonCardContent, IonCheckbox, IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
+import { IonCard, IonCardContent, IonCol, IonGrid, IonRow, IonText } from "@ionic/react";
 import logoImg from "../../imports/logo.png";
 import { BeeButton } from "./BeeButton";
 import { BeeInput } from "./BeeInput";
@@ -9,7 +9,9 @@ import { extractFieldErrors } from "../services/apiClient";
 import { fetchLegalVersions } from "../services/legalService";
 import type { LegalVersions } from "../types/auth";
 import { BeeAlert } from "./BeeAlert";
-import { PASSWORD_MIN_LENGTH, WEIGHT_MAX_KG, WEIGHT_MIN_KG, messages } from "../constants/messages";
+import { LegalConsentField } from "./LegalConsentField";
+import { PASSWORD_MIN_LENGTH, messages } from "../constants/messages";
+import { validateWeeklyGoal, validateWeight } from "../utils/profileValidation";
 
 interface RegisterScreenProps {
   onNavigateToLogin: () => void;
@@ -90,22 +92,10 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = messages.emailInvalid;
     if (!form.password) e.password = messages.passwordCreate;
     else if (form.password.length < PASSWORD_MIN_LENGTH) e.password = messages.passwordMin;
-    if (!form.weeklyGoal) e.weeklyGoal = messages.required("sua meta semanal");
-    // O backend exige @Min(1) @Max(7); validar o teto aqui evita uma ida ao
-    // servidor para um erro que da para prever.
-    else if (
-      isNaN(Number(form.weeklyGoal)) ||
-      Number(form.weeklyGoal) < 1 ||
-      Number(form.weeklyGoal) > 7
-    )
-      e.weeklyGoal = messages.weeklyGoalRange;
-    if (!form.weight) e.weight = messages.required("seu peso");
-    else if (
-      isNaN(Number(form.weight)) ||
-      Number(form.weight) < WEIGHT_MIN_KG ||
-      Number(form.weight) > WEIGHT_MAX_KG
-    )
-      e.weight = messages.weightRange;
+    const weeklyGoalError = validateWeeklyGoal(form.weeklyGoal);
+    if (weeklyGoalError) e.weeklyGoal = weeklyGoalError;
+    const weightError = validateWeight(form.weight);
+    if (weightError) e.weight = weightError;
     // Sem as versoes vigentes nao ha o que registrar como aceite, entao o bloqueio
     // vale mesmo com o checkbox marcado.
     if (!legalVersions) e.legalConsent = messages.legalVersionsUnavailable;
@@ -393,63 +383,14 @@ export function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <IonCheckbox
-                        aria-label="Aceito os Termos de Uso e a Política de Privacidade"
-                        checked={hasAcceptedLegal}
-                        disabled={isLoadingLegalVersions || !legalVersions}
-                        onIonChange={(ev) => setLegalConsent(ev.detail.checked)}
-                        style={{ "--size": "20px", marginTop: 2 } as React.CSSProperties}
-                      />
-                      <IonText
-                        style={{
-                          fontFamily: "var(--font-inter)",
-                          fontSize: 13,
-                          color: "#8A8A8A",
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        Li e aceito os{" "}
-                        {/* Sem cor propria, o sublinhado e a unica pista de que sao links. */}
-                        <a className="underline" href="/terms" target="_blank" rel="noreferrer">
-                          Termos de Uso
-                        </a>{" "}
-                        e a{" "}
-                        <a className="underline" href="/privacy" target="_blank" rel="noreferrer">
-                          Política de Privacidade
-                        </a>
-                        .
-                      </IonText>
-                    </label>
-
-                    {isLoadingLegalVersions && (
-                      <IonText
-                        style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#8A8A8A" }}
-                      >
-                        Carregando os documentos...
-                      </IonText>
-                    )}
-
-                    {errors.legalConsent && (
-                      <IonText
-                        role="alert"
-                        style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#FF4D4D" }}
-                      >
-                        {errors.legalConsent}
-                      </IonText>
-                    )}
-
-                    {!isLoadingLegalVersions && !legalVersions && (
-                      <button
-                        type="button"
-                        className="self-start text-[#FFD700] text-xs underline"
-                        onClick={() => void loadLegalVersions()}
-                      >
-                        Tentar novamente
-                      </button>
-                    )}
-                  </div>
+                  <LegalConsentField
+                    checked={hasAcceptedLegal}
+                    onChange={setLegalConsent}
+                    legalVersions={legalVersions}
+                    isLoading={isLoadingLegalVersions}
+                    error={errors.legalConsent}
+                    onRetry={() => void loadLegalVersions()}
+                  />
 
                   {authError && !isAuthErrorHandled && <BeeAlert>{authError}</BeeAlert>}
 

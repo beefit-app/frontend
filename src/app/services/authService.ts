@@ -5,11 +5,12 @@ import type {
   AuthApiUser,
   AuthSession,
   AuthUser,
+  CompleteProfileInput,
   LoginInput,
   RegisterApiInput,
   RegisterInput,
 } from "../types/auth";
-import type { LoginRequest, LogoutRequest, RegisterRequest } from "../types/api";
+import type { CompleteProfileRequest, LoginRequest, LogoutRequest, RegisterRequest } from "../types/api";
 import { API_BASE_URL, ApiError, apiClient } from "./apiClient";
 import { clearLocalUserData } from "./sessionTeardown";
 
@@ -19,6 +20,7 @@ const MOCK_TOKEN_PREFIX = "beefit-dev-token";
 const AUTH_LOGIN_PATH = "/auth/login";
 const AUTH_REGISTER_PATH = "/auth/register";
 const AUTH_SOCIAL_EXCHANGE_PATH = "/auth/social/exchange";
+const AUTH_COMPLETE_PROFILE_PATH = "/auth/complete-profile";
 const CURRENT_USER_PATHS = ["/auth/me", "/api/profile/me"] as const;
 
 export type SocialLoginProvider = "google" | "microsoft" | "apple";
@@ -124,6 +126,7 @@ function mapAuthApiUserToAuthUser(apiUser: AuthApiUser): AuthUser {
     username: apiUser.username,
     weeklyGoal: apiUser.weeklyGoal,
     weight: apiUser.bodyWeight,
+    profileComplete: apiUser.profileComplete ?? true,
   };
 }
 
@@ -148,6 +151,7 @@ function mergeCurrentUserResponse(value: unknown, fallbackUser: AuthUser | null)
           : fallbackUser?.username ?? null,
       weeklyGoal: fallbackUser?.weeklyGoal ?? null,
       weight: fallbackUser?.weight ?? null,
+      profileComplete: fallbackUser?.profileComplete,
     };
   }
 
@@ -166,6 +170,8 @@ function mergeCurrentUserResponse(value: unknown, fallbackUser: AuthUser | null)
           : fallbackUser?.weeklyGoal ?? null,
       weight:
         typeof value.weight === "number" ? value.weight : fallbackUser?.weight ?? null,
+      profileComplete:
+        typeof value.profileComplete === "boolean" ? value.profileComplete : fallbackUser?.profileComplete,
     };
   }
 
@@ -438,6 +444,21 @@ async function exchangeSocialCode(code: string): Promise<AuthSession> {
   return normalizeApiSession(response);
 }
 
+// Fecha o cadastro de uma conta criada via login social (peso, meta e aceite dos
+// termos). O backend devolve o usuário atualizado, já com profileComplete=true.
+async function completeProfile(input: CompleteProfileInput): Promise<AuthUser> {
+  const body: CompleteProfileRequest = {
+    bodyWeight: input.weight,
+    weeklyGoal: input.weeklyGoal,
+    acceptedTermsVersion: input.acceptedTermsVersion,
+    acceptedPrivacyVersion: input.acceptedPrivacyVersion,
+  };
+  const response = await apiClient.post<AuthApiUser>(AUTH_COMPLETE_PROFILE_PATH, body, { auth: true });
+  const user = mapAuthApiUserToAuthUser(response);
+  await sessionStorage.setUser(user);
+  return user;
+}
+
 const authGateway = DEV_AUTH_BYPASS_ENABLED ? mockAuthGateway : apiAuthGateway;
 
 export const authService = {
@@ -467,5 +488,9 @@ export const authService = {
 
   exchangeSocialCode(code: string) {
     return exchangeSocialCode(code);
+  },
+
+  completeProfile(input: CompleteProfileInput) {
+    return completeProfile(input);
   },
 };

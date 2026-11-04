@@ -20,6 +20,7 @@ export type LoginRequest = Schemas["AuthenticationDTO"];
 export type LogoutRequest = Schemas["LogoutRequestDTO"];
 export type RefreshTokenRequest = Schemas["RefreshTokenRequestDTO"];
 export type LegalVersionsResponse = Schemas["LegalVersionsResponseDTO"];
+export type CompleteProfileRequest = Schemas["CompleteProfileRequestDTO"];
 
 // Perfil e conta
 export type UpdateProfileRequest = Schemas["UpdateProfileRequestDTO"];

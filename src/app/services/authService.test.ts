@@ -65,6 +65,7 @@ describe("authService API integration", () => {
         email: "user@email.com",
         weight: 75.5,
         weeklyGoal: 4,
+        profileComplete: true,
       },
     });
     expect(window.localStorage.getItem("beefit.auth.accessToken")).toBe("jwt-backend");
@@ -147,6 +148,7 @@ describe("authService API integration", () => {
         email: "nova@email.com",
         weight: 68,
         weeklyGoal: 5,
+        profileComplete: true,
       },
     });
     expect(window.localStorage.getItem("beefit.auth.accessToken")).toBe("jwt-register");
@@ -222,5 +224,60 @@ describe("authService API integration", () => {
     expect(window.localStorage.getItem("beefit.auth.accessToken")).toBeNull();
     expect(window.localStorage.getItem("beefit.auth.refreshToken")).toBeNull();
     expect(window.localStorage.getItem("beefit.auth.user")).toBeNull();
+  });
+
+  it("marca a conta social recem-criada como cadastro incompleto", async () => {
+    window.localStorage.setItem("beefit.auth.accessToken", "jwt-social");
+    window.localStorage.setItem("beefit.auth.refreshToken", "refresh-social");
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createJsonResponse({
+        id: "user-2",
+        fullName: "Conta Social",
+        username: "social",
+        email: "social@gmail.com",
+        bodyWeight: null,
+        weeklyGoal: null,
+        profileComplete: false,
+      }),
+    );
+
+    const { authService } = await import("./authService");
+    const session = await authService.restoreSession();
+
+    expect(session?.user).toMatchObject({ profileComplete: false, weight: null, weeklyGoal: null });
+  });
+
+  it("completa o cadastro social e persiste o usuario atualizado", async () => {
+    window.localStorage.setItem("beefit.auth.accessToken", "jwt-social");
+    window.localStorage.setItem("beefit.auth.refreshToken", "refresh-social");
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createJsonResponse({
+        id: "user-2",
+        fullName: "Conta Social",
+        username: "social",
+        email: "social@gmail.com",
+        bodyWeight: 68.5,
+        weeklyGoal: 3,
+        profileComplete: true,
+      }),
+    );
+
+    const { authService } = await import("./authService");
+    const user = await authService.completeProfile({
+      weight: 68.5,
+      weeklyGoal: 3,
+      acceptedTermsVersion: "2026-08-18",
+      acceptedPrivacyVersion: "2026-08-18",
+    });
+
+    expect(user).toMatchObject({ profileComplete: true, weight: 68.5, weeklyGoal: 3 });
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe(`${API_URL}/auth/complete-profile`);
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0]?.[1]?.body))).toEqual({
+      bodyWeight: 68.5,
+      weeklyGoal: 3,
+      acceptedTermsVersion: "2026-08-18",
+      acceptedPrivacyVersion: "2026-08-18",
+    });
+    expect(window.localStorage.getItem("beefit.auth.user")).toContain('"profileComplete":true');
   });
 });
