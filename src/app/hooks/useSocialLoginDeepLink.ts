@@ -10,7 +10,7 @@ const CALLBACK_HOST = "auth";
 
 /**
  * Captura o retorno do navegador do sistema (aberto por authService.startSocialLogin
- * via @capacitor/browser) depois do fluxo OAuth2 do Google/Microsoft, fecha o
+ * via @capacitor/browser) depois do fluxo OAuth2 do Google/Microsoft/Apple, fecha o
  * navegador e troca o código de uso único pela sessão real.
  *
  * Equivalente mobile do SocialLoginCallbackScreen (rota web /oauth-callback).

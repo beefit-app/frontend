@@ -22,7 +22,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Callback do login social (Google/Microsoft): o backend redireciona
+            <!-- Callback do login social (Google/Microsoft/Apple): o backend redireciona
                  pra com.beefit.app://auth/callback?code=... depois do fluxo OAuth2,
                  e o @capacitor/app (appUrlOpen) captura essa URL dentro do app. -->
             <intent-filter>

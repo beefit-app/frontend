@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -26,6 +27,13 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// Rota de callback web do login social (ver SocialLoginCallbackScreen/App.tsx):
+// essa página sempre estabelece sua própria sessão a partir do código de troca,
+// então o restore automático de sessão (abaixo) é pulado aqui — rodar os dois em
+// paralelo correria o risco de um sobrescrever o resultado do outro (ex: uma
+// sessão antiga inválida sendo limpa depois que o login social acabou de suceder).
+const SOCIAL_CALLBACK_PATHNAME = "/oauth-callback";
+
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) return error.message;
   if (error instanceof Error && error.message) return error.message;
@@ -40,6 +48,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (window.location.pathname === SOCIAL_CALLBACK_PATHNAME) {
+      setIsBootstrapping(false);
+      return;
+    }
+
     async function restoreSession() {
       try {
         const session = await authService.restoreSession();
@@ -77,48 +90,60 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  function establishSession(session: AuthSession) {
+  const establishSession = useCallback((session: AuthSession) => {
     setAccessToken(session.accessToken);
     setUser(session.user);
-  }
+  }, []);
 
-  async function login(input: LoginInput) {
+  // Compartilhado por login/register/loginWithSocialCode: os três tratavam falha
+  // exatamente da mesma forma (limpar sessão local, setar authError, repropagar).
+  const resetSessionAfterFailure = useCallback(async (error: unknown): Promise<never> => {
+    await authService.logout();
+    setAccessToken(null);
+    setUser(null);
+    setAuthError(getErrorMessage(error));
+    throw error;
+  }, []);
+
+  const login = useCallback(
+    async (input: LoginInput) => {
+      setIsSubmitting(true);
+      setAuthError(null);
+
+      try {
+        const session = await authService.login(input);
+        establishSession(session);
+      } catch (error) {
+        await resetSessionAfterFailure(error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [establishSession, resetSessionAfterFailure],
+  );
+
+  const register = useCallback(
+    async (input: RegisterInput) => {
+      setIsSubmitting(true);
+      setAuthError(null);
+
+      try {
+        const session = await authService.register(input);
+        establishSession(session);
+      } catch (error) {
+        await resetSessionAfterFailure(error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [establishSession, resetSessionAfterFailure],
+  );
+
+  const loginWithProvider = useCallback(async (provider: SocialLoginProvider) => {
+    // isSubmitting já desabilita os botões sociais na tela (mesma prop usada pro
+    // form tradicional) — sem isso, um duplo toque no nativo podia abrir dois
+    // navegadores/redirects OAuth2 concorrentes antes do primeiro Browser.open resolver.
     setIsSubmitting(true);
-    setAuthError(null);
-
-    try {
-      const session = await authService.login(input);
-      establishSession(session);
-    } catch (error) {
-      await authService.logout();
-      setAccessToken(null);
-      setUser(null);
-      setAuthError(getErrorMessage(error));
-      throw error;
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function register(input: RegisterInput) {
-    setIsSubmitting(true);
-    setAuthError(null);
-
-    try {
-      const session = await authService.register(input);
-      establishSession(session);
-    } catch (error) {
-      await authService.logout();
-      setAccessToken(null);
-      setUser(null);
-      setAuthError(getErrorMessage(error));
-      throw error;
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function loginWithProvider(provider: SocialLoginProvider) {
     setAuthError(null);
 
     try {
@@ -126,37 +151,38 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } catch (error) {
       setAuthError(getErrorMessage(error));
       throw error;
-    }
-  }
-
-  async function loginWithSocialCode(code: string) {
-    setIsSubmitting(true);
-    setAuthError(null);
-
-    try {
-      const session = await authService.exchangeSocialCode(code);
-      establishSession(session);
-    } catch (error) {
-      await authService.logout();
-      setAccessToken(null);
-      setUser(null);
-      setAuthError(getErrorMessage(error));
-      throw error;
     } finally {
       setIsSubmitting(false);
     }
-  }
+  }, []);
 
-  async function logout(options?: { isAccountDeletion?: boolean }) {
+  const loginWithSocialCode = useCallback(
+    async (code: string) => {
+      setIsSubmitting(true);
+      setAuthError(null);
+
+      try {
+        const session = await authService.exchangeSocialCode(code);
+        establishSession(session);
+      } catch (error) {
+        await resetSessionAfterFailure(error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [establishSession, resetSessionAfterFailure],
+  );
+
+  const logout = useCallback(async (options?: { isAccountDeletion?: boolean }) => {
     await authService.logout(options);
     setAccessToken(null);
     setUser(null);
     setAuthError(null);
-  }
+  }, []);
 
-  function clearAuthError() {
+  const clearAuthError = useCallback(() => {
     setAuthError(null);
-  }
+  }, []);
 
   const value: AuthContextValue = {
     user,

@@ -8,7 +8,7 @@ import { PageBackground } from "./PageBackground";
 /**
  * Rota de callback web do login social (/oauth-callback?code=...|error=...).
  * O backend (OAuth2LoginSuccessHandler/FailureHandler) redireciona pra aqui depois
- * do fluxo Authorization Code com o Google/Microsoft. No mobile o equivalente é o
+ * do fluxo Authorization Code com o Google/Microsoft/Apple. No mobile o equivalente é o
  * deep link capturado por useSocialLoginDeepLink.ts — essa tela só existe pra web.
  *
  * O path não pode começar com /auth: o vite.config.ts faz proxy de /auth/** pro
