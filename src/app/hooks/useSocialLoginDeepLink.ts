@@ -2,14 +2,12 @@ import { useEffect } from "react";
 import { App as CapApp, type URLOpenListenerEvent } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
 import { useAuth } from "../auth/AuthContext";
+import { socialLoginErrorMessage } from "../utils/socialLoginErrors";
 
 // com.beefit.app://auth/callback?code=...|error=... — ver AndroidManifest.xml
 // (intent-filter) e Info.plist (CFBundleURLTypes), e o backend
 // (OAuth2LoginSuccessHandler/FailureHandler, beefit.oauth2.callback-base-mobile).
 const CALLBACK_HOST = "auth";
-
-const SOCIAL_LOGIN_ERROR_MESSAGE =
-  "O provedor rejeitou o login (token inválido ou expirado). Tente novamente.";
 
 /**
  * Captura o retorno do navegador do sistema (aberto por authService.startSocialLogin
@@ -41,8 +39,9 @@ export function useSocialLoginDeepLink() {
         // Provedor negou/expirou (?error=oauth_failed): sem código de troca, não há
         // sessão a estabelecer — mas o usuário ainda precisa ver que algo deu errado
         // (mesmo tratamento que a rota web /oauth-callback já dá).
-        if (url.searchParams.get("error")) {
-          setSocialLoginError(SOCIAL_LOGIN_ERROR_MESSAGE);
+        const providerError = url.searchParams.get("error");
+        if (providerError) {
+          setSocialLoginError(socialLoginErrorMessage(providerError));
         }
         return;
       }

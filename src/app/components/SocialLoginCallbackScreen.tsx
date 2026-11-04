@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { BeeAlert } from "./BeeAlert";
 import { BeeButton } from "./BeeButton";
 import { PageBackground } from "./PageBackground";
+import { SOCIAL_LOGIN_GENERIC_ERROR, socialLoginErrorMessage } from "../utils/socialLoginErrors";
 
 /**
  * Rota de callback web do login social (/oauth-callback?code=...|error=...).
@@ -28,18 +29,14 @@ export function SocialLoginCallbackScreen({ onDone }: { onDone: () => void }) {
     const providerError = params.get("error");
 
     if (!code) {
-      setError(
-        providerError === "oauth_failed"
-          ? "O provedor rejeitou o login (token inválido ou expirado). Tente novamente."
-          : "Não foi possível concluir o login social. Tente novamente.",
-      );
+      setError(socialLoginErrorMessage(providerError));
       return;
     }
 
     loginWithSocialCode(code)
       .then(() => onDone())
       .catch(() => {
-        setError("Não foi possível concluir o login social. Tente novamente.");
+        setError(SOCIAL_LOGIN_GENERIC_ERROR);
       });
   }, [loginWithSocialCode, onDone]);
 
