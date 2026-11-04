@@ -7,6 +7,7 @@ import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { BeeAlert } from "./BeeAlert";
 import { messages } from "../constants/messages";
+import { UserPlus } from "lucide-react";
 import { AppleLogo, GoogleLogo } from "./SocialProviderIcons";
 import type { SocialLoginProvider } from "../services/authService";
 
@@ -244,9 +245,9 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                       Continuar com o Google
                     </span>
                   </BeeButton>
-                </div>
-
-                <div className="mt-6">
+                  {/* Mesmo formato dos botões sociais (ícone de 22px + texto, mesmo
+                      grupo e espaçamento): sem o ícone a altura e o alinhamento
+                      do texto ficavam diferentes dos outros dois. */}
                   <BeeButton
                     type="button"
                     variant="dark"
@@ -255,7 +256,10 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                     onClick={onNavigateToRegister}
                     disabled={isSubmitting}
                   >
-                    Criar Conta
+                    <span className="flex items-center justify-center gap-2">
+                      <UserPlus size={22} aria-hidden="true" />
+                      Criar Conta
+                    </span>
                   </BeeButton>
                 </div>
               </IonCardContent>
