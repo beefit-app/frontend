@@ -8,6 +8,9 @@ import { useAuth } from "../auth/AuthContext";
 // (OAuth2LoginSuccessHandler/FailureHandler, beefit.oauth2.callback-base-mobile).
 const CALLBACK_HOST = "auth";
 
+const SOCIAL_LOGIN_ERROR_MESSAGE =
+  "O provedor rejeitou o login (token inválido ou expirado). Tente novamente.";
+
 /**
  * Captura o retorno do navegador do sistema (aberto por authService.startSocialLogin
  * via @capacitor/browser) depois do fluxo OAuth2 do Google/Microsoft/Apple, fecha o
@@ -16,13 +19,13 @@ const CALLBACK_HOST = "auth";
  * Equivalente mobile do SocialLoginCallbackScreen (rota web /oauth-callback).
  */
 export function useSocialLoginDeepLink() {
-  const { loginWithSocialCode } = useAuth();
+  const { loginWithSocialCode, setSocialLoginError } = useAuth();
 
   useEffect(() => {
-    const listenerPromise = CapApp.addListener("appUrlOpen", (event: URLOpenListenerEvent) => {
+    function handleCallbackUrl(rawUrl: string) {
       let url: URL;
       try {
-        url = new URL(event.url);
+        url = new URL(rawUrl);
       } catch {
         return;
       }
@@ -36,18 +39,36 @@ export function useSocialLoginDeepLink() {
       const code = url.searchParams.get("code");
       if (!code) {
         // Provedor negou/expirou (?error=oauth_failed): sem código de troca, não há
-        // sessão a estabelecer. O usuário permanece na tela de login e pode tentar
-        // de novo pelo botão — não há aviso dedicado pra esse caso no mobile ainda.
+        // sessão a estabelecer — mas o usuário ainda precisa ver que algo deu errado
+        // (mesmo tratamento que a rota web /oauth-callback já dá).
+        if (url.searchParams.get("error")) {
+          setSocialLoginError(SOCIAL_LOGIN_ERROR_MESSAGE);
+        }
         return;
       }
 
       void loginWithSocialCode(code).catch(() => {
         // authError já é setado pelo AuthContext; a tela de login exibe o alerta.
       });
+    }
+
+    const listenerPromise = CapApp.addListener("appUrlOpen", (event: URLOpenListenerEvent) =>
+      handleCallbackUrl(event.url),
+    );
+
+    // O listener acima só pega o app já rodando em background recebendo a nova
+    // intent. Se o Android matou o processo durante o OAuth2 (comum: usuário
+    // passa um tempo no navegador do sistema), o retorno vira um cold start e
+    // appUrlOpen nunca dispara — getLaunchUrl() é o jeito de pegar essa URL de
+    // lançamento depois que o app termina de inicializar.
+    void CapApp.getLaunchUrl().then((launch) => {
+      if (launch?.url) {
+        handleCallbackUrl(launch.url);
+      }
     });
 
     return () => {
       void listenerPromise.then((handle) => handle.remove());
     };
-  }, [loginWithSocialCode]);
+  }, [loginWithSocialCode, setSocialLoginError]);
 }

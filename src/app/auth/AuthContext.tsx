@@ -23,6 +23,8 @@ interface AuthContextValue {
   clearAuthError: () => void;
   loginWithProvider: (provider: SocialLoginProvider) => Promise<void>;
   loginWithSocialCode: (code: string) => Promise<void>;
+  /** Pro deep link mobile reportar "?error=oauth_failed" sem precisar simular uma troca de código. */
+  setSocialLoginError: (message: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -184,6 +186,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setAuthError(null);
   }, []);
 
+  const setSocialLoginError = useCallback((message: string) => {
+    setAuthError(message);
+  }, []);
+
   const value: AuthContextValue = {
     user,
     accessToken,
@@ -197,6 +203,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     clearAuthError,
     loginWithProvider,
     loginWithSocialCode,
+    setSocialLoginError,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
