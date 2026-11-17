@@ -13,10 +13,13 @@ import { RegisterScreen } from "./components/RegisterScreen";
 import { DEFAULT_ACCOUNT_SETTINGS, ProfileScreen, type AccountSettingsData } from "./components/ProfileScreen";
 import { WorkoutStartScreen } from "./components/WorkoutStartScreen";
 import { LegalDocuments } from "./components/LegalDocuments";
+import { SocialLoginCallbackScreen } from "./components/SocialLoginCallbackScreen";
+import { CompleteProfileScreen } from "./components/CompleteProfileScreen";
 import { WorkoutShareSheet, type WorkoutShareTarget } from "./components/workout-share";
 import { App as CapApp } from "@capacitor/app";
 import { useAuth } from "./auth/AuthContext";
 import { useAppNavigation, type TabId } from "./hooks/useAppNavigation";
+import { useSocialLoginDeepLink } from "./hooks/useSocialLoginDeepLink";
 import { useStreakState } from "./hooks/useStreakState";
 import { useWorkoutSessionState } from "./hooks/useWorkoutSessionState";
 import { useKeyboardState } from "./hooks/useKeyboardState";
@@ -116,11 +119,16 @@ class ScreenErrorBoundary extends Component<
 }
 
 export default function App() {
-  const { isAuthenticated, isBootstrapping, user } = useAuth();
+  const { isAuthenticated: hasSession, isBootstrapping, user, needsProfileCompletion } = useAuth();
+  // Conta social com cadastro incompleto tem sessão, mas o app em si (e as rotas
+  // /api/** no backend) fica travado até a CompleteProfileScreen: para tudo abaixo
+  // — navegação, warmup, streak, abas — ela conta como não autenticada.
+  const isAuthenticated = hasSession && !needsProfileCompletion;
   const contentRef = useRef<HTMLIonContentElement | null>(null);
   const [pathname, setPathname] = useState(() => window.location.pathname);
   const { authScreen, screen, direction: _direction, setAuthScreen, setScreen, goBack, handleTabChange } = useAppNavigation(isAuthenticated);
   const isKeyboardVisible = useKeyboardState();
+  useSocialLoginDeepLink();
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
   const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState(
@@ -134,6 +142,9 @@ export default function App() {
   const [workoutShareTarget, setWorkoutShareTarget] = useState<WorkoutShareTarget | null>(null);
   const isAdminRoute = pathname.startsWith("/admin");
   const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
+  // Não pode começar com /auth: o vite.config.ts faz proxy de /auth/** pro
+  // backend em dev, e essa rota nunca chegaria na SPA se começasse assim.
+  const isSocialCallbackRoute = pathname === "/oauth-callback";
 
   const [visitedScreens, setVisitedScreens] = useState<Set<TabId>>(() => new Set(["feed"]));
 
@@ -179,12 +190,43 @@ export default function App() {
     };
   }, [goBack, setScreen, socialProfileReturnScreen, socialProfileUsername]);
 
+  if (isSocialCallbackRoute) {
+    return (
+      <IonApp>
+        <IonPage>
+          <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>
+            <SocialLoginCallbackScreen
+              onDone={() => {
+                window.history.replaceState(null, "", "/");
+                setPathname("/");
+              }}
+            />
+          </IonContent>
+        </IonPage>
+      </IonApp>
+    );
+  }
+
   if (legalDocument) {
     return (
       <IonApp>
         <IonPage>
           <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>
             <LegalDocuments document={legalDocument} />
+          </IonContent>
+        </IonPage>
+      </IonApp>
+    );
+  }
+
+  // Depois de /terms e /privacy (os links do aceite abrem em nova aba e precisam
+  // renderizar o documento) e antes de qualquer tela do app ou do admin.
+  if (!isBootstrapping && needsProfileCompletion) {
+    return (
+      <IonApp>
+        <IonPage>
+          <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>
+            <CompleteProfileScreen />
           </IonContent>
         </IonPage>
       </IonApp>

@@ -5,6 +5,12 @@ export interface AuthUser {
   username?: string | null;
   weeklyGoal?: number | null;
   weight?: number | null;
+  /**
+   * false só para conta criada via login social que ainda não informou peso, meta
+   * e aceite dos termos (ver CompleteProfileScreen). Ausente = completo: sessões
+   * salvas antes deste campo existir e o modo mock nunca caem na tela de completar.
+   */
+  profileComplete?: boolean;
 }
 
 export interface AuthApiUser {
@@ -12,8 +18,17 @@ export interface AuthApiUser {
   fullName: string;
   username: string;
   email: string;
-  bodyWeight: number;
+  // Nulos enquanto uma conta social não completa o cadastro.
+  bodyWeight: number | null;
+  weeklyGoal: number | null;
+  profileComplete?: boolean;
+}
+
+export interface CompleteProfileInput {
+  weight: number;
   weeklyGoal: number;
+  acceptedTermsVersion: string;
+  acceptedPrivacyVersion: string;
 }
 
 export interface LoginInput {

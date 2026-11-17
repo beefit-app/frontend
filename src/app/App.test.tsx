@@ -55,6 +55,10 @@ vi.mock("./components/workout-share", () => ({
 
 vi.mock("./storage/pageCacheStorage", () => ({ pageCacheStorage: { remove: removeCachedPage } }));
 
+vi.mock("./components/CompleteProfileScreen", () => ({
+  CompleteProfileScreen: () => <div>complete-profile-screen</div>,
+}));
+
 vi.mock("./components/InventoryScreen", () => ({
   InventoryScreen: () => <div>inventory-screen</div>,
 }));
@@ -113,6 +117,30 @@ describe("App", () => {
     rerender(<App />);
 
     expect(screen.getByText("login-screen")).toBeInTheDocument();
+  });
+
+  it("trava o app na tela de completar cadastro enquanto a conta social estiver incompleta", () => {
+    authState.current = {
+      isAuthenticated: true,
+      isBootstrapping: false,
+      needsProfileCompletion: true,
+    } as typeof authState.current;
+
+    const { rerender } = render(<App />);
+
+    expect(screen.getByText("complete-profile-screen")).toBeInTheDocument();
+    expect(screen.queryByText("social-feed-screen")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("bottom-navigation")).not.toBeInTheDocument();
+
+    authState.current = {
+      isAuthenticated: true,
+      isBootstrapping: false,
+      needsProfileCompletion: false,
+    } as typeof authState.current;
+    rerender(<App />);
+
+    expect(screen.queryByText("complete-profile-screen")).not.toBeInTheDocument();
+    expect(screen.getByText("social-feed-screen")).toBeInTheDocument();
   });
 
   it("renderiza a área autenticada quando o usuário já está logado", async () => {

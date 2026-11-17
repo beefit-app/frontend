@@ -30,9 +30,13 @@ interface ParsedResponse {
   rawResponse: string;
 }
 
-const API_BASE_URL = import.meta.env?.VITE_API_URL?.replace(/\/$/, "") ?? "";
+export const API_BASE_URL = import.meta.env?.VITE_API_URL?.replace(/\/$/, "") ?? "";
 const DEFAULT_TIMEOUT_MS = 15_000;
 export const AUTH_UNAUTHORIZED_EVENT = "beefit:auth-unauthorized";
+// Disparado quando o backend recusa uma rota /api/** porque a conta (criada via
+// login social) ainda não completou o cadastro — ver ProfileCompletionFilter.
+// Cobre sessão restaurada do cache com profileComplete desatualizado.
+export const PROFILE_INCOMPLETE_EVENT = "beefit:profile-incomplete";
 let refreshRequest: Promise<string | null> | null = null;
 
 function buildUrl(path: string) {
@@ -262,6 +266,8 @@ async function request<T>(path: string, options: RequestOptions = {}, hasRetried
       window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
     } else if (response.status === 401 && (logoutOnUnauthorized || hasRetriedAfterRefresh)) {
       window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
+    } else if (response.status === 403 && errorCode === "PROFILE_INCOMPLETE") {
+      window.dispatchEvent(new CustomEvent(PROFILE_INCOMPLETE_EVENT));
     }
 
     throw new ApiError(

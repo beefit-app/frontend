@@ -1,14 +1,17 @@
+import { Browser } from "@capacitor/browser";
+import { Capacitor } from "@capacitor/core";
 import { sessionStorage } from "../storage/sessionStorage";
 import type {
   AuthApiUser,
   AuthSession,
   AuthUser,
+  CompleteProfileInput,
   LoginInput,
   RegisterApiInput,
   RegisterInput,
 } from "../types/auth";
-import type { LoginRequest, LogoutRequest, RegisterRequest } from "../types/api";
-import { ApiError, apiClient } from "./apiClient";
+import type { CompleteProfileRequest, LoginRequest, LogoutRequest, RegisterRequest } from "../types/api";
+import { API_BASE_URL, ApiError, apiClient } from "./apiClient";
 import { clearLocalUserData } from "./sessionTeardown";
 
 const DEV_AUTH_BYPASS_ENABLED =
@@ -16,7 +19,11 @@ const DEV_AUTH_BYPASS_ENABLED =
 const MOCK_TOKEN_PREFIX = "beefit-dev-token";
 const AUTH_LOGIN_PATH = "/auth/login";
 const AUTH_REGISTER_PATH = "/auth/register";
+const AUTH_SOCIAL_EXCHANGE_PATH = "/auth/social/exchange";
+const AUTH_COMPLETE_PROFILE_PATH = "/auth/complete-profile";
 const CURRENT_USER_PATHS = ["/auth/me", "/api/profile/me"] as const;
+
+export type SocialLoginProvider = "google" | "microsoft" | "apple";
 
 interface BackendAuthSessionResponse {
   accessToken: string;
@@ -119,6 +126,7 @@ function mapAuthApiUserToAuthUser(apiUser: AuthApiUser): AuthUser {
     username: apiUser.username,
     weeklyGoal: apiUser.weeklyGoal,
     weight: apiUser.bodyWeight,
+    profileComplete: apiUser.profileComplete ?? true,
   };
 }
 
@@ -143,6 +151,7 @@ function mergeCurrentUserResponse(value: unknown, fallbackUser: AuthUser | null)
           : fallbackUser?.username ?? null,
       weeklyGoal: fallbackUser?.weeklyGoal ?? null,
       weight: fallbackUser?.weight ?? null,
+      profileComplete: fallbackUser?.profileComplete,
     };
   }
 
@@ -161,6 +170,8 @@ function mergeCurrentUserResponse(value: unknown, fallbackUser: AuthUser | null)
           : fallbackUser?.weeklyGoal ?? null,
       weight:
         typeof value.weight === "number" ? value.weight : fallbackUser?.weight ?? null,
+      profileComplete:
+        typeof value.profileComplete === "boolean" ? value.profileComplete : fallbackUser?.profileComplete,
     };
   }
 
@@ -401,6 +412,53 @@ const apiAuthGateway: AuthGateway = {
   },
 };
 
+// Dispara o fluxo OAuth2 Authorization Code do backend (spring-boot-starter-oauth2-client).
+// O backend orquestra o redirect pro provedor e a troca do code usando client-secret;
+// aqui só precisamos abrir essa URL inicial — ela nunca passa por fetch/XHR (CORS não
+// se aplica a navegação de browser), então não dá pra usar o apiClient.
+async function startSocialLogin(provider: SocialLoginProvider) {
+  if (!API_BASE_URL) {
+    throw new Error("VITE_API_URL não configurada.");
+  }
+
+  const deviceId = await sessionStorage.ensureDeviceId();
+  const isNative = Capacitor.isNativePlatform();
+  const platform = isNative ? "mobile" : "web";
+  const url =
+    `${API_BASE_URL}/oauth2/authorization/${provider}` +
+    `?platform=${platform}&deviceId=${encodeURIComponent(deviceId)}`;
+
+  if (isNative) {
+    await Browser.open({ url });
+    return;
+  }
+
+  window.location.href = url;
+}
+
+// Troca o código de uso único (?code=... no callback do login social) pela sessão
+// real — mesmo formato de resposta do /auth/login tradicional, então reaproveita
+// normalizeApiSession/persistSession sem nenhuma lógica nova.
+async function exchangeSocialCode(code: string): Promise<AuthSession> {
+  const response = await apiClient.post<unknown>(AUTH_SOCIAL_EXCHANGE_PATH, { code });
+  return normalizeApiSession(response);
+}
+
+// Fecha o cadastro de uma conta criada via login social (peso, meta e aceite dos
+// termos). O backend devolve o usuário atualizado, já com profileComplete=true.
+async function completeProfile(input: CompleteProfileInput): Promise<AuthUser> {
+  const body: CompleteProfileRequest = {
+    bodyWeight: input.weight,
+    weeklyGoal: input.weeklyGoal,
+    acceptedTermsVersion: input.acceptedTermsVersion,
+    acceptedPrivacyVersion: input.acceptedPrivacyVersion,
+  };
+  const response = await apiClient.post<AuthApiUser>(AUTH_COMPLETE_PROFILE_PATH, body, { auth: true });
+  const user = mapAuthApiUserToAuthUser(response);
+  await sessionStorage.setUser(user);
+  return user;
+}
+
 const authGateway = DEV_AUTH_BYPASS_ENABLED ? mockAuthGateway : apiAuthGateway;
 
 export const authService = {
@@ -422,5 +480,17 @@ export const authService = {
 
   getCurrentUser() {
     return authGateway.getCurrentUser();
+  },
+
+  startSocialLogin(provider: SocialLoginProvider) {
+    return startSocialLogin(provider);
+  },
+
+  exchangeSocialCode(code: string) {
+    return exchangeSocialCode(code);
+  },
+
+  completeProfile(input: CompleteProfileInput) {
+    return completeProfile(input);
   },
 };

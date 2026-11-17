@@ -30,6 +30,20 @@
 	<array>
 		<string>instagram-stories</string>
 	</array>
+	<!-- Callback do login social (Google/Microsoft/Apple): o backend redireciona pra
+	     com.beefit.app://auth/callback?code=... depois do fluxo OAuth2, e o
+	     @capacitor/app (appUrlOpen) captura essa URL dentro do app. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.beefit.app.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.beefit.app</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>O BeeFit salva na sua galeria o card do treino que você escolher guardar.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

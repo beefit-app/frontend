@@ -7,6 +7,9 @@ import { PageBackground } from "./PageBackground";
 import { useAuth } from "../auth/AuthContext";
 import { BeeAlert } from "./BeeAlert";
 import { messages } from "../constants/messages";
+import { UserPlus } from "lucide-react";
+import { AppleLogo, GoogleLogo } from "./SocialProviderIcons";
+import type { SocialLoginProvider } from "../services/authService";
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
@@ -17,7 +20,15 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const { authError, clearAuthError, isSubmitting, login } = useAuth();
+  const { authError, clearAuthError, isSubmitting, login, loginWithProvider } = useAuth();
+
+  async function handleSocialLogin(provider: SocialLoginProvider) {
+    try {
+      await loginWithProvider(provider);
+    } catch {
+      // O estado de erro já é tratado pelo AuthProvider.
+    }
+  }
 
   function validate() {
     const e: typeof errors = {};
@@ -207,7 +218,36 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                   <div className="h-px flex-1 bg-[#2D2D2D]" />
                 </div>
 
-                <div className="mt-6">
+                <div className="mt-6 flex flex-col gap-3">
+                  <BeeButton
+                    type="button"
+                    variant="dark"
+                    shape="soft"
+                    fullWidth
+                    onClick={() => handleSocialLogin("apple")}
+                    disabled={isSubmitting}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <AppleLogo />
+                      Continuar com a Apple
+                    </span>
+                  </BeeButton>
+                  <BeeButton
+                    type="button"
+                    variant="dark"
+                    shape="soft"
+                    fullWidth
+                    onClick={() => handleSocialLogin("google")}
+                    disabled={isSubmitting}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <GoogleLogo />
+                      Continuar com o Google
+                    </span>
+                  </BeeButton>
+                  {/* Mesmo formato dos botões sociais (ícone de 22px + texto, mesmo
+                      grupo e espaçamento): sem o ícone a altura e o alinhamento
+                      do texto ficavam diferentes dos outros dois. */}
                   <BeeButton
                     type="button"
                     variant="dark"
@@ -216,7 +256,10 @@ export function LoginScreen({ onNavigateToRegister }: LoginScreenProps) {
                     onClick={onNavigateToRegister}
                     disabled={isSubmitting}
                   >
-                    Criar Conta
+                    <span className="flex items-center justify-center gap-2">
+                      <UserPlus size={22} aria-hidden="true" />
+                      Criar Conta
+                    </span>
                   </BeeButton>
                 </div>
               </IonCardContent>
