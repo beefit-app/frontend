@@ -37,7 +37,8 @@ function remainingBeefitKeys() {
   const keys: string[] = [];
   for (let index = 0; index < window.localStorage.length; index += 1) {
     const key = window.localStorage.key(index);
-    if (key?.startsWith("beefit.")) keys.push(key);
+    // A geração que marca o logout permanece, mas não contém dados de sessão.
+    if (key?.startsWith("beefit.") && key !== "beefit.auth.generation" && key !== "beefit.auth.legacyGeneration") keys.push(key);
   }
   return keys;
 }

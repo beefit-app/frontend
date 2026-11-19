@@ -37,8 +37,8 @@ describe("mediaCache", () => {
   it("nao rebaixa a mesma foto em uma nova montagem", async () => {
     const { acquireMediaUrl, releaseMediaUrl } = await import("./mediaCache");
 
-    await acquireMediaUrl("/api/media/foto-1");
-    releaseMediaUrl("/api/media/foto-1");
+    const url = await acquireMediaUrl("/api/media/foto-1");
+    releaseMediaUrl("/api/media/foto-1", url);
     await acquireMediaUrl("/api/media/foto-1");
 
     expect(getBlob).toHaveBeenCalledTimes(1);
@@ -47,9 +47,9 @@ describe("mediaCache", () => {
   it("nao revoga um object URL que outro card ainda exibe", async () => {
     const { acquireMediaUrl, releaseMediaUrl } = await import("./mediaCache");
 
+    const url = await acquireMediaUrl("/api/media/foto-1");
     await acquireMediaUrl("/api/media/foto-1");
-    await acquireMediaUrl("/api/media/foto-1");
-    releaseMediaUrl("/api/media/foto-1");
+    releaseMediaUrl("/api/media/foto-1", url);
 
     // Ainda ha uma referencia viva: revogar aqui quebraria a imagem na tela.
     expect(revokeObjectURL).not.toHaveBeenCalled();
@@ -65,20 +65,40 @@ describe("mediaCache", () => {
     }));
 
     const { acquireMediaUrl, clearMediaCache } = await import("./mediaCache");
-    const pendente = acquireMediaUrl("/api/media/foto-de-A").catch(() => "descartado");
+    const pendente = acquireMediaUrl("/api/media/foto-de-A");
+    const descartado = expect(pendente).rejects.toThrow();
 
     clearMediaCache();
     resolverDownload(new Blob(["foto"], { type: "image/png" }));
-    await pendente;
+    await descartado;
 
-    // O object URL criado tarde precisa ser revogado, senao vaza memoria e a foto
-    // continua acessivel.
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:foto-1");
+    expect(createObjectURL).not.toHaveBeenCalled();
 
     // E a proxima exibicao tem de buscar de novo, em vez de achar a foto de A no cache.
     getBlob.mockResolvedValueOnce(new Blob(["outra"], { type: "image/png" }));
     await acquireMediaUrl("/api/media/foto-de-A");
     expect(getBlob).toHaveBeenCalledTimes(2);
+  });
+
+  it("mantém o download novo compartilhado mesmo que o pedido anterior termine primeiro", async () => {
+    const { acquireMediaUrl, clearMediaCache } = await import("./mediaCache");
+    const path = "/api/media/foto-1";
+    let finishOld!: (blob: Blob) => void;
+    let finishNew!: (blob: Blob) => void;
+    getBlob
+      .mockReturnValueOnce(new Promise<Blob>((resolve) => { finishOld = resolve; }))
+      .mockReturnValueOnce(new Promise<Blob>((resolve) => { finishNew = resolve; }));
+
+    const oldDownload = expect(acquireMediaUrl(path)).rejects.toThrow();
+    clearMediaCache();
+    const newDownload = acquireMediaUrl(path);
+    finishOld(new Blob(["anterior"]));
+    await oldDownload;
+
+    const sharedDownload = acquireMediaUrl(path);
+    expect(getBlob).toHaveBeenCalledTimes(2);
+    finishNew(new Blob(["nova"]));
+    expect(await sharedDownload).toBe(await newDownload);
   });
 
   it("clearMediaCache revoga tudo, para as fotos nao sobreviverem ao logout", async () => {
@@ -99,13 +119,13 @@ describe("mediaCache", () => {
     const { acquireMediaUrl, releaseMediaUrl } = await import("./mediaCache");
 
     // Fixa o avatar do amigo
-    await acquireMediaUrl("/api/media/avatar-amigo", { pinned: true });
-    releaseMediaUrl("/api/media/avatar-amigo"); // refs = 0, mas pinned = true
+    const avatar = await acquireMediaUrl("/api/media/avatar-amigo", { pinned: true });
+    releaseMediaUrl("/api/media/avatar-amigo", avatar); // refs = 0, mas pinned = true
 
     // Adiciona 40 fotos normais do feed que unmountam (refs = 0)
     for (let i = 1; i <= 40; i++) {
-      await acquireMediaUrl(`/api/media/feed-foto-${i}`);
-      releaseMediaUrl(`/api/media/feed-foto-${i}`);
+      const path = `/api/media/feed-foto-${i}`;
+      releaseMediaUrl(path, await acquireMediaUrl(path));
     }
 
     // O avatar fixado não pode ter sido revogado por evicção
@@ -115,6 +135,24 @@ describe("mediaCache", () => {
     await acquireMediaUrl("/api/media/avatar-amigo");
     // getBlob foi chamado 1 vez pro avatar + 40 pro feed = 41 vezes (e NÃO 42)
     expect(getBlob).toHaveBeenCalledTimes(41);
+  });
+
+  it("um cleanup antigo não deixa a nova URL em uso ser removida pelo LRU", async () => {
+    const { acquireMediaUrl, releaseMediaUrl, clearMediaCache } = await import("./mediaCache");
+    const path = "/api/media/foto-1";
+    const oldUrl = await acquireMediaUrl(path);
+    clearMediaCache();
+    const currentUrl = await acquireMediaUrl(path);
+    releaseMediaUrl(path, oldUrl);
+
+    for (let i = 0; i < 40; i++) {
+      const otherPath = `/api/media/outra-${i}`;
+      releaseMediaUrl(otherPath, await acquireMediaUrl(otherPath));
+    }
+
+    expect(revokeObjectURL).not.toHaveBeenCalledWith(currentUrl);
+    expect(await acquireMediaUrl(path)).toBe(currentUrl);
+    expect(getBlob).toHaveBeenCalledTimes(42);
   });
 
   it("preloadMedia pré-carrega URLs válidas ignorando nulos e strings não-mídia", async () => {

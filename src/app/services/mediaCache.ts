@@ -1,12 +1,10 @@
 import { apiClient } from "./apiClient";
 
-// Guarda object URLs de midia protegida para o feed nao rebaixar a mesma foto a
-// cada montagem. O cache e por contagem de referencia: revogar um object URL que
-// outro componente ainda esta exibindo quebraria a imagem dele.
 const MAX_CACHED_MEDIA = 40;
 
 interface CacheEntry {
-  url: string;
+  url: string | null;
+  download: Promise<string>;
   refs: number;
   pinned?: boolean;
 }
@@ -15,70 +13,61 @@ export interface AcquireMediaOptions {
   pinned?: boolean;
 }
 
-// A ordem de insercao do Map serve de LRU: a entrada mais recente vai para o fim.
+// A mesma entrada deduplica downloads em voo e mantém a URL para novas montagens.
+// A ordem de inserção do Map serve de LRU.
 const cache = new Map<string, CacheEntry>();
-const inFlight = new Map<string, Promise<string>>();
-
-// Um download em voo nao e cancelado pelo logout: ele resolve depois e reinsere a
-// foto do usuario anterior no cache. O contador marca "de qual sessao e este
-// download"; quem termina com o numero velho e descartado.
+const generationListeners = new Set<() => void>();
 let generation = 0;
+
+export function getMediaCacheGeneration() {
+  return generation;
+}
+
+export function subscribeMediaCache(listener: () => void) {
+  generationListeners.add(listener);
+  return () => { generationListeners.delete(listener); };
+}
 
 function evictUnused() {
   if (cache.size <= MAX_CACHED_MEDIA) return;
 
   for (const [path, entry] of cache) {
     if (cache.size <= MAX_CACHED_MEDIA) break;
-    if (entry.refs > 0 || entry.pinned) continue;
+    if (!entry.url || entry.refs > 0 || entry.pinned) continue;
     URL.revokeObjectURL(entry.url);
     cache.delete(path);
   }
 }
 
-export async function acquireMediaUrl(path: string, options?: AcquireMediaOptions) {
-  const generationAoPedir = generation;
-  const cached = cache.get(path);
-  if (cached) {
-    cached.refs += 1;
-    if (options?.pinned) {
-      cached.pinned = true;
-    }
-    // Reinsere para marcar como usada mais recentemente.
-    cache.delete(path);
-    cache.set(path, cached);
-    return cached.url;
+function assertCurrentGeneration(requestGeneration: number) {
+  if (requestGeneration !== generation) {
+    throw new Error("A autorização da mídia mudou durante o download.");
   }
+}
 
-  // Varios cards podem pedir a mesma foto no mesmo frame; uma requisicao basta.
-  let request = inFlight.get(path);
-  if (!request) {
-    request = apiClient
-      .getBlob(path, { auth: true })
-      .then((blob) => URL.createObjectURL(blob))
-      .finally(() => inFlight.delete(path));
-    inFlight.set(path, request);
-  }
-
-  const url = await request;
-
-  if (generationAoPedir !== generation) {
-    // O cache foi limpo enquanto isto baixava. Revoga o URL recem-criado — quem
-    // limpou nao tinha como conhece-lo — e nao devolve a midia de uma sessao que
-    // ja acabou.
-    URL.revokeObjectURL(url);
-    throw new Error("Sessão encerrada durante o download da mídia.");
-  }
-
-  const entry = cache.get(path);
-  if (entry) {
-    entry.refs += 1;
-    if (options?.pinned) {
-      entry.pinned = true;
-    }
+function downloadMedia(path: string, requestGeneration: number): CacheEntry {
+  const download = apiClient.getBlob(path, { auth: true }).then((blob) => {
+    assertCurrentGeneration(requestGeneration);
+    entry.url = URL.createObjectURL(blob);
     return entry.url;
-  }
+  }).catch((error: unknown) => {
+    if (cache.get(path) === entry) cache.delete(path);
+    throw error;
+  });
+  const entry: CacheEntry = { url: null, download, refs: 0 };
+  return entry;
+}
 
-  cache.set(path, { url, refs: 1, pinned: options?.pinned });
+export async function acquireMediaUrl(path: string, options?: AcquireMediaOptions) {
+  const requestGeneration = generation;
+  const entry = cache.get(path) ?? downloadMedia(path, requestGeneration);
+  entry.refs += 1;
+  if (options?.pinned) entry.pinned = true;
+  cache.delete(path);
+  cache.set(path, entry);
+
+  const url = entry.url ?? await entry.download;
+  assertCurrentGeneration(requestGeneration);
   evictUnused();
   return url;
 }
@@ -94,37 +83,25 @@ export async function preloadMedia(
   );
 
   await Promise.allSettled(
-    validPaths.map(async (path) => {
-      try {
-        await acquireMediaUrl(path, options);
-        // O preload garante que a foto entre na memória; se for pinned, não será descartada por evicção LRU.
-        const entry = cache.get(path);
-        if (entry) {
-          entry.refs = Math.max(0, entry.refs - 1);
-        }
-      } catch {
-        // Falha no pré-carregamento não bloqueia a aplicação
-      }
-    }),
+    validPaths.map(async (path) => releaseMediaUrl(path, await acquireMediaUrl(path, options))),
   );
 }
 
-export function releaseMediaUrl(path: string) {
+export function releaseMediaUrl(path: string, url: string) {
   const entry = cache.get(path);
-  if (!entry) return;
+  // Um cleanup atrasado não pode devolver a referência adquirida por outra geração.
+  if (!entry || entry.url !== url) return;
 
   entry.refs = Math.max(0, entry.refs - 1);
   evictUnused();
 }
 
-// Chamado no logout: sem isto as fotos do usuario anterior continuariam em memoria
-// e acessiveis por object URL, que e exatamente o vazamento entre contas que o
-// desmonte de sessao existe para evitar.
+// O logout e as invalidações de visibilidade revogam até URLs fixadas e em uso.
 export function clearMediaCache() {
   generation += 1;
   for (const entry of cache.values()) {
-    URL.revokeObjectURL(entry.url);
+    if (entry.url) URL.revokeObjectURL(entry.url);
   }
   cache.clear();
-  inFlight.clear();
+  for (const listener of generationListeners) listener();
 }

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beginSessionChange, sessionStorage } from "../storage/sessionStorage";
 import type { WorkoutCompletionDraft } from "../types/workout";
 
 vi.mock("./apiClient", () => ({
@@ -51,8 +52,10 @@ function createDraft(shouldSaveTemplate: boolean): WorkoutCompletionDraft {
 }
 
 describe("workoutService.finishWorkout", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    window.localStorage.clear();
+    await sessionStorage.activate(beginSessionChange("replace").signal, "access-a", "refresh-a", { id: "user-1" });
   });
 
   it("retorna resumo oficial do backend", async () => {
@@ -182,6 +185,19 @@ describe("workoutService.finishWorkout", () => {
 
     expect(onPrepared).toHaveBeenCalledWith(expect.objectContaining({ photoMediaId: "media-1" }));
     expect(vi.mocked(apiClient.post).mock.calls[1][1]).toMatchObject({ photoMediaId: "media-1" });
+  });
+
+  it("não confirma a finalização se a gravação local termina em outra sessão", async () => {
+    const { apiClient } = await import("./apiClient");
+    const { workoutService } = await import("./workoutService");
+    vi.mocked(apiClient.post).mockResolvedValue(finishedSession);
+
+    const completion = workoutService.finishWorkout(createDraft(true), async () => {
+      await sessionStorage.activate(beginSessionChange("replace").signal, "access-b", "refresh-b", { id: "user-2" });
+    });
+
+    await expect(completion).rejects.toMatchObject({ name: "AbortError" });
+    expect(apiClient.post).not.toHaveBeenCalled();
   });
 
   it("nao cria template quando a opcao esta inativa", async () => {

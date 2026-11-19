@@ -3,18 +3,14 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react";
 import { authService, type SocialLoginProvider } from "../services/authService";
 import { AUTH_UNAUTHORIZED_EVENT, ApiError, PROFILE_INCOMPLETE_EVENT } from "../services/apiClient";
-import type {
-  AuthSession,
-  AuthUser,
-  CompleteProfileInput,
-  LoginInput,
-  RegisterInput,
-} from "../types/auth";
+import { assertSessionActive, getSessionSignal, watchExternalSessionChange } from "../storage/sessionStorage";
+import type { AuthSession, AuthUser, CompleteProfileInput, LoginInput, RegisterInput } from "../types/auth";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -29,20 +25,12 @@ interface AuthContextValue {
   clearAuthError: () => void;
   loginWithProvider: (provider: SocialLoginProvider) => Promise<void>;
   loginWithSocialCode: (code: string) => Promise<void>;
-  /** Pro deep link mobile reportar "?error=oauth_failed" sem precisar simular uma troca de código. */
   setSocialLoginError: (message: string) => void;
-  /** Conta criada via login social que ainda não informou peso, meta e aceite dos termos. */
   needsProfileCompletion: boolean;
   completeProfile: (input: CompleteProfileInput) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-// Rota de callback web do login social (ver SocialLoginCallbackScreen/App.tsx):
-// essa página sempre estabelece sua própria sessão a partir do código de troca,
-// então o restore automático de sessão (abaixo) é pulado aqui — rodar os dois em
-// paralelo correria o risco de um sobrescrever o resultado do outro (ex: uma
-// sessão antiga inválida sendo limpa depois que o login social acabou de suceder).
 const SOCIAL_CALLBACK_PATHNAME = "/oauth-callback";
 
 function getErrorMessage(error: unknown) {
@@ -57,180 +45,156 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const authOperation = useRef(0);
+  const authSubmission = useRef(0);
+  const providerStarting = useRef(false);
 
   useEffect(() => {
-    if (window.location.pathname === SOCIAL_CALLBACK_PATHNAME) {
+    let cancelled = false;
+    const unwatch = watchExternalSessionChange(() => {
+      const operation = ++authOperation.current;
+      setAccessToken(null);
+      setUser(null);
       setIsBootstrapping(false);
-      return;
-    }
+      setIsSubmitting(false);
+      setAuthError(null);
+      void authService.clearExternalSession().catch((error: unknown) => {
+        if (!cancelled && operation === authOperation.current) setAuthError(getErrorMessage(error));
+      });
+    });
+    const operation = authOperation.current;
+    const isCurrent = () => !cancelled && operation === authOperation.current;
 
     async function restoreSession() {
       try {
+        const signal = getSessionSignal();
         const session = await authService.restoreSession();
-
-        if (session) {
-          setAccessToken(session.accessToken);
-          setUser(session.user);
-        } else {
+        if (session) assertSessionActive(signal);
+        if (isCurrent()) {
+          setAccessToken(session?.accessToken ?? null);
+          setUser(session?.user ?? null);
+        }
+      } catch (error) {
+        if (isCurrent()) {
           setAccessToken(null);
           setUser(null);
+          setAuthError(getErrorMessage(error));
         }
-      } catch {
-        setAccessToken(null);
-        setUser(null);
       } finally {
-        setIsBootstrapping(false);
+        if (isCurrent()) setIsBootstrapping(false);
       }
     }
 
-    restoreSession();
-  }, []);
-
-  useEffect(() => {
-    async function handleUnauthorized() {
-      await authService.logout();
-      setAccessToken(null);
-      setUser(null);
-      setAuthError(null);
-    }
-
-    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
-
+    // No callback web, a restauração não concorre com a troca de código. A aba
+    // continua observando mudanças externas mesmo sem restaurar a sessão.
+    if (window.location.pathname === SOCIAL_CALLBACK_PATHNAME) setIsBootstrapping(false);
+    else void restoreSession();
     return () => {
-      window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+      cancelled = true;
+      unwatch();
     };
   }, []);
 
-  // O backend é a fonte da verdade: se ele recusou por cadastro incompleto, a
-  // sessão local (possivelmente restaurada do cache) estava desatualizada.
+  const logout = useCallback(async (options?: { isAccountDeletion?: boolean }) => {
+    const operation = ++authOperation.current;
+    setAccessToken(null);
+    setUser(null);
+    setIsBootstrapping(false);
+    setIsSubmitting(false);
+    setAuthError(null);
+    try {
+      await authService.logout(options);
+    } catch (error) {
+      if (operation === authOperation.current) setAuthError(getErrorMessage(error));
+      throw error;
+    }
+  }, []);
+
   useEffect(() => {
+    function handleUnauthorized() {
+      void logout().catch(() => undefined);
+    }
     function handleProfileIncomplete() {
       setUser((current) => (current ? { ...current, profileComplete: false } : current));
     }
 
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
     window.addEventListener(PROFILE_INCOMPLETE_EVENT, handleProfileIncomplete);
-
     return () => {
+      window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
       window.removeEventListener(PROFILE_INCOMPLETE_EVENT, handleProfileIncomplete);
     };
-  }, []);
+  }, [logout]);
 
-  const establishSession = useCallback((session: AuthSession) => {
-    setAccessToken(session.accessToken);
-    setUser(session.user);
-  }, []);
-
-  // Compartilhado por login/register/loginWithSocialCode: os três tratavam falha
-  // exatamente da mesma forma (limpar sessão local, setar authError, repropagar).
-  const resetSessionAfterFailure = useCallback(async (error: unknown): Promise<never> => {
-    await authService.logout();
-    setAccessToken(null);
-    setUser(null);
-    setAuthError(getErrorMessage(error));
-    throw error;
-  }, []);
-
-  const login = useCallback(
-    async (input: LoginInput) => {
-      setIsSubmitting(true);
-      setAuthError(null);
-
-      try {
-        const session = await authService.login(input);
-        establishSession(session);
-      } catch (error) {
-        await resetSessionAfterFailure(error);
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [establishSession, resetSessionAfterFailure],
-  );
-
-  const register = useCallback(
-    async (input: RegisterInput) => {
-      setIsSubmitting(true);
-      setAuthError(null);
-
-      try {
-        const session = await authService.register(input);
-        establishSession(session);
-      } catch (error) {
-        await resetSessionAfterFailure(error);
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [establishSession, resetSessionAfterFailure],
-  );
-
-  const loginWithProvider = useCallback(async (provider: SocialLoginProvider) => {
-    // isSubmitting já desabilita os botões sociais na tela (mesma prop usada pro
-    // form tradicional) — sem isso, um duplo toque no nativo podia abrir dois
-    // navegadores/redirects OAuth2 concorrentes antes do primeiro Browser.open resolver.
+  const beginSubmission = useCallback(() => {
+    const submission = ++authSubmission.current;
     setIsSubmitting(true);
     setAuthError(null);
+    return (operation: number) => submission === authSubmission.current && operation === authOperation.current;
+  }, []);
 
+  const submitAuth = useCallback(async (authenticate: (onReplace: () => void) => Promise<AuthSession>) => {
+    let operation = authOperation.current;
+    const isCurrent = beginSubmission();
+    try {
+      const session = await authenticate(() => {
+        // Para login social, o serviço só chama isto após confirmar a troca.
+        operation = ++authOperation.current;
+        setAccessToken(null);
+        setUser(null);
+        setIsBootstrapping(false);
+      });
+      if (operation !== authOperation.current) throw new DOMException("Sessão encerrada.", "AbortError");
+      assertSessionActive(getSessionSignal());
+      setAccessToken(session.accessToken);
+      setUser(session.user);
+    } catch (error) {
+      if (isCurrent(operation)) setAuthError(getErrorMessage(error));
+      throw error;
+    } finally {
+      if (isCurrent(operation)) setIsSubmitting(false);
+    }
+  }, [beginSubmission]);
+
+  const login = useCallback((input: LoginInput) => submitAuth((onReplace) => authService.login(input, onReplace)), [submitAuth]);
+  const register = useCallback((input: RegisterInput) => submitAuth((onReplace) => authService.register(input, onReplace)), [submitAuth]);
+  const loginWithSocialCode = useCallback((code: string) => submitAuth((onReplace) => authService.exchangeSocialCode(code, onReplace)), [submitAuth]);
+
+  const loginWithProvider = useCallback(async (provider: SocialLoginProvider) => {
+    if (providerStarting.current) return;
+    providerStarting.current = true;
+    const operation = authOperation.current;
+    const isCurrent = beginSubmission();
     try {
       await authService.startSocialLogin(provider);
     } catch (error) {
-      setAuthError(getErrorMessage(error));
+      if (isCurrent(operation)) setAuthError(getErrorMessage(error));
       throw error;
     } finally {
-      setIsSubmitting(false);
+      providerStarting.current = false;
+      if (isCurrent(operation)) setIsSubmitting(false);
     }
-  }, []);
+  }, [beginSubmission]);
 
-  const loginWithSocialCode = useCallback(
-    async (code: string) => {
-      setIsSubmitting(true);
-      setAuthError(null);
-
-      try {
-        const session = await authService.exchangeSocialCode(code);
-        establishSession(session);
-      } catch (error) {
-        await resetSessionAfterFailure(error);
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [establishSession, resetSessionAfterFailure],
-  );
-
-  const logout = useCallback(async (options?: { isAccountDeletion?: boolean }) => {
-    await authService.logout(options);
-    setAccessToken(null);
-    setUser(null);
-    setAuthError(null);
-  }, []);
-
-  const clearAuthError = useCallback(() => {
-    setAuthError(null);
-  }, []);
-
-  const setSocialLoginError = useCallback((message: string) => {
-    setAuthError(message);
-  }, []);
-
-  // Diferente de login/register, uma falha aqui não derruba a sessão: o usuário
-  // continua autenticado na tela de completar e pode corrigir e reenviar.
   const completeProfile = useCallback(async (input: CompleteProfileInput) => {
-    setIsSubmitting(true);
-    setAuthError(null);
-
+    const operation = authOperation.current;
+    const signal = getSessionSignal();
+    const isCurrent = beginSubmission();
     try {
-      setUser(await authService.completeProfile(input));
+      assertSessionActive(signal);
+      const updatedUser = await authService.completeProfile(input);
+      assertSessionActive(signal);
+      if (operation === authOperation.current) setUser(updatedUser);
     } catch (error) {
-      setAuthError(getErrorMessage(error));
+      if (isCurrent(operation)) setAuthError(getErrorMessage(error));
       throw error;
     } finally {
-      setIsSubmitting(false);
+      if (isCurrent(operation)) setIsSubmitting(false);
     }
-  }, []);
+  }, [beginSubmission]);
 
+  const clearAuthError = useCallback(() => setAuthError(null), []);
   const isAuthenticated = Boolean(user && accessToken);
-
   const value: AuthContextValue = {
     user,
     accessToken,
@@ -244,7 +208,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     clearAuthError,
     loginWithProvider,
     loginWithSocialCode,
-    setSocialLoginError,
+    setSocialLoginError: setAuthError,
     needsProfileCompletion: isAuthenticated && user?.profileComplete === false,
     completeProfile,
   };

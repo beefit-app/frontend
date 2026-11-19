@@ -79,7 +79,6 @@ export function usePostComments(postId: string, initialCount: number, open: bool
     let active = true;
     let countRequest = 0;
     const refresh = () => {
-      void pageCacheStorage.remove(user?.id, "feed.page-0");
       void pageCacheStorage.remove(user?.id, "profile.posts");
       if (open) { void load(); return; }
       const id = ++countRequest;

@@ -11,41 +11,35 @@ import { workoutService } from "./workoutService";
 
 const LEGACY_PROFILE_STORAGE_KEY = "beefit.profile.current";
 
-/**
- * Apaga tudo que a sessao deixou no aparelho e em memoria.
- *
- * Limpar os tokens nao basta: o app e uma SPA, entao caches de modulo sobrevivem
- * ao logout, e o armazenamento local guarda rascunho de treino, foto, ofensiva e
- * dados de terceiros (nome e treino dos amigos no feed ao vivo). Num aparelho
- * compartilhado, isso tudo seria herdado pelo proximo usuario.
- *
- * Cada passo e independente: uma falha em qualquer um deles nao pode impedir os
- * demais de rodar, senao o logout deixa lixo pela metade.
- */
+/** Limpa estado efêmero; rascunhos por usuário só saem na exclusão da conta. */
 export async function clearLocalUserData(
   userId: string | null | undefined,
-  options: { isAccountDeletion?: boolean } = {},
+  options: { isAccountDeletion?: boolean; memoryOnly?: boolean } = {},
 ) {
   const steps: Array<[string, () => unknown | Promise<unknown>]> = [
-    ["caches de treino", () => workoutService.resetCaches()],
-    ["fotos em memoria", () => clearMediaCache()],
-    ...(options.isAccountDeletion
-      ? [["rascunhos e fotos", () => workoutDraftStorage.clearAllDrafts(userId)] as [string, () => unknown | Promise<unknown>]]
-      : []),
-    ["amigos ao vivo", () => socialFeedStorage.clearLiveFriends()],
-    ["cache de feed em memoria", () => resetFeedCache()],
-    ["memoria de treino ativo", () => resetActiveWorkoutMemory()],
-    ["ofensiva", () => clearPersistedStreak()],
-    ["perfil legado", () => appStorage.removeItem(LEGACY_PROFILE_STORAGE_KEY)],
-    ["cache de paginas", () => pageCacheStorage.clearUser(userId)],
     ["stream de eventos", () => closeSocialEventsConnection()],
+    ["caches de treino", () => workoutService.resetCaches()],
+    ["fotos em memória", () => clearMediaCache()],
+    ["cache de feed em memória", () => resetFeedCache()],
+    ["memória de treino ativo", () => resetActiveWorkoutMemory()],
   ];
+  if (!options.memoryOnly) {
+    steps.push(
+      ["amigos ao vivo", () => socialFeedStorage.clearLiveFriends()],
+      ["ofensiva", () => clearPersistedStreak()],
+      ["perfil legado", () => appStorage.removeItem(LEGACY_PROFILE_STORAGE_KEY)],
+      ["cache de páginas", () => pageCacheStorage.clearUser(userId)],
+    );
+    if (options.isAccountDeletion) steps.push(["rascunhos e fotos", () => workoutDraftStorage.clearAllDrafts(userId)]);
+  }
 
-  for (const [, run] of steps) {
+  const failures = (await Promise.all(steps.map(async ([label, run]) => {
     try {
       await run();
+      return null;
     } catch {
-      /* segue para o proximo passo */
+      return label;
     }
-  }
+  }))).filter((label) => label !== null);
+  return failures;
 }

@@ -1,48 +1,49 @@
-import { useEffect, useState } from "react";
-import { acquireMediaUrl, releaseMediaUrl, type AcquireMediaOptions } from "../services/mediaCache";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import {
+  acquireMediaUrl,
+  getMediaCacheGeneration,
+  releaseMediaUrl,
+  subscribeMediaCache,
+  type AcquireMediaOptions,
+} from "../services/mediaCache";
 
-function isProtectedMediaPath(value: string) {
-  return value.startsWith("/api/media/");
-}
+const noSubscription = () => () => {};
+const publicGeneration = () => 0;
 
 export function useAuthenticatedMediaUrl(source?: string | null, options?: AcquireMediaOptions) {
-  const [resolvedSource, setResolvedSource] = useState<string | null>(() =>
-    source && !isProtectedMediaPath(source) ? source : null,
+  const path = source?.startsWith("/api/media/") ? source : null;
+  const pinned = options?.pinned;
+  const generation = useSyncExternalStore(
+    path ? subscribeMediaCache : noSubscription,
+    path ? getMediaCacheGeneration : publicGeneration,
+    publicGeneration,
   );
+  const [resolved, setResolved] = useState<{ path: string; generation: number; url: string } | null>(null);
 
   useEffect(() => {
-    if (!source || !isProtectedMediaPath(source)) {
-      setResolvedSource(source ?? null);
-      return;
-    }
+    setResolved(null);
+    if (!path || generation !== getMediaCacheGeneration()) return;
 
     let active = true;
-    let acquired = false;
-    setResolvedSource(null);
-
-    void acquireMediaUrl(source, options)
-      .then((url) => {
-        if (!active) {
-          // Desmontou enquanto a foto vinha: devolve a referencia agora, porque a
-          // limpeza do efeito ja rodou e nao vai devolver por nos.
-          releaseMediaUrl(source);
-          return;
-        }
-        acquired = true;
-        setResolvedSource(url);
-      })
-      .catch(() => {
-        if (active) setResolvedSource(null);
-      });
+    let acquired: string | undefined;
+    void acquireMediaUrl(path, { pinned }).then((url) => {
+      if (!active || generation !== getMediaCacheGeneration()) {
+        releaseMediaUrl(path, url);
+        return;
+      }
+      acquired = url;
+      setResolved({ path, generation, url });
+    }).catch(() => {
+      // Se o novo GET falhar ou não for autorizado, a mídia continua oculta.
+    });
 
     return () => {
       active = false;
-      if (acquired) {
-        acquired = false;
-        releaseMediaUrl(source);
-      }
+      if (acquired) releaseMediaUrl(path, acquired);
     };
-  }, [source]);
+  }, [path, generation, pinned]);
 
-  return resolvedSource;
+  if (!path) return source ?? null;
+  // Não depende da execução do efeito para tirar o blob anterior do render.
+  return resolved?.path === path && resolved.generation === generation ? resolved.url : null;
 }

@@ -1,4 +1,5 @@
-import { sessionStorage } from "../storage/sessionStorage";
+import { assertSessionActive, getSessionSignal, watchExternalSessionChange } from "../storage/sessionStorage";
+import { openAuthenticatedEventStream } from "./apiClient";
 
 export interface WorkoutPresenceEvent {
   workoutId: string;
@@ -67,14 +68,14 @@ export type SocialEvent =
   | { type: "TEMPLATE_IMPORTED"; data: TemplateImportedEvent }
   | { type: "POST_LIKED"; data: PostLikedEvent }
   | { type: "POST_COMMENTS_CHANGED"; data: { postId: string } }
+  | { type: "SOCIAL_VISIBILITY_CHANGED"; data: Record<string, never> }
   | { type: "PROFILE_UPDATED"; data: ProfileUpdatedEvent };
 
 type SocialEventListener = (event: SocialEvent) => void;
 
-const listeners = new Set<SocialEventListener>();
-let connectionAbortController: AbortController | null = null;
-let connectionPromise: Promise<void> | null = null;
-let hasConnected = false;
+const listeners = new Set<{ onEvent: SocialEventListener; close: () => void }>();
+let connection: AbortController | null = null;
+let connectedSession: AbortSignal | null = null;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -158,28 +159,19 @@ export function parseSocialEvent(type: string, data: unknown): SocialEvent | nul
     case "TEMPLATE_IMPORTED": return isTemplateImportedEvent(data) ? { type, data } : null;
     case "POST_LIKED": return isPostLikedEvent(data) ? { type, data } : null;
     case "POST_COMMENTS_CHANGED": return isRecord(data) && hasString(data, "postId") ? { type, data: { postId: data.postId as string } } : null;
+    case "SOCIAL_VISIBILITY_CHANGED": return isRecord(data) && Object.keys(data).length === 0 ? { type, data: {} } : null;
     case "PROFILE_UPDATED": return isProfileUpdatedEvent(data) ? { type, data } : null;
     default: return null;
   }
 }
 
-function notifyListeners(event: SocialEvent) {
-  listeners.forEach((listener) => listener(event));
-}
-
-async function openSocialEventsConnection(signal: AbortSignal) {
-  const token = await sessionStorage.getToken();
-  const base = import.meta.env?.VITE_API_URL?.replace(/\/$/, "") ?? "";
-  const response = await fetch(`${base}/api/social/feed`, { headers: token ? { Authorization: `Bearer ${token}` } : {}, signal });
-  if (!response.ok || !response.body) throw new Error("Não foi possível conectar aos eventos sociais.");
-  if (hasConnected) window.dispatchEvent(new Event("beefit:social-connected"));
-  hasConnected = true;
-  const reader = response.body.getReader();
+async function readEvents(reader: ReadableStreamDefaultReader<Uint8Array>, session: AbortSignal, signal: AbortSignal) {
   const decoder = new TextDecoder();
   let buffer = "";
   while (!signal.aborted) {
     const chunk = await reader.read();
-    if (chunk.done) break;
+    if (chunk.done || signal.aborted) break;
+    assertSessionActive(session);
     buffer += decoder.decode(chunk.value, { stream: true });
     const blocks = buffer.split(/\r?\n\r?\n/);
     buffer = blocks.pop() ?? "";
@@ -188,13 +180,48 @@ async function openSocialEventsConnection(signal: AbortSignal) {
       const event = lines.find((line) => line.startsWith("event:"))?.slice(6).trim() ?? "message";
       const data = lines.filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
       if (!data) continue;
+      assertSessionActive(session);
+      let parsed: SocialEvent | null;
       try {
-        const parsed = parseSocialEvent(event, JSON.parse(data) as unknown);
-        if (parsed) notifyListeners(parsed);
+        parsed = parseSocialEvent(event, JSON.parse(data) as unknown);
       } catch {
-        // Eventos inválidos não atravessam a fronteira de rede.
+        continue;
+      }
+      if (!parsed) continue;
+      for (const { onEvent } of listeners) {
+        if (signal.aborted) return;
+        assertSessionActive(session);
+        try {
+          onEvent(parsed);
+        } catch {
+          // Um assinante não interrompe o stream compartilhado.
+        }
       }
     }
+  }
+}
+
+async function openSocialEventsConnection(session: AbortSignal, signal: AbortSignal) {
+  const response = await openAuthenticatedEventStream("/api/social/feed", session, signal);
+  if (!response) return false;
+  if (!response.body) throw new Error("Não foi possível conectar aos eventos sociais.");
+  if (signal.aborted) {
+    void response.body.cancel().catch(() => undefined);
+    return false;
+  }
+  const reader = response.body.getReader();
+  const cancelRead = () => void reader.cancel().catch(() => undefined);
+  signal.addEventListener("abort", cancelRead, { once: true });
+  try {
+    assertSessionActive(session);
+    const reconnecting = connectedSession === session;
+    connectedSession = session;
+    if (reconnecting) window.dispatchEvent(new Event("beefit:social-connected"));
+    await readEvents(reader, session, signal);
+    return true;
+  } finally {
+    signal.removeEventListener("abort", cancelRead);
+    reader.releaseLock();
   }
 }
 
@@ -206,51 +233,76 @@ function getReconnectDelay(attempt: number) {
   return backoff / 2 + Math.random() * (backoff / 2);
 }
 
-function ensureConnection() {
-  if (connectionPromise || listeners.size === 0) return;
-  connectionAbortController = new AbortController();
-  connectionPromise = (async () => {
-    let attempt = 0;
-    while (!connectionAbortController?.signal.aborted && listeners.size > 0) {
-      try {
-        await openSocialEventsConnection(connectionAbortController.signal);
-        attempt = 0;
-      } catch {
-        if (connectionAbortController?.signal.aborted || listeners.size === 0) break;
-        attempt += 1;
-      }
-      if (connectionAbortController?.signal.aborted || listeners.size === 0) break;
-      await new Promise((resolve) => window.setTimeout(resolve, getReconnectDelay(attempt)));
-    }
-  })().finally(() => {
-    connectionPromise = null;
-    if (listeners.size > 0) ensureConnection();
+function waitToReconnect(attempt: number, signal: AbortSignal) {
+  if (signal.aborted) return;
+  return new Promise<void>((resolve) => {
+    const done = () => {
+      window.clearTimeout(timer);
+      signal.removeEventListener("abort", done);
+      resolve();
+    };
+    const timer = window.setTimeout(done, getReconnectDelay(attempt));
+    signal.addEventListener("abort", done, { once: true });
   });
 }
 
+async function reconnect(session: AbortSignal, signal: AbortSignal) {
+  let attempt = 0;
+  while (!signal.aborted) {
+    try {
+      if (!await openSocialEventsConnection(session, signal)) {
+        if (!signal.aborted) closeSocialEventsConnection();
+        return;
+      }
+      attempt = 0;
+    } catch {
+      attempt += 1;
+    }
+    await waitToReconnect(attempt, signal);
+  }
+}
+
+function ensureConnection() {
+  if (connection) return;
+  const session = getSessionSignal();
+  if (!session) {
+    closeSocialEventsConnection();
+    return;
+  }
+  const controller = new AbortController();
+  connection = controller;
+  session.addEventListener("abort", closeSocialEventsConnection, { once: true });
+  const unwatch = watchExternalSessionChange();
+  controller.signal.addEventListener("abort", () => {
+    unwatch();
+    session.removeEventListener("abort", closeSocialEventsConnection);
+  }, { once: true });
+  void reconnect(session, controller.signal);
+}
+
+function stopConnection() {
+  const previous = connection;
+  connection = null;
+  previous?.abort();
+}
+
 export function closeSocialEventsConnection() {
-  hasConnected = false;
-  listeners.clear();
-  connectionAbortController?.abort();
-  connectionAbortController = null;
+  connectedSession = null;
+  stopConnection();
+  listeners.forEach((listener) => listener.close());
 }
 
 export async function subscribeSocialEvents(onEvent: SocialEventListener, signal: AbortSignal) {
-  listeners.add(onEvent);
-  ensureConnection();
+  if (signal.aborted) return;
   return new Promise<void>((resolve) => {
-    const cleanup = () => {
-      listeners.delete(onEvent);
-      if (listeners.size === 0) {
-        connectionAbortController?.abort();
-        connectionAbortController = null;
-      }
+    const listener = { onEvent, close: () => {
+      listeners.delete(listener);
+      signal.removeEventListener("abort", listener.close);
+      if (listeners.size === 0) stopConnection();
       resolve();
-    };
-    if (signal.aborted) {
-      cleanup();
-      return;
-    }
-    signal.addEventListener("abort", cleanup, { once: true });
+    } };
+    listeners.add(listener);
+    signal.addEventListener("abort", listener.close, { once: true });
+    ensureConnection();
   });
 }

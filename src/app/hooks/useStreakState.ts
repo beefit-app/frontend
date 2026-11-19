@@ -27,14 +27,14 @@ function getTodayKey() {
   return `${year}-${month}-${day}`;
 }
 
-function readPersistedStreak(): PersistedStreakState | null {
-  if (typeof window === "undefined" || typeof window.localStorage === "undefined") return null;
+function readPersistedStreak(userId: string | undefined): PersistedStreakState | null {
+  if (!userId || typeof window === "undefined" || typeof window.localStorage === "undefined") return null;
   const raw = window.localStorage.getItem(STREAK_STORAGE_KEY);
   if (!raw) return null;
 
   try {
-    const parsed = JSON.parse(raw) as PersistedStreakState;
-    if (typeof parsed !== "object" || parsed === null) return null;
+    const parsed = JSON.parse(raw) as PersistedStreakState & { userId?: string };
+    if (typeof parsed !== "object" || parsed === null || parsed.userId !== userId) return null;
     return {
       count: typeof parsed.count === "number" ? parsed.count : 0,
       lastFedDate: typeof parsed.lastFedDate === "string" ? parsed.lastFedDate : null,
@@ -50,14 +50,15 @@ export function clearPersistedStreak() {
   window.localStorage.removeItem(STREAK_STORAGE_KEY);
 }
 
-function persistStreak(streak: PersistedStreakState) {
-  if (typeof window === "undefined" || typeof window.localStorage === "undefined") return;
-  window.localStorage.setItem(STREAK_STORAGE_KEY, JSON.stringify(streak));
+function persistStreak(userId: string | undefined, streak: PersistedStreakState) {
+  if (!userId || typeof window === "undefined" || typeof window.localStorage === "undefined") return;
+  window.localStorage.setItem(STREAK_STORAGE_KEY, JSON.stringify({ userId, ...streak }));
 }
 
 export function useStreakState(user: AuthUser | null) {
+  const userId = user?.id;
   const [streak, setStreak] = useState<StreakState>(() => {
-    const persisted = readPersistedStreak();
+    const persisted = readPersistedStreak(userId);
     return {
       count: persisted?.count ?? 0,
       lastFedDate: persisted?.lastFedDate ?? null,
@@ -66,15 +67,11 @@ export function useStreakState(user: AuthUser | null) {
   });
 
   useEffect(() => {
-    return () => undefined;
-  }, []);
-
-  useEffect(() => {
-    persistStreak({
+    persistStreak(userId, {
       count: streak.count,
       lastFedDate: streak.lastFedDate,
     });
-  }, [streak.count, streak.lastFedDate]);
+  }, [userId, streak.count, streak.lastFedDate]);
 
   useEffect(() => {
     if (!user) {
@@ -91,7 +88,7 @@ export function useStreakState(user: AuthUser | null) {
   }, [user]);
 
   async function syncWithBackend(burstOnIncrease: boolean, isCancelled?: () => boolean) {
-    const persisted = readPersistedStreak();
+    const persisted = readPersistedStreak(userId);
 
     try {
       const response = await apiClient.get<BackendProfileResponse>("/api/profile/me", { auth: true });
