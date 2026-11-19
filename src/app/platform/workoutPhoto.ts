@@ -84,21 +84,30 @@ export async function removePersistedWorkoutPhoto(path: string | null | undefine
   try { await Filesystem.deleteFile({ path, directory: Directory.Data }); } catch { /* already absent */ }
 }
 
-function withWebPhotoStore<T = IDBValidKey>(
+async function withWebPhotoStore<T = IDBValidKey>(
   mode: IDBTransactionMode,
   operation: (store: IDBObjectStore) => IDBRequest<T>,
 ): Promise<T> {
-  return new Promise((resolve, reject) => {
+  const database = await new Promise<IDBDatabase>((resolve, reject) => {
     const openRequest = indexedDB.open("beefit-workout-drafts", 1);
     openRequest.onupgradeneeded = () => openRequest.result.createObjectStore("photos");
     openRequest.onerror = () => reject(openRequest.error);
-    openRequest.onsuccess = () => {
-      const database = openRequest.result;
+    openRequest.onsuccess = () => resolve(openRequest.result);
+  });
+
+  try {
+    return await new Promise<T>((resolve, reject) => {
       const transaction = database.transaction("photos", mode);
       const request = operation(transaction.objectStore("photos"));
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-      transaction.oncomplete = () => database.close();
-    };
-  });
+      // O sucesso da requisição ainda não garante o commit da transação.
+      transaction.oncomplete = () => resolve(request.result);
+      transaction.onabort = () => reject(transaction.error ?? new Error("Transação da foto abortada."));
+      transaction.onerror = () => reject(
+        transaction.error ?? (request.readyState === "done" ? request.error : null)
+          ?? new Error("Falha na transação da foto."),
+      );
+    });
+  } finally {
+    database.close();
+  }
 }
