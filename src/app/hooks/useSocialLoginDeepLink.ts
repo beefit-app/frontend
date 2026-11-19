@@ -1,73 +1,71 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { App as CapApp, type URLOpenListenerEvent } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
+import { Capacitor } from "@capacitor/core";
 import { useAuth } from "../auth/AuthContext";
 import { socialLoginErrorMessage } from "../utils/socialLoginErrors";
 
-// com.beefit.app://auth/callback?code=...|error=... — ver AndroidManifest.xml
-// (intent-filter) e Info.plist (CFBundleURLTypes), e o backend
-// (OAuth2LoginSuccessHandler/FailureHandler, beefit.oauth2.callback-base-mobile).
-const CALLBACK_HOST = "auth";
-
-/**
- * Captura o retorno do navegador do sistema (aberto por authService.startSocialLogin
- * via @capacitor/browser) depois do fluxo OAuth2 do Google/Microsoft/Apple, fecha o
- * navegador e troca o código de uso único pela sessão real.
- *
- * Equivalente mobile do SocialLoginCallbackScreen (rota web /oauth-callback).
- */
+// Mesmo callback registrado no AndroidManifest.xml e no Info.plist.
 export function useSocialLoginDeepLink() {
-  const { loginWithSocialCode, setSocialLoginError } = useAuth();
+  const { isBootstrapping, loginWithSocialCode, setSocialLoginError } = useAuth();
+  const [callback, setCallback] = useState<URL | null>(null);
+  const lastCode = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let listening = true;
+
     function handleCallbackUrl(rawUrl: string) {
+      if (!listening) return;
       let url: URL;
       try {
         url = new URL(rawUrl);
       } catch {
         return;
       }
-
-      if (url.host !== CALLBACK_HOST) return;
-
-      void Browser.close().catch(() => {
-        // Sem navegador aberto pra fechar (ex: usuário já voltou manualmente) — ignora.
-      });
-
-      const code = url.searchParams.get("code");
-      if (!code) {
-        // Provedor negou/expirou (?error=oauth_failed): sem código de troca, não há
-        // sessão a estabelecer — mas o usuário ainda precisa ver que algo deu errado
-        // (mesmo tratamento que a rota web /oauth-callback já dá).
-        const providerError = url.searchParams.get("error");
-        if (providerError) {
-          setSocialLoginError(socialLoginErrorMessage(providerError));
-        }
-        return;
-      }
-
-      void loginWithSocialCode(code).catch(() => {
-        // authError já é setado pelo AuthContext; a tela de login exibe o alerta.
-      });
+      if (url.protocol !== "com.beefit.app:" || url.host !== "auth" || url.pathname !== "/callback") return;
+      setCallback(url);
     }
 
-    const listenerPromise = CapApp.addListener("appUrlOpen", (event: URLOpenListenerEvent) =>
-      handleCallbackUrl(event.url),
-    );
+    const listener = CapApp.addListener("appUrlOpen", (event: URLOpenListenerEvent) => handleCallbackUrl(event.url));
+    function reportListenerFailure() {
+      if (listening) setSocialLoginError("Não foi possível receber o retorno do login social. Tente novamente.");
+    }
+    void listener.catch(reportListenerFailure);
 
-    // O listener acima só pega o app já rodando em background recebendo a nova
-    // intent. Se o Android matou o processo durante o OAuth2 (comum: usuário
-    // passa um tempo no navegador do sistema), o retorno vira um cold start e
-    // appUrlOpen nunca dispara — getLaunchUrl() é o jeito de pegar essa URL de
-    // lançamento depois que o app termina de inicializar.
+    // No cold start do Android, appUrlOpen pode não disparar.
     void CapApp.getLaunchUrl().then((launch) => {
-      if (launch?.url) {
-        handleCallbackUrl(launch.url);
-      }
-    });
+      if (launch?.url) handleCallbackUrl(launch.url);
+    }).catch(reportListenerFailure);
 
     return () => {
-      void listenerPromise.then((handle) => handle.remove());
+      listening = false;
+      void listener.then((handle) => handle.remove(), () => undefined).catch(() => {
+        console.warn("Não foi possível remover o listener do login social.");
+      });
     };
-  }, [loginWithSocialCode, setSocialLoginError]);
+  }, [setSocialLoginError]);
+
+  useEffect(() => {
+    // A restauração pode encerrar uma sessão antiga; só troque o código depois dela.
+    if (isBootstrapping || !callback) return;
+    setCallback(null);
+    const providerError = callback.searchParams.get("error");
+    const code = callback.searchParams.get("code");
+    if (!providerError && code) {
+      if (lastCode.current === code) return; // getLaunchUrl e appUrlOpen podem entregar o mesmo retorno.
+      lastCode.current = code;
+    }
+
+    void Browser.close().catch(() => {
+      console.warn("Não foi possível fechar o navegador do login social.");
+    });
+    if (providerError || !code) {
+      setSocialLoginError(socialLoginErrorMessage(providerError));
+      return;
+    }
+    void loginWithSocialCode(code).catch(() => {
+      // O AuthContext publica a falha da operação atual em authError.
+    });
+  }, [callback, isBootstrapping, loginWithSocialCode, setSocialLoginError]);
 }

@@ -10,6 +10,7 @@ import type { ProfileData } from "../types";
 import { WEIGHT_MAX_KG, WEIGHT_MIN_KG, messages } from "../../../constants/messages";
 import { BeeTextarea, HexAvatar } from "./shared";
 import { profileService } from "../../../services/profileService";
+import { getSessionSignal } from "../../../storage/sessionStorage";
 import { revokeObjectUrl, validateImageFile } from "../../../platform/mediaValidation";
 import { cropImageFile, type CropArea } from "../../../platform/imageCompression";
 import { AVATAR_OUTPUT_SIZE } from "../constants";
@@ -30,6 +31,8 @@ export function ProfileEdit({
   onCancel: () => void;
   onClearSaveError?: () => void;
 }) {
+  const [session] = useState(getSessionSignal);
+  const isCurrentSession = () => session !== null && getSessionSignal() === session;
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [bio, setBio] = useState(profile.bio);
   const [weight, setWeight] = useState(String(profile.weight));
@@ -85,19 +88,30 @@ export function ProfileEdit({
   }
 
   async function handleSave() {
+    if (!isCurrentSession()) return;
     const nextErrors = validate();
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
     }
 
-    const avatarUrl = avatarFile ? await profileService.uploadProfilePhoto(avatarFile) : profile.avatarUrl;
-    await onSave({
-      displayName: displayName.trim(),
-      bio,
-      weight: parseFloat(weight) || profile.weight,
-      avatarUrl,
-    });
+    try {
+      const avatarUrl = avatarFile ? await profileService.uploadProfilePhoto(avatarFile) : profile.avatarUrl;
+      if (!isCurrentSession()) return;
+      await onSave({
+        displayName: displayName.trim(),
+        bio,
+        weight: parseFloat(weight) || profile.weight,
+        avatarUrl,
+      });
+    } catch (error) {
+      if (isCurrentSession()) {
+        setErrors((current) => ({
+          ...current,
+          avatar: error instanceof Error ? error.message : messages.actionFailed("salvar o perfil"),
+        }));
+      }
+    }
   }
 
   const initials =

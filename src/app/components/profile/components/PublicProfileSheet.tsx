@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSocialVisibilityRevision } from "../../../hooks/useSocialVisibility";
 import { profileService } from "../../../services/profileService";
 import { socialService } from "../../../services/socialService";
 import type { PublicUserProfile } from "../../../types/user";
@@ -59,15 +60,19 @@ export function PublicProfilePage({
   );
 }
 
-function PublicProfileContent({
-  username,
-  onBack,
-  onFriendshipChange,
-}: {
+interface PublicProfileContentProps {
   username: string | null;
   onBack?: () => void;
   onFriendshipChange?: () => void;
-}) {
+}
+
+function PublicProfileContent(props: PublicProfileContentProps) {
+  const revision = useSocialVisibilityRevision();
+  // Desmontar remove também dados e diálogos da leitura anterior, antes de aplicar o novo acesso.
+  return <PublicProfileDetails key={`${revision}:${props.username ?? ""}`} {...props} />;
+}
+
+function PublicProfileDetails({ username, onBack, onFriendshipChange }: PublicProfileContentProps) {
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
   const [posts, setPosts] = useState<WorkoutPost[]>([]);
   const [trainedDays, setTrainedDays] = useState<number[]>([]);

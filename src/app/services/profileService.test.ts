@@ -129,7 +129,7 @@ describe("profileService", () => {
     expect(nextProfile.bio).toBe("Bio nova");
     expect(nextProfile.weight).toBe(81.2);
     expect(nextProfile.ghostModeEnabled).toBe(false);
-    expect(window.localStorage.getItem("beefit.auth.user")).toContain("\"Bee Prime\"");
-    expect(window.localStorage.getItem("beefit.auth.user")).toContain("\"weight\":81.2");
+    const { sessionStorage, getSessionSignal } = await import("../storage/sessionStorage");
+    await expect(sessionStorage.getUser(getSessionSignal()!)).resolves.toMatchObject({ name: "Bee Prime", weight: 81.2 });
   });
 });

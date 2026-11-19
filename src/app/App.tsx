@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { motion as Motion } from "motion/react";
 import {
   setupIonicReact,
@@ -27,6 +27,7 @@ import { warmupAppData } from "./services/appWarmupService";
 import { profileService } from "./services/profileService";
 import { pageCacheStorage } from "./storage/pageCacheStorage";
 import { resetFeedCache } from "./components/social-feed/hooks/useSocialFeedState";
+import { useSocialVisibility } from "./hooks/useSocialVisibility";
 import type { WorkoutCompletionDraft, WorkoutCompletionSummary } from "./types/workout";
 import { Toaster } from "./components/ui/sonner";
 import logoImg from "../imports/logo.png";
@@ -118,17 +119,60 @@ class ScreenErrorBoundary extends Component<
   }
 }
 
+function StandalonePage({ children }: { children: ReactNode }) {
+  return (
+    <IonApp>
+      <IonPage>
+        <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>{children}</IonContent>
+      </IonPage>
+    </IonApp>
+  );
+}
+
 export default function App() {
-  const { isAuthenticated: hasSession, isBootstrapping, user, needsProfileCompletion } = useAuth();
-  // Conta social com cadastro incompleto tem sessão, mas o app em si (e as rotas
-  // /api/** no backend) fica travado até a CompleteProfileScreen: para tudo abaixo
-  // — navegação, warmup, streak, abas — ela conta como não autenticada.
-  const isAuthenticated = hasSession && !needsProfileCompletion;
-  const contentRef = useRef<HTMLIonContentElement | null>(null);
+  const { isAuthenticated, isBootstrapping, user, needsProfileCompletion } = useAuth();
   const [pathname, setPathname] = useState(() => window.location.pathname);
-  const { authScreen, screen, direction: _direction, setAuthScreen, setScreen, goBack, handleTabChange } = useAppNavigation(isAuthenticated);
-  const isKeyboardVisible = useKeyboardState();
   useSocialLoginDeepLink();
+
+  // Fora do AppSession: estabelecer a sessão não deve remontar o callback e
+  // consumir o mesmo código duas vezes. /auth é reservado ao proxy da API.
+  if (pathname === "/oauth-callback") {
+    return (
+      <StandalonePage>
+        <SocialLoginCallbackScreen
+          onDone={() => {
+            window.history.replaceState(null, "", "/");
+            setPathname("/");
+          }}
+        />
+      </StandalonePage>
+    );
+  }
+
+  const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
+  if (legalDocument) return <StandalonePage><LegalDocuments document={legalDocument} /></StandalonePage>;
+
+  // Uma sessão social incompleta não monta as abas, o warmup nem a leitura social.
+  if (!isBootstrapping && needsProfileCompletion) {
+    return <StandalonePage><CompleteProfileScreen /></StandalonePage>;
+  }
+
+  // O estado das abas e os callbacks pertencem à conta, não ao JWT que pode girar.
+  const sessionKey = isAuthenticated ? `user:${user?.id || user?.email}` : "anonymous";
+  return <AppSession key={sessionKey} {...{ isAuthenticated, isBootstrapping, user, pathname }} />;
+}
+
+type AppSessionProps = Pick<ReturnType<typeof useAuth>, "isAuthenticated" | "isBootstrapping" | "user"> & { pathname: string };
+
+function AppSession({ isAuthenticated, isBootstrapping, user, pathname }: AppSessionProps) {
+  const contentRef = useRef<HTMLIonContentElement | null>(null);
+  const mounted = useRef(false);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  const { authScreen, screen, setAuthScreen, setScreen, goBack, handleTabChange } = useAppNavigation(isAuthenticated);
+  const isKeyboardVisible = useKeyboardState();
   const { activeWorkout, elapsedSeconds, workoutScreenInstance, setActiveWorkout, completeWorkout, formatElapsedTime } =
     useWorkoutSessionState();
   const { streak, isStreakFedToday, clearPendingFeed, syncStreakCount } = useStreakState(
@@ -141,10 +185,7 @@ export default function App() {
   const [socialProfileReturnScreen, setSocialProfileReturnScreen] = useState<"feed" | "social">("social");
   const [workoutShareTarget, setWorkoutShareTarget] = useState<WorkoutShareTarget | null>(null);
   const isAdminRoute = pathname.startsWith("/admin");
-  const legalDocument = pathname === "/privacy" ? "privacy" : pathname === "/terms" ? "terms" : null;
-  // Não pode começar com /auth: o vite.config.ts faz proxy de /auth/** pro
-  // backend em dev, e essa rota nunca chegaria na SPA se começasse assim.
-  const isSocialCallbackRoute = pathname === "/oauth-callback";
+  useSocialVisibility(isAuthenticated && !isBootstrapping ? user?.id : null);
 
   const [visitedScreens, setVisitedScreens] = useState<Set<TabId>>(() => new Set(["feed"]));
 
@@ -164,14 +205,11 @@ export default function App() {
     }
   }, [isAuthenticated, user]);
 
-  // O alvo guarda a foto do treino em memória; quem entra depois de um logout não
-  // pode reabrir o card de outra conta.
-  useEffect(() => {
-    if (!isAuthenticated) setWorkoutShareTarget(null);
-  }, [isAuthenticated]);
 
   useEffect(() => {
+    let listening = true;
     const backListener = CapApp.addListener("backButton", () => {
+      if (!listening || !mounted.current) return;
       if (socialProfileUsername !== null) {
         setSocialProfileUsername(null);
         if (socialProfileReturnScreen !== "social") {
@@ -186,59 +224,18 @@ export default function App() {
     });
 
     return () => {
+      listening = false;
       void backListener.then((handle) => handle.remove());
     };
   }, [goBack, setScreen, socialProfileReturnScreen, socialProfileUsername]);
 
-  if (isSocialCallbackRoute) {
-    return (
-      <IonApp>
-        <IonPage>
-          <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>
-            <SocialLoginCallbackScreen
-              onDone={() => {
-                window.history.replaceState(null, "", "/");
-                setPathname("/");
-              }}
-            />
-          </IonContent>
-        </IonPage>
-      </IonApp>
-    );
-  }
-
-  if (legalDocument) {
-    return (
-      <IonApp>
-        <IonPage>
-          <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>
-            <LegalDocuments document={legalDocument} />
-          </IonContent>
-        </IonPage>
-      </IonApp>
-    );
-  }
-
-  // Depois de /terms e /privacy (os links do aceite abrem em nova aba e precisam
-  // renderizar o documento) e antes de qualquer tela do app ou do admin.
-  if (!isBootstrapping && needsProfileCompletion) {
-    return (
-      <IonApp>
-        <IonPage>
-          <IonContent fullscreen style={SAFE_AREA_TOP_PADDING}>
-            <CompleteProfileScreen />
-          </IonContent>
-        </IonPage>
-      </IonApp>
-    );
-  }
 
   function handleWorkoutCompleted(draft: WorkoutCompletionDraft, summary: WorkoutCompletionSummary) {
+    if (!mounted.current) return;
     setWorkoutShareTarget({ draft, summary });
     clearPendingFeed();
     completeWorkout();
     resetFeedCache();
-    void pageCacheStorage.remove(user?.id, "feed.page-0");
     void pageCacheStorage.remove(user?.id, "profile.posts");
     void pageCacheStorage.remove(user?.id, "profile.trained-days");
     setFeedRefreshToken((v) => v + 1);
@@ -255,6 +252,7 @@ export default function App() {
   }
 
   function handleWorkoutDeleted(source: "feed" | "profile") {
+    if (!mounted.current) return;
     if (source === "feed") {
       setProfileRefreshToken((v) => v + 1);
     } else {

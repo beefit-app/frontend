@@ -28,7 +28,7 @@ export function SocialLoginCallbackScreen({ onDone }: { onDone: () => void }) {
     const code = params.get("code");
     const providerError = params.get("error");
 
-    if (!code) {
+    if (providerError || !code) {
       setError(socialLoginErrorMessage(providerError));
       return;
     }
@@ -52,8 +52,9 @@ export function SocialLoginCallbackScreen({ onDone }: { onDone: () => void }) {
         <div className="w-full max-w-[320px]">
           <BeeAlert>{error}</BeeAlert>
           <div className="mt-4">
-            <BeeButton type="button" variant="primary" shape="soft" fullWidth onClick={onDone}>
-              Voltar para o login
+            {/* No callback o boot não restaura sessão; ao voltar, restaure a que foi preservada. */}
+            <BeeButton type="button" variant="primary" shape="soft" fullWidth onClick={() => window.location.replace("/")}>
+              Voltar
             </BeeButton>
           </div>
         </div>

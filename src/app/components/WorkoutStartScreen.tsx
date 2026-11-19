@@ -17,6 +17,7 @@ import {
 import { subscribeSocialEvents, type CardGeneratedEvent } from "../services/socialEventsService";
 import { workoutService } from "../services/workoutService";
 import { workoutDraftStorage } from "../storage/workoutDraftStorage";
+import { assertSessionActive, getSessionSignal } from "../storage/sessionStorage";
 import { pageCacheStorage } from "../storage/pageCacheStorage";
 import type { ActiveWorkoutBannerState } from "../hooks/useWorkoutSessionState";
 import type {
@@ -109,6 +110,8 @@ export function WorkoutStartScreen({
   onWorkoutCompleted,
 }: WorkoutStartScreenProps) {
   const { user } = useAuth();
+  const [originatingSession] = useState(getSessionSignal);
+  const ownsCurrentSession = () => originatingSession !== null && getSessionSignal() === originatingSession;
   const { confirm, dialog: confirmDialog } = useConfirm();
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -165,12 +168,15 @@ export function WorkoutStartScreen({
   }
 
   async function clearActiveWorkoutLocally() {
+    assertSessionActive(originatingSession);
     isClosingWorkoutRef.current = true;
     const draft = await workoutDraftStorage.getCurrentDraft(user?.id);
+    assertSessionActive(originatingSession);
     await removePersistedWorkoutPhoto(draft?.photoFileName);
+    assertSessionActive(originatingSession);
     resetWorkoutState();
     await workoutDraftStorage.clearDrafts(user?.id);
-    onActiveWorkoutChange?.(null);
+    if (ownsCurrentSession()) onActiveWorkoutChange?.(null);
   }
 
   // Marca o rascunho local como "finalizacao pendente" antes do POST. O backend
@@ -209,6 +215,8 @@ export function WorkoutStartScreen({
     startedAt: number,
     photoFileName: string | null | undefined,
   ): Promise<WorkoutCompletionResult> {
+    // O rascunho fica com seu dono, mas o envio só pode usar a sessão que iniciou o fluxo.
+    assertSessionActive(originatingSession);
     // Montagem da tela, retomada automatica e clique do usuario disputam o mesmo
     // POST; manter uma requisicao em voo por vez evita gastar a Idempotency-Key
     // em paralelo.
@@ -218,6 +226,7 @@ export function WorkoutStartScreen({
       const result = await workoutService.finishWorkout(draft, (preparedDraft) =>
         persistPendingFinish(preparedDraft, startedAt, photoFileName),
       );
+      assertSessionActive(originatingSession);
       // A finalizacao ja foi confirmada pelo backend. Falhas de limpeza local nao
       // podem transformar esse sucesso em um treino pendente na interface.
       try {
@@ -242,17 +251,16 @@ export function WorkoutStartScreen({
   }
 
   async function closeActiveWorkout() {
-    if (!activeWorkoutConfig?.workoutId) {
-      await clearActiveWorkoutLocally();
-      return;
-    }
-
     try {
-      await workoutService.cancelWorkout(activeWorkoutConfig.workoutId);
-      await workoutDraftStorage.removeDraft(user?.id, activeWorkoutConfig.workoutId);
+      assertSessionActive(originatingSession);
+      if (activeWorkoutConfig?.workoutId) {
+        await workoutService.cancelWorkout(activeWorkoutConfig.workoutId);
+        assertSessionActive(originatingSession);
+        await workoutDraftStorage.removeDraft(user?.id, activeWorkoutConfig.workoutId);
+      }
       await clearActiveWorkoutLocally();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : messages.actionFailed("cancelar o treino"));
+      if (ownsCurrentSession()) toast.error(error instanceof Error ? error.message : messages.actionFailed("cancelar o treino"));
     }
   }
 
@@ -331,8 +339,11 @@ export function WorkoutStartScreen({
     let active = true;
 
     async function restoreActiveWorkout() {
-      const persisted = await workoutDraftStorage.getCurrentDraft(user?.id);
+      let persisted: WorkoutDraft | null = null;
       try {
+        assertSessionActive(originatingSession);
+        persisted = await workoutDraftStorage.getCurrentDraft(user?.id);
+        if (!active || !ownsCurrentSession()) return;
         if (persisted?.pendingFinish && persisted.workoutId) {
           // Rascunhos gravados antes de startedAt passar a ser persistido nao tem o
           // carimbo de inicio; sem ele o tempo decorrido comeca do zero.
@@ -356,12 +367,15 @@ export function WorkoutStartScreen({
             finishedAt: persisted.finishedAt || new Date().toISOString(),
             photoMediaId: persisted.photoMediaId ?? null,
           };
+          if (!active || !ownsCurrentSession()) return;
           await persistPendingFinish(pendingDraft, persistedStartedAt, persisted.photoFileName);
+          if (!active || !ownsCurrentSession()) return;
 
           const persistedSession = await workoutService.getWorkout(persisted.workoutId);
-          if (!active) return;
+          if (!active || !ownsCurrentSession()) return;
           if (persistedSession.status === "FINISHED") {
             await clearActiveWorkoutLocally();
+            if (!ownsCurrentSession()) return;
             showWorkoutCompletionMessage(persistedSession);
             onWorkoutCompleted?.(pendingDraft, persistedSession);
             showGeneratedCardMessage(null, persistedSession);
@@ -399,20 +413,22 @@ export function WorkoutStartScreen({
           });
 
           const result = await finishPersistedDraft(pendingDraft, persistedStartedAt, persisted.photoFileName);
-          if (!active) return;
+          if (!active || !ownsCurrentSession()) return;
           const cardEvent = getGeneratedCardEvent(pendingDraft.workoutId);
           // O treino acabou de ser finalizado: limpar so o estado local. Passar por
           // closeActiveWorkout tentaria cancelar uma sessao ja FINISHED.
           showWorkoutCompletionMessage(result);
           await clearActiveWorkoutLocally();
+          if (!ownsCurrentSession()) return;
           onWorkoutCompleted?.(pendingDraft, result);
           showGeneratedCardMessage(cardEvent, result);
           return;
         }
 
         const session = await workoutService.getActiveWorkout();
-        if (!active || !session) {
-          if (active) await workoutDraftStorage.clearDrafts(user?.id);
+        if (!active || !ownsCurrentSession()) return;
+        if (!session) {
+          await workoutDraftStorage.clearDrafts(user?.id);
           return;
         }
         const startedAt = session.startedAt;
@@ -422,7 +438,7 @@ export function WorkoutStartScreen({
         const restoredPhoto = restoredDraft?.photoFileName
           ? await restoreWorkoutPhoto(restoredDraft.photoFileName)
           : null;
-        if (!active) return;
+        if (!active || !ownsCurrentSession()) return;
         isClosingWorkoutRef.current = false;
         setActiveWorkoutConfig({
           workoutId: session.id,
@@ -442,7 +458,7 @@ export function WorkoutStartScreen({
         });
         onActiveWorkoutChange?.({ workoutId: session.id, selectedGroups: groups, startedAt });
       } catch (error) {
-        if (active) {
+        if (active && ownsCurrentSession()) {
           setStartError(persisted?.pendingFinish
             ? "A finalização continua salva e será tentada automaticamente quando houver conexão e sessão válida."
             : error instanceof Error ? error.message : "Não foi possível recuperar o treino ativo.");
@@ -532,12 +548,14 @@ export function WorkoutStartScreen({
     setCompletionMessage("");
 
     try {
+      assertSessionActive(originatingSession);
       if (selectedTemplate) {
         const startedSession = await workoutService.startWorkout({
           selectedGroups: selectedTemplate.groups,
           isPrivate: ghostModeEnabled,
           templateId: selectedTemplate.id,
         });
+        assertSessionActive(originatingSession);
         const templateExercises = workoutService.getTemplateExercises(selectedTemplate.id);
         isClosingWorkoutRef.current = false;
         setActiveWorkoutConfig({
@@ -563,6 +581,7 @@ export function WorkoutStartScreen({
         selectedGroups,
         isPrivate: ghostModeEnabled,
       });
+      assertSessionActive(originatingSession);
       isClosingWorkoutRef.current = false;
       setActiveWorkoutConfig({
         workoutId: startedSession.id,
@@ -580,7 +599,7 @@ export function WorkoutStartScreen({
         startedAt: startedSession.startedAt,
       });
     } catch (error) {
-      setStartError(error instanceof Error ? error.message : messages.actionFailed("iniciar o treino"));
+      if (ownsCurrentSession()) setStartError(error instanceof Error ? error.message : messages.actionFailed("iniciar o treino"));
     } finally {
       setIsStartingWorkout(false);
     }
@@ -612,7 +631,7 @@ export function WorkoutStartScreen({
         initialShouldPostWorkout={activeWorkoutConfig.initialShouldPostWorkout}
         pendingFinish={activeWorkoutConfig.pendingFinish}
         onWorkoutComplete={(draft) => {
-          if (isPreparingFinishRef.current) return;
+          if (isPreparingFinishRef.current || !ownsCurrentSession()) return;
           isPreparingFinishRef.current = true;
           const startedAt = activeWorkoutConfig.startedAt;
           void (async () => {
@@ -626,15 +645,17 @@ export function WorkoutStartScreen({
               await persistPendingFinish(draft, startedAt, photoFileName);
 
               const result = await finishPersistedDraft(draft, startedAt, photoFileName);
+              if (!ownsCurrentSession()) return;
               const cardEvent = getGeneratedCardEvent(draft.workoutId);
               showWorkoutCompletionMessage(result);
               await clearActiveWorkoutLocally();
+              if (!ownsCurrentSession()) return;
               onWorkoutCompleted?.(draft, result);
               showGeneratedCardMessage(cardEvent, result);
             } catch (error) {
               // O rascunho pendente continua salvo; a retomada tenta de novo quando
               // houver conexao, reusando a mesma Idempotency-Key.
-              toast.error(error instanceof Error ? error.message : messages.actionFailed("finalizar o treino"));
+              if (ownsCurrentSession()) toast.error(error instanceof Error ? error.message : messages.actionFailed("finalizar o treino"));
             } finally {
               isPreparingFinishRef.current = false;
             }

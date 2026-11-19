@@ -1,5 +1,5 @@
 import type { WorkoutPost } from "../components/profile/types";
-import { sessionStorage } from "../storage/sessionStorage";
+import { assertSessionActive, getSessionSignal, sessionStorage, withSessionStorage } from "../storage/sessionStorage";
 import type { AuthUser } from "../types/auth";
 import type { PublicProfileRelationshipStatus, PublicUserProfile, UserProfile, UserProfileUpdate } from "../types/user";
 import { apiClient } from "./apiClient";
@@ -188,14 +188,18 @@ function normalizeProfilePost(post: BackendProfilePost): WorkoutPost {
   };
 }
 
-async function persistAuthUserUpdate(authUser: AuthUser | null, nextProfile: UserProfile) {
-  if (!authUser) return;
+async function persistAuthUserUpdate(session: AbortSignal | null, authUser: AuthUser | null, nextProfile: UserProfile) {
+  assertSessionActive(session);
+  if (!session || !authUser) return;
 
-  await sessionStorage.setUser({
-    ...authUser,
-    name: nextProfile.displayName,
-    weight: nextProfile.weight,
+  await withSessionStorage(async () => {
+    await sessionStorage.setUser(session, {
+      ...authUser,
+      name: nextProfile.displayName,
+      weight: nextProfile.weight,
+    });
   });
+  assertSessionActive(session);
 }
 
 export const profileService = {
@@ -245,6 +249,8 @@ export const profileService = {
     update: UserProfileUpdate,
   ): Promise<UserProfile> {
     const payload = buildUpdatePayload(currentProfile, update);
+    const session = getSessionSignal();
+    assertSessionActive(session);
     await apiClient.put("/api/profile/me", payload, { auth: true });
 
     // O payload omite biography/profilePicture quando vazios; o perfil local usa
@@ -257,7 +263,8 @@ export const profileService = {
       avatarUrl: payload.profilePicture ?? null,
     };
 
-    await persistAuthUserUpdate(authUser, nextProfile);
+    await persistAuthUserUpdate(session, authUser, nextProfile);
+    assertSessionActive(session);
     return nextProfile;
   },
   async uploadProfilePhoto(file: File) {
@@ -267,11 +274,15 @@ export const profileService = {
     return response.url;
   },
   async getRecentPosts(username?: string | null): Promise<WorkoutPost[]> {
+    const session = getSessionSignal();
+    assertSessionActive(session);
     const response = await apiClient.get<BackendProfilePostsPage | BackendProfilePost[]>("/api/profile/me/posts?size=30", { auth: true });
+    assertSessionActive(session);
     const posts = Array.isArray(response) ? response : response.content ?? [];
     if (posts.length > 0 || !usernameKey(username)) return posts.map(normalizeProfilePost);
 
     const feedResponse = await apiClient.get<BackendProfilePostsPage | BackendProfilePost[]>("/api/posts/feed?page=0&size=30", { auth: true });
+    assertSessionActive(session);
     const feedPosts = Array.isArray(feedResponse) ? feedResponse : feedResponse.content ?? [];
     const currentUsername = usernameKey(username);
 

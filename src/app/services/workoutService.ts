@@ -10,6 +10,7 @@ import type {
 } from "../types/workout";
 import { workoutDataSource } from "./workoutDataSource";
 import { apiClient } from "./apiClient";
+import { assertSessionActive, getSessionSignal } from "../storage/sessionStorage";
 import type { StartWorkoutRequest, WorkoutTemplateRequest } from "../types/api";
 
 interface BackendPage<T> {
@@ -483,20 +484,25 @@ export const workoutService = {
     if (!draft.workoutId) {
       throw new Error("Sessão de treino sem ID do backend.");
     }
+    const session = getSessionSignal();
+    assertSessionActive(session);
 
     // O mediaId entra no hash de idempotencia do backend: a foto sobe uma vez so e
     // o id resultante e devolvido ao chamador antes do POST, para que uma retomada
     // reproduza o mesmo corpo em vez de subir a foto de novo.
     const photoMediaId =
       draft.photoMediaId ?? (draft.photoFile ? await this.uploadWorkoutPhoto(draft.photoFile) : null);
+    assertSessionActive(session);
     const preparedDraft: WorkoutCompletionDraft = { ...draft, photoMediaId };
     await onPrepared?.(preparedDraft);
+    assertSessionActive(session);
 
     const response = await apiClient.post<BackendWorkoutSession>(
       `/api/workout/${draft.workoutId}/finish`,
       { ...toFinishPayload(preparedDraft), photoMediaId },
       { auth: true, headers: { "Idempotency-Key": draft.idempotencyKey } },
     );
+    assertSessionActive(session);
 
     const result = normalizeWorkoutResult(response);
 
@@ -510,11 +516,13 @@ export const workoutService = {
           toTemplatePayload(preparedDraft),
           { auth: true },
         );
+        assertSessionActive(session);
         templatesCache = [
           normalizeTemplate(createdTemplate),
           ...templatesCache.filter((template) => template.id !== createdTemplate.id),
         ];
       } catch (error) {
+        assertSessionActive(session);
         return {
           ...result,
           templateSaveError: error instanceof Error ? error.message : "Não foi possível salvar o template.",

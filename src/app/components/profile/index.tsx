@@ -5,7 +5,7 @@ import { AccountSettingsScreen } from "./components/AccountSettingsScreen";
 import { ProfileEdit } from "./components/ProfileEdit";
 import { ProfileView } from "./components/ProfileView";
 import { useAuth } from "../../auth/AuthContext";
-import { profileService } from "../../services/profileService";
+import { getSessionSignal } from "../../storage/sessionStorage";
 
 export { DEFAULT_ACCOUNT_SETTINGS } from "./constants";
 export type { AccountSettingsData, ProfileScreenProps } from "./types";
@@ -68,8 +68,12 @@ export function ProfileScreen({
         onCancel={goToView}
         onClearSaveError={clearAccountSettingsError}
         onDeleteAccount={async (password) => {
+          const session = getSessionSignal();
           const deleted = await handleAccountDelete(password);
-          if (deleted) await logout({ isAccountDeletion: true });
+          if (deleted && session && getSessionSignal() === session) {
+            // AuthContext já mostra falhas de limpeza em authError.
+            await logout({ isAccountDeletion: true }).catch(() => undefined);
+          }
           return deleted;
         }}
       />
@@ -89,9 +93,7 @@ export function ProfileScreen({
       onManageAccount={goToAccount}
       onDismissError={clearLoadError}
       onDismissPostsError={clearPostsLoadError}
-      onLogout={() => {
-        void logout();
-      }}
+      onLogout={() => { void logout().catch(() => undefined); }}
     />
   );
 }

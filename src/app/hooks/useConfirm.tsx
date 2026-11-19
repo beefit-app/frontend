@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +41,11 @@ export function useConfirm() {
   const [error, setError] = useState("");
   const resolverRef = useRef<((result: string | boolean | null) => void) | null>(null);
 
+  useEffect(() => () => {
+    resolverRef.current?.(false);
+    resolverRef.current = null;
+  }, []);
+
   const confirm = useCallback((next: ConfirmOptions) => {
     // Abrir um confirm com outro pendente sobrescreveria o resolver e deixaria o
     // primeiro chamador esperando para sempre. A interface nao permite isso — o
@@ -51,7 +56,7 @@ export function useConfirm() {
     setValue(next.input?.initialValue ?? "");
     setError("");
     return new Promise<string | boolean | null>((resolve) => {
-      resolverRef.current = resolve;
+      resolverRef.current = (result) => resolve(next.input && result === false ? null : result);
     });
   }, []);
 

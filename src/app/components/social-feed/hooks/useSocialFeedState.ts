@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { socialFeedService } from "../../../services/socialFeedService";
 import { commentService } from "../../../services/commentService";
 import { workoutService } from "../../../services/workoutService";
-import { socialFeedStorage } from "../../../storage/socialFeedStorage";
+
 import { invalidateWorkoutCaches, pageCacheStorage } from "../../../storage/pageCacheStorage";
 import { useAuth } from "../../../auth/AuthContext";
 import { subscribeSocialEvents } from "../../../services/socialEventsService";
@@ -13,8 +13,6 @@ import { normalizeMuscleGroupLabels } from "../../../services/muscleGroups";
 import type { LiveFriend, SocialFeedPost } from "../types";
 
 const FEED_TTL_MS = 5 * 60 * 1000;
-const FEED_CACHE_KEY = "feed.page-0";
-const LIVE_FRIENDS_TTL_MS = 30 * 1000;
 
 interface FeedMemoryCache {
   userId: string | null;
@@ -24,12 +22,17 @@ interface FeedMemoryCache {
   savedAt: number;
 }
 
+// Não persista posts de terceiros: ao abrir o app, a visibilidade vem da API.
 let feedMemoryCache: FeedMemoryCache | null = null;
-let lastLiveFriendsFetchedAt = 0;
+const visibilityListeners = new Set<(userId: string) => void>();
 
 export function resetFeedCache() {
   feedMemoryCache = null;
-  lastLiveFriendsFetchedAt = 0;
+}
+
+export function invalidateFeedVisibility(userId: string) {
+  if (feedMemoryCache?.userId === userId) resetFeedCache();
+  for (const listener of visibilityListeners) listener(userId);
 }
 
 // A mutação pode acontecer no perfil enquanto o feed está desmontado.
@@ -68,10 +71,10 @@ export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: ()
   const initialPosts = isCacheForUser ? feedMemoryCache!.posts : [];
   const initialHasMore = isCacheForUser ? feedMemoryCache!.hasMore : true;
   const initialPage = isCacheForUser ? feedMemoryCache!.page : 0;
-  const initialLoading = initialPosts.length === 0;
+  const initialLoading = !isCacheForUser;
 
   const [posts, setPosts] = useState<SocialFeedPost[]>(initialPosts);
-  const [liveFriends, setLiveFriends] = useState<LiveFriend[]>(() => socialFeedStorage.getLiveFriends());
+  const [liveFriends, setLiveFriends] = useState<LiveFriend[]>([]);
   const [isLoading, setIsLoading] = useState(initialLoading);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialHasMore);
@@ -80,19 +83,8 @@ export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: ()
   // Um evento pode chegar enquanto a primeira página ainda está em trânsito. O
   // contador pendente é aplicado à resposta para que ela não reverta o SSE.
   const likeCountsByPostId = useRef(new Map<string, number>());
-
-  useEffect(() => {
-    const invalidateComments = () => {
-      resetFeedCache();
-      void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
-    };
-    const unsubscribe = commentService.subscribe(invalidateComments);
-    const controller = new AbortController();
-    void subscribeSocialEvents((event) => {
-      if (event.type === "POST_COMMENTS_CHANGED") invalidateComments();
-    }, controller.signal);
-    return () => { unsubscribe(); controller.abort(); };
-  }, [userId]);
+  const postsRequest = useRef<symbol | null>(null);
+  const liveRequest = useRef(0);
 
   function withPendingLikeCounts(nextPosts: SocialFeedPost[]) {
     return nextPosts.map((post) => {
@@ -101,31 +93,16 @@ export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: ()
     });
   }
 
-  async function loadFirstPage({ hydrateCache = false, silent = false } = {}) {
-    if (!silent) {
-      setIsLoading(!hydrateCache);
-    }
+  async function loadFirstPage({ silent = false } = {}) {
+    // A primeira página suplanta também a paginação que ainda estiver em voo.
+    const request = Symbol();
+    postsRequest.current = request;
+    setIsLoading(!silent);
+    setIsLoadingMore(false);
     setError(null);
-    if (hydrateCache && posts.length === 0) {
-      const cached = await pageCacheStorage.get<{ posts: SocialFeedPost[]; last: boolean }>(userId, FEED_CACHE_KEY, FEED_TTL_MS);
-      if (cached && cached.posts.length > 0) {
-        const postsWithLikes = withPendingLikeCounts(cached.posts);
-        setPosts(postsWithLikes);
-        setHasMore(!cached.last);
-        setPage(0);
-        setIsLoading(false);
-        feedMemoryCache = {
-          userId,
-          posts: postsWithLikes,
-          hasMore: !cached.last,
-          page: 0,
-          savedAt: Date.now(),
-        };
-        return;
-      }
-    }
     try {
       const response = await socialFeedService.load(0);
+      if (postsRequest.current !== request) return;
       const postsWithLikes = withPendingLikeCounts(response.posts);
       setPosts(postsWithLikes);
       setHasMore(!response.last);
@@ -137,58 +114,50 @@ export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: ()
         page: 0,
         savedAt: Date.now(),
       };
-      void pageCacheStorage.set(userId, FEED_CACHE_KEY, response);
+
     } catch (err) {
-      if (!silent || posts.length === 0) {
+      if (postsRequest.current === request && !silent) {
         setError(err instanceof Error ? err.message : "Não foi possível carregar o feed.");
       }
     } finally {
-      setIsLoading(false);
+      if (postsRequest.current === request) {
+        postsRequest.current = null;
+        setIsLoading(false);
+      }
+    }
+  }
+
+  async function loadLive() {
+    const request = ++liveRequest.current;
+    try {
+      const friends = await socialFeedService.loadLive();
+      if (liveRequest.current === request) setLiveFriends(friends.map(normalizeLiveFriend));
+    } catch {
+      if (liveRequest.current === request) setLiveFriends([]);
     }
   }
 
   useEffect(() => {
-    if (isMemoryFresh && posts.length > 0) {
-      return;
-    }
-    const silent = posts.length > 0;
-    void loadFirstPage({ hydrateCache: posts.length === 0, silent });
-  }, [userId]);
-
-  useEffect(() => {
-    const now = Date.now();
-    if (now - lastLiveFriendsFetchedAt < LIVE_FRIENDS_TTL_MS && liveFriends.length > 0) {
-      return;
-    }
-
-    let active = true;
-    void socialFeedService.loadLive()
-      .then((friends) => {
-        if (!active) return;
-        lastLiveFriendsFetchedAt = Date.now();
-        setLiveFriends(friends.map(normalizeLiveFriend));
-      })
-      .catch(() => {
-        if (!active) return;
-        setLiveFriends([]);
-      });
-
-    return () => {
-      active = false;
+    const refreshVisibility = (changedUserId: string) => {
+      if (changedUserId !== userId) return;
+      setLiveFriends([]);
+      setPosts([]);
+      setHasMore(false);
+      setPage(0);
+      likeCountsByPostId.current.clear();
+      void loadLive();
+      void loadFirstPage();
     };
-  }, []);
+    visibilityListeners.add(refreshVisibility);
 
-  useEffect(() => {
-    if (liveFriends.length === 0) {
-      socialFeedStorage.clearLiveFriends();
-    } else {
-      socialFeedStorage.setLiveFriends(liveFriends);
-    }
-  }, [liveFriends]);
-
-  useEffect(() => {
+    if (!isMemoryFresh) void loadFirstPage({ silent: posts.length > 0 });
+    void loadLive();
     const controller = new AbortController();
     void subscribeSocialEvents((event) => {
+      if (event.type === "POST_COMMENTS_CHANGED") {
+        resetFeedCache();
+        return;
+      }
       if (event.type === "POST_LIKED") {
         const { postId, totalLikes } = event.data;
         likeCountsByPostId.current.set(postId, totalLikes);
@@ -213,15 +182,13 @@ export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: ()
         setLiveFriends((current) => current.map((friend) => String(friend.id) === data.userId
           ? { ...friend, name: data.fullName, initials: initials(data.fullName), photoUrl: data.profilePicture }
           : friend));
-        void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
         return;
       }
       if (event.type === "WORKOUT_FINISHED") {
         resetFeedCache();
-        void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
         void loadFirstPage();
       }
-      if (event.type === "WORKOUT_CANCELED") {
+      if (event.type === "WORKOUT_CANCELED" || event.type === "WORKOUT_FINISHED") {
         setLiveFriends((current) => current.filter((item) => String(item.id) !== event.data.userId));
         return;
       }
@@ -241,7 +208,12 @@ export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: ()
         });
       }
     }, controller.signal);
-    return () => { controller.abort(); };
+    return () => {
+      visibilityListeners.delete(refreshVisibility);
+      postsRequest.current = null;
+      liveRequest.current += 1;
+      controller.abort();
+    };
   }, [userId]);
 
   useEffect(() => {
@@ -273,7 +245,6 @@ export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: ()
       }
       return next;
     });
-    void pageCacheStorage.remove(userId, FEED_CACHE_KEY);
 
     // 2. Chamada assíncrona para sincronizar com o backend
     try {
@@ -326,14 +297,18 @@ export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: ()
   }
 
   async function loadMore() {
-    if (isLoadingMore || !hasMore) return;
+    if (postsRequest.current || !hasMore) return;
+    const request = Symbol();
+    const previousCache = feedMemoryCache;
+    postsRequest.current = request;
     setIsLoadingMore(true);
     try {
       const nextPage = page + 1;
       const response = await socialFeedService.load(nextPage);
+      if (postsRequest.current !== request) return;
       setPosts((current) => {
         const next = [...current, ...withPendingLikeCounts(response.posts)];
-        if (feedMemoryCache && feedMemoryCache.userId === userId) {
+        if (previousCache && feedMemoryCache === previousCache && previousCache.userId === userId) {
           feedMemoryCache.posts = next;
           feedMemoryCache.page = nextPage;
           feedMemoryCache.hasMore = !response.last;
@@ -346,12 +321,15 @@ export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: ()
     } catch {
       // Mantem os posts atuais; o usuário pode rolar novamente para tentar de novo.
     } finally {
-      setIsLoadingMore(false);
+      if (postsRequest.current === request) {
+        postsRequest.current = null;
+        setIsLoadingMore(false);
+      }
     }
   }
 
   function retry() {
-    void loadFirstPage({ hydrateCache: false, silent: false });
+    void loadFirstPage();
   }
 
   async function handleDeletePost(postId: string | number) {
