@@ -62,7 +62,7 @@ export function WorkoutPostCard({
       }
       setIsDeleted(true);
       toast.success("Treino apagado com sucesso.");
-    } catch (e) {
+    } catch {
       toast.error(messages.actionFailed("apagar o treino"));
     }
   }

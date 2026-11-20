@@ -116,6 +116,9 @@ export default defineConfig(({ command, mode }) => {
     environment: "jsdom",
     globals: true,
     setupFiles: "./src/test/setup.ts",
+    // Em paralelo, o jsdom deixa testes de sessão e formulário acima do padrão de 5s,
+    // embora passem isolados; o limite maior evita falsos negativos sem esconder travas.
+    testTimeout: 15000,
   },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
