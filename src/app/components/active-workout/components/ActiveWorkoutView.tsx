@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { IonCol, IonGrid, IonInput, IonRow } from "@ionic/react";
-import { Clock3, Ellipsis, Plus, ChevronRight, ChevronLeft, Trash2 } from "lucide-react";
+import { Clock3, Ellipsis, Plus, ChevronLeft, Trash2 } from "lucide-react";
 import { motion as Motion } from "motion/react";
 import { BeeButton } from "../../BeeButton";
 import { PageBackground } from "../../PageBackground";

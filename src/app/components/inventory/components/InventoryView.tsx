@@ -80,7 +80,7 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function FilterPill<T extends string | null>({
+function FilterPill({
   active,
   label,
   onClick,
@@ -259,7 +259,7 @@ function FilterSection({
             </div>
             <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
               {RARITY_FILTER_OPTIONS.map((option) => (
-                <FilterPill<InventoryRarity | null>
+                <FilterPill
                   key={option.label}
                   active={filters.rarity === option.value}
                   label={option.label}
@@ -275,7 +275,7 @@ function FilterSection({
             </div>
             <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
               {MUSCLE_GROUP_FILTER_OPTIONS.map((option) => (
-                <FilterPill<InventoryMuscleGroup | null>
+                <FilterPill
                   key={option.label}
                   active={filters.muscleGroup === option.value}
                   label={option.label}
@@ -903,7 +903,7 @@ function TemplateFormSheet({
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {MUSCLE_GROUP_FILTER_OPTIONS.map((option) => (
-                    <FilterPill<InventoryMuscleGroup | null>
+                    <FilterPill
                       key={option.label}
                       active={catalogMuscleGroupFilter === option.value}
                       label={option.label}
@@ -989,7 +989,7 @@ export function InventoryView({
   templates,
   catalog,
   filters,
-  totalElements,
+  totalElements: _totalElements,
   isLoading,
   isLoadingMore,
   isLoadingTemplates,

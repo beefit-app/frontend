@@ -362,7 +362,7 @@ export function useSocialFeedState({ onWorkoutDeleted }: { onWorkoutDeleted?: ()
       }
       onWorkoutDeleted?.();
       toast.success("Treino apagado com sucesso.");
-    } catch (e) {
+    } catch {
       toast.error("Não foi possível apagar o treino.");
     }
   }
