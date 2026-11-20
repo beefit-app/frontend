@@ -80,6 +80,12 @@ export interface WorkoutDraft {
   photoMediaId?: string | null;
 }
 
+export type PendingWorkoutFinish = WorkoutDraft & {
+  pendingFinish: true;
+  idempotencyKey: string;
+  finishedAt: string;
+};
+
 export interface WorkoutCompletionSummary {
   workoutId: string;
   durationSeconds: number;

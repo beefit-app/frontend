@@ -187,6 +187,28 @@ describe("workoutService.finishWorkout", () => {
     expect(vi.mocked(apiClient.post).mock.calls[1][1]).toMatchObject({ photoMediaId: "media-1" });
   });
 
+  it("reutiliza a foto já registrada ao repetir o mesmo comando de conclusão", async () => {
+    const { apiClient } = await import("./apiClient");
+    const { workoutService } = await import("./workoutService");
+    vi.mocked(apiClient.post)
+      .mockResolvedValueOnce({ mediaId: "media-1" })
+      .mockRejectedValueOnce(new Error("A resposta do finish se perdeu."))
+      .mockResolvedValueOnce(finishedSession);
+    const draft = { ...createDraft(false), photoFile: new File(["foto"], "treino.jpg", { type: "image/jpeg" }) };
+    let preparedDraft: WorkoutCompletionDraft | undefined;
+
+    await expect(workoutService.finishWorkout(draft, async (prepared) => {
+      preparedDraft = prepared;
+    })).rejects.toThrow("A resposta do finish se perdeu.");
+    expect(preparedDraft?.photoMediaId).toBe("media-1");
+    await workoutService.finishWorkout(preparedDraft!);
+
+    const [upload, firstFinish, retry] = vi.mocked(apiClient.post).mock.calls;
+    expect(apiClient.post).toHaveBeenCalledTimes(3);
+    expect(upload[0]).toBe("/api/media/workout-photo");
+    expect(retry).toEqual(firstFinish);
+  });
+
   it("não confirma a finalização se a gravação local termina em outra sessão", async () => {
     const { apiClient } = await import("./apiClient");
     const { workoutService } = await import("./workoutService");
