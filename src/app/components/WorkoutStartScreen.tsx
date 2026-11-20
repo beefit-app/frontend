@@ -244,7 +244,17 @@ export function WorkoutStartScreen({
         if (!isCurrent()) return;
         if (session.status === "FINISHED") result = session;
         else if (session.status !== "IN_PROGRESS") {
-          throw new Error("O servidor informou que este treino não está mais ativo.");
+          // O treino foi encerrado por outro caminho e o snapshot nunca será aceito.
+          // Mantê-lo prenderia a aba numa tentativa que falha sempre.
+          await workoutDraftStorage.removeDraft(userId, workoutId).catch(() => undefined);
+          await removePersistedWorkoutPhoto(snapshot.photoFileName).catch(() => undefined);
+          if (!isCurrent()) return;
+          isClosingWorkoutRef.current = true;
+          resetWorkoutState();
+          setFinishProgress(null);
+          onActiveWorkoutChange?.(null);
+          setStartError("A finalização pendente não pôde ser retomada porque o treino não está mais ativo.");
+          return;
         }
       }
       if (!result && !snapshot.photoMediaId && snapshot.photoFileName && !photoFile) {

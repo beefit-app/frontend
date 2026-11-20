@@ -200,6 +200,24 @@ describe("WorkoutStartScreen", () => {
     await expect(workoutDraftStorage.getDraft("user-1", "workout-1")).resolves.toBeNull();
   });
 
+  it("descarta a finalização pendente quando o treino já não está ativo no servidor", async () => {
+    vi.mocked(workoutService.finishWorkout).mockRejectedValueOnce(new Error("Sem conexão."));
+    render(<WorkoutStartScreen onWorkoutCompleted={callbacks.completed} />);
+    fireEvent.click(await screen.findByRole("button", { name: "finalizar treino mockado" }));
+    expect(await screen.findByText("Finalização pendente")).toBeInTheDocument();
+
+    vi.mocked(workoutService.getWorkout).mockResolvedValueOnce({
+      ...finishedWorkout, status: "CANCELLED", startedAt, muscleGroups: ["Peito"], exercises: [],
+    } as never);
+    fireEvent.click(screen.getByText("Tentar novamente"));
+
+    expect(await screen.findByText(/não pôde ser retomada porque o treino não está mais ativo/)).toBeInTheDocument();
+    expect(screen.queryByText("Finalização pendente")).not.toBeInTheDocument();
+    await expect(workoutDraftStorage.getDraft("user-1", "workout-1")).resolves.toBeNull();
+    expect(workoutService.finishWorkout).toHaveBeenCalledOnce();
+    expect(callbacks.completed).not.toHaveBeenCalled();
+  });
+
   it("reconhece a conclusão confirmada sem enviar outro comando quando a resposta se perdeu", async () => {
     vi.mocked(workoutService.finishWorkout).mockRejectedValueOnce(new Error("Resposta indisponível."));
     const mounted = render(<WorkoutStartScreen onWorkoutCompleted={callbacks.completed} />);
